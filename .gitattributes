@@ -1,0 +1,3 @@
+# .gitattributes in the repo root
+*.sh          text eol=lf
+Dockerfile*   text eol=lf

@@ -1,0 +1,6 @@
+[[cost_per_day]]
+[[development_quality]]
+[[error_rate]]
+[[management_quality]]
+[[signing_bonus]]
+[[throughput]]

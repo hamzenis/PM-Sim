@@ -1,0 +1,41 @@
+name: softdsim
+services:
+  maria_application_db:
+    image: mariadb:11.8-noble
+    restart: unless-stopped
+    env_file: ../backend/.env
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - maria_store:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mongo_template_db:
+    image: mongo:8.2.2-noble
+    restart: unless-stopped
+    env_file: ../backend/.env
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo_store:/data/db
+      - mongo_config:/data/configdb
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --username \"$${MONGO_INITDB_ROOT_USERNAME}\" --password \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\" | grep 1"
+        ]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  maria_store:
+  mongo_store:
+  mongo_config:
