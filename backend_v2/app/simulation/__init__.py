@@ -1,4 +1,5 @@
 from app.simulation.capacity import CapacityError, allocate_weekly_hours, hours_from_allocation
+from app.simulation.employee_dynamics import EmployeeDynamicsRules, update_employee_dynamics
 from app.simulation.engine import create_initial_state
 from app.simulation.integration import IntegrationTestResult, apply_integration_testing
 from app.simulation.models import (
@@ -48,6 +49,7 @@ __all__ = [
     "DifficultyProbabilities",
     "DevelopmentResult",
     "Employee",
+    "EmployeeDynamicsRules",
     "EmployeeType",
     "ExpectedTaskOutput",
     "HireRequest",
@@ -81,5 +83,6 @@ __all__ = [
     "process_week",
     "realize_task_output",
     "team_efficiency",
+    "update_employee_dynamics",
     "weekly_staff_cost",
 ]

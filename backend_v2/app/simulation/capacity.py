@@ -20,9 +20,17 @@ def allocate_weekly_hours(
 def hours_from_allocation(
     capacity: WeeklyCapacity,
     allocation: ActivityAllocation,
+    *,
+    reserved_hours: float = 0,
 ) -> ActivityHours:
     """Turn student percentages into hours without creating extra capacity."""
-    hours = capacity.total_hours
+    if reserved_hours < 0:
+        raise ValueError("reserved hours cannot be negative")
+    if reserved_hours > capacity.total_hours:
+        raise CapacityError(
+            f"reserved {reserved_hours:g} hours but only {capacity.total_hours:g} are available"
+        )
+    hours = capacity.total_hours - reserved_hours
     return ActivityHours(
         development=hours * allocation.development / 100,
         unit_testing=hours * allocation.unit_testing / 100,

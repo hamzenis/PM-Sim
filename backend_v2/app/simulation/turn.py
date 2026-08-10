@@ -2,6 +2,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 
 from app.simulation.capacity import hours_from_allocation
+from app.simulation.employee_dynamics import EmployeeDynamicsRules, update_employee_dynamics
 from app.simulation.integration import IntegrationTestResult, apply_integration_testing
 from app.simulation.models import (
     ActivityHours,
@@ -28,6 +29,7 @@ class TurnRules:
     randomness: str
     working_days_per_week: int = 5
     hours_per_day: int = 8
+    employee_dynamics: EmployeeDynamicsRules = EmployeeDynamicsRules()
 
     def __post_init__(self) -> None:
         if self.randomness not in {"full", "semi", "none"}:
@@ -46,6 +48,8 @@ class SimulationEvent:
 class TurnResult:
     state: SimulationState
     activity_hours: ActivityHours
+    meeting_hours: float
+    training_hours: float
     events: tuple[SimulationEvent, ...]
 
 
@@ -76,7 +80,13 @@ def process_week(
         hours_per_day=rules.hours_per_day,
         overtime_hours_per_employee=decision.overtime_hours_per_employee,
     )
-    activity_hours = hours_from_allocation(capacity, decision.allocation)
+    meeting_hours = len(current.employees) * decision.meeting_hours_per_employee
+    training_hours = len(current.employees) * decision.training_hours_per_employee
+    activity_hours = hours_from_allocation(
+        capacity,
+        decision.allocation,
+        reserved_hours=meeting_hours + training_hours,
+    )
     events: list[SimulationEvent] = [
         SimulationEvent(
             kind="staffing_changed",
@@ -129,6 +139,25 @@ def process_week(
         )
     )
 
+    current = update_employee_dynamics(
+        current,
+        employee_types=employee_types,
+        overtime_hours_per_employee=decision.overtime_hours_per_employee,
+        meeting_hours_per_employee=decision.meeting_hours_per_employee,
+        training_hours_per_employee=decision.training_hours_per_employee,
+        rules=rules.employee_dynamics,
+    )
+    events.append(
+        SimulationEvent(
+            kind="employee_dynamics_updated",
+            values={
+                "overtime_hours_per_employee": decision.overtime_hours_per_employee,
+                "meeting_hours_per_employee": decision.meeting_hours_per_employee,
+                "training_hours_per_employee": decision.training_hours_per_employee,
+            },
+        )
+    )
+
     staff_cost = weekly_staff_cost(
         current.employees,
         employee_types=employee_types,
@@ -150,7 +179,13 @@ def process_week(
             ),
         )
     )
-    return TurnResult(state=current, activity_hours=activity_hours, events=tuple(events))
+    return TurnResult(
+        state=current,
+        activity_hours=activity_hours,
+        meeting_hours=meeting_hours,
+        training_hours=training_hours,
+        events=tuple(events),
+    )
 
 
 def _capacity_for(

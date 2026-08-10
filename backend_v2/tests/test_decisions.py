@@ -38,3 +38,9 @@ def test_duplicate_dismissals_are_rejected() -> None:
     )
     with pytest.raises(ValueError, match="cannot be dismissed more than once"):
         WeeklyDecision(allocation=allocation, dismiss_employee_ids=("one", "one"))
+
+
+def test_meeting_and_training_hours_cannot_be_negative() -> None:
+    allocation = ActivityAllocation(100, 0, 0, 0)
+    with pytest.raises(ValueError, match="cannot be negative"):
+        WeeklyDecision(allocation=allocation, meeting_hours_per_employee=-1)

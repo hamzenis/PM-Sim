@@ -71,6 +71,7 @@ def test_complete_development_week_updates_state_budget_time_and_events() -> Non
         "incorrect_specifications_created",
         "tasks_integration_tested",
         "tasks_returned_to_backlog",
+        "employee_dynamics_updated",
         "staff_cost_charged",
         "week_completed",
     ]

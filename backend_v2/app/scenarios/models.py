@@ -55,6 +55,11 @@ class RuleDefinition(StrictModel):
     randomness: Literal["full", "semi", "none"] = "full"
     stress_overtime_increase: Probability = 0.05
     stress_weekend_reduction: Probability = 0.20
+    overtime_motivation_decrease: Probability = 0.02
+    solo_stress_increase: Probability = 0.05
+    meeting_familiarity_increase: Probability = 0.05
+    training_skill_increase_rate: NonNegative = 0.10
+    training_motivation_boost: Probability = 0.10
     integration_test_days: int = Field(default=1, ge=0)
 
 

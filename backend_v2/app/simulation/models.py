@@ -220,7 +220,11 @@ class WeeklyDecision:
     hires: tuple[HireRequest, ...] = ()
     dismiss_employee_ids: tuple[str, ...] = ()
     overtime_hours_per_employee: float = 0
+    meeting_hours_per_employee: float = 0
+    training_hours_per_employee: float = 0
 
     def __post_init__(self) -> None:
         if len(self.dismiss_employee_ids) != len(set(self.dismiss_employee_ids)):
             raise ValueError("an employee cannot be dismissed more than once")
+        if self.meeting_hours_per_employee < 0 or self.training_hours_per_employee < 0:
+            raise ValueError("meeting and training hours cannot be negative")
