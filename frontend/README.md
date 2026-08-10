@@ -20,8 +20,14 @@ Erstelle eine `.env`-Datei im `frontend/`-Verzeichnis basierend auf `.env.templa
 
 ```bash
 # .env
-REACT_APP_DJANGO_HOST=http://localhost:8000
+REACT_APP_API_BASE_URL=
+REACT_APP_DJANGO_HOST=http://localhost:8001
 ```
+
+`REACT_APP_API_BASE_URL` is empty during local development so Create React App proxies requests
+to backend v2 at `http://127.0.0.1:8000`. The legacy host is temporary and is used only by pages
+that have not yet been migrated. Run the old backend on another port only when one of those pages
+is still needed.
 
 ---
 

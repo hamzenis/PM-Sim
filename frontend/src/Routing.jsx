@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext } from 'react';
 import { AuthContext } from './context/AuthProvider';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Landing from './pages/Landing';
@@ -10,7 +10,6 @@ import ResetPassword from './pages/ResetPassword';
 import Help from './pages/Help';
 import GDPR from './pages/GDPR';
 import Imprint from './pages/Imprint';
-import { getCookie } from './utils/utils';
 import NotFoundPage from './components/NotFoundPage';
 import ScenarioStudio from './pages/ScenarioStudio';
 import AddMultipleUsers from './pages/AddMultipleUsers';
@@ -20,40 +19,7 @@ import CourseOverview from './pages/CourseOverview';
 import ScenarioManagement from './pages/ScenarioManagement';
 
 const Routing = () => {
-	const { currentUser, setCurrentUser } = useContext(AuthContext);
-	const [isAuthenticating, setIsAuthenticating] = useState(true);
-
-	const authenticateUser = async () => {
-		try {
-			const res = await fetch(`${process.env.REACT_APP_DJANGO_HOST}/api/authenticated`, {
-				method: 'GET',
-				credentials: 'include',
-				headers: {
-					'X-CSRFToken': getCookie('csrftoken'),
-					'Content-Type': 'application/json',
-				},
-			});
-			return res;
-		} catch (err) {
-			console.log('Error:', err);
-		}
-	};
-
-	const isAuthenticated = async () => {
-		const res = await authenticateUser();
-		const resBody = await res.json();
-		setCurrentUser(resBody.user);
-	};
-
-	useEffect(() => {
-		isAuthenticated();
-	}, []);
-
-	useEffect(() => {
-		if (currentUser !== null) {
-			setIsAuthenticating(false);
-		}
-	}, [currentUser]);
+	const { currentUser, isAuthenticating } = useContext(AuthContext);
 
 	return (
 		<Routes>
@@ -86,7 +52,7 @@ const Routing = () => {
 					)}
 				</>
 			)}
-			{currentUser?.creator && (
+			{currentUser?.role === 'professor' && (
 				<>
 					{/* adding routes which are accessible for every logged-in user with role creator */}
 					<Route path="/scenario-studio" element={<ScenarioStudio />} />
@@ -95,7 +61,7 @@ const Routing = () => {
 					<Route path="/scenariomanagement" element={<ScenarioManagement />} />
 				</>
 			)}
-			{currentUser?.staff && (
+			{currentUser?.role === 'professor' && (
 				<>
 					{/* adding routes which are accessible for every logged-in user with role staff */}
 					<Route path="/users" element={<UserOverview />} />

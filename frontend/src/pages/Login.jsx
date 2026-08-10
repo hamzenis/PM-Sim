@@ -1,13 +1,13 @@
 import { Button, Checkbox, Flex, Heading, Input, InputGroup, InputRightElement, Stack, Text } from "@chakra-ui/react"
 import { HiOutlineEye, HiOutlineEyeOff, HiOutlineLogin } from "react-icons/hi";
 import React, { useContext, useState } from "react";
-import { getCookie } from "../utils/utils"
 import { AuthContext } from "../context/AuthProvider";
+import { ApiError } from "../api/client";
 import { Link } from 'react-router-dom'
 import landing_bg from "../images/landing_bg.svg"
 
 const Login = () => {
-    const { setCurrentUser } = useContext(AuthContext);
+    const { login } = useContext(AuthContext);
 
     // initialize states
     const [idInputValid, setIdInputValid] = useState(false)
@@ -26,62 +26,16 @@ const Login = () => {
         }
 
         setLogInSuccess('attempting')
-        const csrftoken = getCookie('csrftoken')
-        if (csrftoken === undefined) {
-            // get new unauthed token
-            await getCRSF()
-        }
-        // attempt login
-        let loginAttempt = await login()
-        if (loginAttempt.status === 403) {
-            // wrong/invalid crsf token
-            await getCRSF()
-            loginAttempt = await login()
-        }
-        if (loginAttempt.status === 400) {
-            // wrong user credentials
-            setLogInSuccess('wrongCredentials')
-        } else if (loginAttempt.status === 200) {
-            // login successful
+        try {
+            await login(userID, userPassword)
             setLogInSuccess('success')
-            const resBody = await loginAttempt.json()
-            setCurrentUser(resBody.user)
-        } else {
-            // unknown/unhandled error
-            console.log('unknown error - please try again')
-            setLogInSuccess('unknown')
-        }
-    }
-
-    // Login API call
-    async function login() {
-        try {
-            const res = await fetch(`${process.env.REACT_APP_DJANGO_HOST}/api/login`, {
-                method: 'POST',
-                credentials: 'include',
-                body: JSON.stringify({ "username": userID, "password": userPassword }),
-                headers: {
-                    "X-CSRFToken": getCookie("csrftoken"),
-                    "Content-Type": "application/json"
-                },
-            })
-            return await res
-        } catch (err) {
-            console.log('Error:', err)
-        }
-    }
-
-    // get new CRSF token
-    // old one gets deleted/replaced
-    async function getCRSF() {
-        // get new unauthed token
-        try {
-            await fetch(`${process.env.REACT_APP_DJANGO_HOST}/api/csrf-cookie`, {
-                method: 'GET',
-                credentials: 'include'
-            })
-        } catch (err) {
-            console.log(err)
+        } catch (error) {
+            if (error instanceof ApiError && error.status === 401) {
+                setLogInSuccess('wrongCredentials')
+            } else {
+                console.error('Login failed', error)
+                setLogInSuccess('unknown')
+            }
         }
     }
 
