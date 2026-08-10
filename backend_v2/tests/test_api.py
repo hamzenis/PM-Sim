@@ -41,6 +41,12 @@ def client() -> Generator[TestClient]:
                 password="student-password",
                 role=UserRole.STUDENT,
             )
+            create_user(
+                session,
+                username="other-professor",
+                password="other-professor-password",
+                role=UserRole.PROFESSOR,
+            )
         login = test_client.post(
             "/api/auth/login",
             json={"username": "professor", "password": "professor-password"},
@@ -113,6 +119,52 @@ def test_missing_scenario_returns_not_found(client: TestClient) -> None:
     response = client.get("/api/scenarios/missing")
     assert response.status_code == 404
     assert response.json() == {"detail": "scenario not found"}
+
+
+def test_scenario_revisions_are_append_only_owned_and_archivable(client: TestClient) -> None:
+    first = client.post("/api/scenarios", json=scenario_payload()).json()
+    scenario_id = client.get("/api/scenarios").json()[0]["id"]
+    client.post(f"/api/scenarios/{scenario_id}/revisions/1/publish")
+    revised_payload = scenario_payload()
+    revised_payload["project"] = {"budget": 2000, "working_days": 15}
+    second = client.post(
+        f"/api/scenarios/{scenario_id}/revisions",
+        json=revised_payload,
+    )
+    assert second.status_code == 201
+    assert second.json()["revision_number"] == 2
+    assert second.json()["status"] == "draft"
+    revisions = client.get(f"/api/scenarios/{scenario_id}").json()
+    assert revisions[0]["id"] == first["id"]
+    assert revisions[0]["status"] == "published"
+    assert revisions[1]["definition"]["project"]["budget"] == 2000
+
+    client.post("/api/auth/logout")
+    client.post(
+        "/api/auth/login",
+        json={
+            "username": "other-professor",
+            "password": "other-professor-password",
+        },
+    )
+    assert client.get("/api/scenarios").json() == []
+    assert client.get(f"/api/scenarios/{scenario_id}").status_code == 404
+    assert (
+        client.post(f"/api/scenarios/{scenario_id}/revisions", json=scenario_payload()).status_code
+        == 404
+    )
+
+    client.post("/api/auth/logout")
+    client.post(
+        "/api/auth/login",
+        json={"username": "professor", "password": "professor-password"},
+    )
+    assert client.post(f"/api/scenarios/{scenario_id}/archive").status_code == 204
+    assert client.get("/api/scenarios").json() == []
+    assert (
+        client.post(f"/api/scenarios/{scenario_id}/revisions", json=scenario_payload()).status_code
+        == 409
+    )
 
 
 def test_professor_assigns_published_scenario_and_student_can_list_it(

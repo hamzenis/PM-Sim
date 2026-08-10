@@ -8,6 +8,7 @@ from app.db.models import (
     ClassRecord,
     RevisionStatus,
     ScenarioAvailabilityRecord,
+    ScenarioRecord,
     ScenarioRevisionRecord,
     UserRecord,
     UserRole,
@@ -91,6 +92,9 @@ def assign_scenario(
     revision = session.get(ScenarioRevisionRecord, scenario_revision_id)
     if revision is None or revision.status != RevisionStatus.PUBLISHED:
         raise ClassError("a published scenario revision is required")
+    scenario = session.get(ScenarioRecord, revision.scenario_id)
+    if scenario is None or scenario.owner_id != professor_id or scenario.archived_at is not None:
+        raise ClassError("published scenario revision not found")
     existing = session.scalar(
         select(ScenarioAvailabilityRecord).where(
             ScenarioAvailabilityRecord.class_id == course_class.id,

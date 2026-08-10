@@ -46,9 +46,9 @@ def users(session: Session):
     return professor, student
 
 
-def published_revision(session: Session):
+def published_revision(session: Session, *, owner_id: str):
     now = datetime.now(UTC)
-    scenario = ScenarioRecord(name="Scenario", created_at=now)
+    scenario = ScenarioRecord(name="Scenario", owner_id=owner_id, created_at=now)
     revision = ScenarioRevisionRecord(
         scenario=scenario,
         revision_number=1,
@@ -72,7 +72,7 @@ def test_professor_can_group_student_and_publish_scenario_to_class(session: Sess
         class_id=course_class.id,
         username=student.username,
     )
-    revision = published_revision(session)
+    revision = published_revision(session, owner_id=professor.id)
     availability = assign_scenario(
         session,
         professor_id=professor.id,
@@ -118,7 +118,7 @@ def test_duplicate_membership_and_availability_are_idempotent(session: Session) 
         class_id=course_class.id,
         username=student.username,
     )
-    revision = published_revision(session)
+    revision = published_revision(session, owner_id=professor.id)
     first_availability = assign_scenario(
         session,
         professor_id=professor.id,

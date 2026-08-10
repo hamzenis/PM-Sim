@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.classes.service import accessible_class_for_revision
 from app.db.models import (
     RevisionStatus,
+    ScenarioRecord,
     ScenarioRevisionRecord,
     SimulationRunRecord,
     SimulationTurnRecord,
@@ -149,6 +150,9 @@ def start_simulation_run(
     revision = session.get(ScenarioRevisionRecord, scenario_revision_id)
     if revision is None or revision.status != RevisionStatus.PUBLISHED:
         raise SimulationRunError("a published scenario revision is required")
+    scenario_record = session.get(ScenarioRecord, revision.scenario_id)
+    if scenario_record is None or scenario_record.archived_at is not None:
+        raise SimulationRunError("scenario is not available")
     accessible_class_id = accessible_class_for_revision(
         session,
         user_id=user.id,

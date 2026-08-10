@@ -9,8 +9,11 @@ from app.api.auth import ProfessorUser
 from app.db.session import get_session
 from app.scenarios.models import ScenarioDefinition
 from app.scenarios.service import (
+    ScenarioArchivedError,
     ScenarioNotFoundError,
     ScenarioRevisionNotFoundError,
+    archive_scenario,
+    create_revision,
     create_scenario,
     get_scenario,
     list_scenarios,
@@ -50,13 +53,13 @@ def validate_scenario(scenario: ScenarioDefinition, _user: ProfessorUser) -> Sce
 def upload_scenario(
     scenario: ScenarioDefinition,
     session: DatabaseSession,
-    _user: ProfessorUser,
+    user: ProfessorUser,
 ) -> object:
-    return create_scenario(session, scenario)
+    return create_scenario(session, scenario, owner_id=user.id)
 
 
 @router.get("", response_model=list[ScenarioSummary])
-def get_scenarios(session: DatabaseSession, _user: ProfessorUser) -> list[ScenarioSummary]:
+def get_scenarios(session: DatabaseSession, user: ProfessorUser) -> list[ScenarioSummary]:
     return [
         ScenarioSummary(
             id=scenario.id,
@@ -64,7 +67,7 @@ def get_scenarios(session: DatabaseSession, _user: ProfessorUser) -> list[Scenar
             latest_revision=scenario.revisions[-1].revision_number,
             latest_status=scenario.revisions[-1].status,
         )
-        for scenario in list_scenarios(session)
+        for scenario in list_scenarios(session, owner_id=user.id)
     ]
 
 
@@ -72,10 +75,10 @@ def get_scenarios(session: DatabaseSession, _user: ProfessorUser) -> list[Scenar
 def get_scenario_revisions(
     scenario_id: str,
     session: DatabaseSession,
-    _user: ProfessorUser,
+    user: ProfessorUser,
 ) -> object:
     try:
-        return get_scenario(session, scenario_id).revisions
+        return get_scenario(session, scenario_id, owner_id=user.id).revisions
     except ScenarioNotFoundError as error:
         raise HTTPException(status_code=404, detail="scenario not found") from error
 
@@ -88,9 +91,52 @@ def publish_scenario_revision(
     scenario_id: str,
     revision_number: int,
     session: DatabaseSession,
-    _user: ProfessorUser,
+    user: ProfessorUser,
 ) -> object:
     try:
-        return publish_revision(session, scenario_id, revision_number)
-    except ScenarioRevisionNotFoundError as error:
+        return publish_revision(
+            session,
+            scenario_id,
+            revision_number,
+            owner_id=user.id,
+        )
+    except (ScenarioNotFoundError, ScenarioRevisionNotFoundError) as error:
         raise HTTPException(status_code=404, detail="scenario revision not found") from error
+    except ScenarioArchivedError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@router.post(
+    "/{scenario_id}/revisions",
+    response_model=RevisionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_scenario_revision(
+    scenario_id: str,
+    definition: ScenarioDefinition,
+    session: DatabaseSession,
+    user: ProfessorUser,
+) -> object:
+    try:
+        return create_revision(
+            session,
+            scenario_id=scenario_id,
+            owner_id=user.id,
+            definition=definition,
+        )
+    except ScenarioNotFoundError as error:
+        raise HTTPException(status_code=404, detail="scenario not found") from error
+    except ScenarioArchivedError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@router.post("/{scenario_id}/archive", status_code=status.HTTP_204_NO_CONTENT)
+def archive_scenario_route(
+    scenario_id: str,
+    session: DatabaseSession,
+    user: ProfessorUser,
+) -> None:
+    try:
+        archive_scenario(session, scenario_id, owner_id=user.id)
+    except ScenarioNotFoundError as error:
+        raise HTTPException(status_code=404, detail="scenario not found") from error

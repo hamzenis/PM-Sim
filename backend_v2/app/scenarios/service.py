@@ -15,31 +15,68 @@ class ScenarioRevisionNotFoundError(LookupError):
     pass
 
 
-def create_scenario(session: Session, definition: ScenarioDefinition) -> ScenarioRevisionRecord:
-    """Create a scenario with its first immutable-input draft revision."""
+class ScenarioArchivedError(ValueError):
+    pass
+
+
+def create_scenario(
+    session: Session,
+    definition: ScenarioDefinition,
+    *,
+    owner_id: str,
+) -> ScenarioRevisionRecord:
+    """Create an owned scenario with its first draft revision."""
     now = datetime.now(UTC)
-    scenario = ScenarioRecord(name=definition.name, created_at=now)
-    revision = ScenarioRevisionRecord(
-        scenario=scenario,
-        revision_number=1,
-        schema_version=definition.schema_version,
-        definition=definition.model_dump(mode="json"),
+    scenario = ScenarioRecord(
+        owner_id=owner_id,
+        name=definition.name,
         created_at=now,
     )
+    revision = _new_revision(scenario, definition, revision_number=1, now=now)
     session.add(scenario)
     session.commit()
     session.refresh(revision)
     return revision
 
 
-def list_scenarios(session: Session) -> list[ScenarioRecord]:
-    statement = select(ScenarioRecord).order_by(ScenarioRecord.name, ScenarioRecord.id)
+def create_revision(
+    session: Session,
+    *,
+    scenario_id: str,
+    owner_id: str,
+    definition: ScenarioDefinition,
+) -> ScenarioRevisionRecord:
+    """Append a draft rather than editing a published revision in place."""
+    scenario = get_scenario(session, scenario_id, owner_id=owner_id)
+    if scenario.archived_at is not None:
+        raise ScenarioArchivedError("scenario is archived")
+    revision = _new_revision(
+        scenario,
+        definition,
+        revision_number=scenario.revisions[-1].revision_number + 1,
+        now=datetime.now(UTC),
+    )
+    session.add(revision)
+    session.commit()
+    session.refresh(revision)
+    return revision
+
+
+def list_scenarios(session: Session, *, owner_id: str) -> list[ScenarioRecord]:
+    statement = (
+        select(ScenarioRecord)
+        .where(
+            ScenarioRecord.owner_id == owner_id,
+            ScenarioRecord.archived_at.is_(None),
+        )
+        .order_by(ScenarioRecord.name, ScenarioRecord.id)
+    )
     return list(session.scalars(statement))
 
 
-def get_scenario(session: Session, scenario_id: str) -> ScenarioRecord:
+def get_scenario(session: Session, scenario_id: str, *, owner_id: str) -> ScenarioRecord:
     scenario = session.get(ScenarioRecord, scenario_id)
-    if scenario is None:
+    if scenario is None or scenario.owner_id != owner_id:
         raise ScenarioNotFoundError(scenario_id)
     return scenario
 
@@ -48,12 +85,16 @@ def publish_revision(
     session: Session,
     scenario_id: str,
     revision_number: int,
+    *,
+    owner_id: str,
 ) -> ScenarioRevisionRecord:
-    statement = select(ScenarioRevisionRecord).where(
-        ScenarioRevisionRecord.scenario_id == scenario_id,
-        ScenarioRevisionRecord.revision_number == revision_number,
+    scenario = get_scenario(session, scenario_id, owner_id=owner_id)
+    if scenario.archived_at is not None:
+        raise ScenarioArchivedError("scenario is archived")
+    revision = next(
+        (item for item in scenario.revisions if item.revision_number == revision_number),
+        None,
     )
-    revision = session.scalar(statement)
     if revision is None:
         raise ScenarioRevisionNotFoundError(f"{scenario_id}:{revision_number}")
     if revision.status == RevisionStatus.DRAFT:
@@ -62,3 +103,28 @@ def publish_revision(
         session.commit()
         session.refresh(revision)
     return revision
+
+
+def archive_scenario(session: Session, scenario_id: str, *, owner_id: str) -> ScenarioRecord:
+    scenario = get_scenario(session, scenario_id, owner_id=owner_id)
+    if scenario.archived_at is None:
+        scenario.archived_at = datetime.now(UTC)
+        session.commit()
+        session.refresh(scenario)
+    return scenario
+
+
+def _new_revision(
+    scenario: ScenarioRecord,
+    definition: ScenarioDefinition,
+    *,
+    revision_number: int,
+    now: datetime,
+) -> ScenarioRevisionRecord:
+    return ScenarioRevisionRecord(
+        scenario=scenario,
+        revision_number=revision_number,
+        schema_version=definition.schema_version,
+        definition=definition.model_dump(mode="json"),
+        created_at=now,
+    )

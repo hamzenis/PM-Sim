@@ -66,7 +66,9 @@ class ScenarioRecord(Base):
     __tablename__ = "scenarios"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    owner_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(200), index=True)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
     revisions: Mapped[list["ScenarioRevisionRecord"]] = relationship(

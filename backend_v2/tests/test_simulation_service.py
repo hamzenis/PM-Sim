@@ -138,6 +138,19 @@ def test_run_requires_class_scenario_availability(session: Session) -> None:
         )
 
 
+def test_run_cannot_start_after_scenario_is_archived(session: Session) -> None:
+    user, revision = persisted_inputs(session)
+    revision.scenario.archived_at = datetime.now(UTC)
+    session.commit()
+    with pytest.raises(SimulationRunError, match="not available"):
+        start_simulation_run(
+            session,
+            user_id=user.id,
+            scenario_revision_id=revision.id,
+            seed=42,
+        )
+
+
 def test_runs_are_listed_and_read_only_for_their_owner(session: Session) -> None:
     user, revision = persisted_inputs(session)
     run = start_simulation_run(session, user_id=user.id, scenario_revision_id=revision.id, seed=3)
