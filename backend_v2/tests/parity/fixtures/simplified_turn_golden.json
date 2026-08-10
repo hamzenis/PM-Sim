@@ -1,0 +1,220 @@
+{
+  "initial_state": {
+    "week": 0,
+    "elapsed_working_days": 0,
+    "remaining_working_days": 7,
+    "initial_budget": 10000,
+    "remaining_budget": 10000,
+    "tasks_todo": {
+      "easy": 10,
+      "medium": 20,
+      "hard": 10
+    },
+    "tasks_completed": {
+      "easy": 0,
+      "medium": 0,
+      "hard": 0
+    },
+    "tasks_unit_tested": {
+      "easy": 0,
+      "medium": 0,
+      "hard": 0
+    },
+    "tasks_integration_tested": {
+      "easy": 0,
+      "medium": 0,
+      "hard": 0
+    },
+    "known_bugs": {
+      "easy": 0,
+      "medium": 0,
+      "hard": 0
+    },
+    "undiscovered_bugs": {
+      "easy": 0,
+      "medium": 0,
+      "hard": 0
+    },
+    "incorrect_specifications": {
+      "easy": 0,
+      "medium": 0,
+      "hard": 0
+    },
+    "employees": []
+  },
+  "decision": {
+    "allocation": {
+      "development": 100,
+      "unit_testing": 0,
+      "bug_fixing": 0,
+      "integration_testing": 0
+    },
+    "hires": [
+      {
+        "employee_type_code": "developer",
+        "count": 1
+      }
+    ],
+    "dismiss_employee_ids": [],
+    "overtime_hours_per_employee": 0,
+    "meeting_hours_per_employee": 0,
+    "training_hours_per_employee": 0
+  },
+  "result": {
+    "state": {
+      "week": 1,
+      "elapsed_working_days": 5,
+      "remaining_working_days": 2,
+      "initial_budget": 10000,
+      "remaining_budget": 9500.0,
+      "tasks_todo": {
+        "easy": 6,
+        "medium": 16,
+        "hard": 9
+      },
+      "tasks_completed": {
+        "easy": 4,
+        "medium": 4,
+        "hard": 1
+      },
+      "tasks_unit_tested": {
+        "easy": 0,
+        "medium": 0,
+        "hard": 0
+      },
+      "tasks_integration_tested": {
+        "easy": 0,
+        "medium": 0,
+        "hard": 0
+      },
+      "known_bugs": {
+        "easy": 0,
+        "medium": 0,
+        "hard": 0
+      },
+      "undiscovered_bugs": {
+        "easy": 0,
+        "medium": 0,
+        "hard": 0
+      },
+      "incorrect_specifications": {
+        "easy": 0,
+        "medium": 0,
+        "hard": 0
+      },
+      "employees": [
+        {
+          "id": "employee-1",
+          "employee_type_code": "developer",
+          "motivation": 0.75,
+          "stress": 0,
+          "experience": 0,
+          "familiarity": 0
+        }
+      ]
+    },
+    "activity_hours": {
+      "development": 40.0,
+      "unit_testing": 0.0,
+      "bug_fixing": 0.0,
+      "integration_testing": 0.0
+    },
+    "meeting_hours": 0,
+    "training_hours": 0,
+    "events": [
+      {
+        "kind": "staffing_changed",
+        "values": {
+          "hired": 1,
+          "dismissed": 0,
+          "team_size": 1
+        }
+      },
+      {
+        "kind": "tasks_unit_tested",
+        "values": {
+          "easy": 0,
+          "medium": 0,
+          "hard": 0
+        }
+      },
+      {
+        "kind": "bugs_discovered",
+        "values": {
+          "easy": 0,
+          "medium": 0,
+          "hard": 0
+        }
+      },
+      {
+        "kind": "bugs_fixed",
+        "values": {
+          "easy": 0,
+          "medium": 0,
+          "hard": 0
+        }
+      },
+      {
+        "kind": "tasks_completed",
+        "values": {
+          "easy": 4,
+          "medium": 4,
+          "hard": 1
+        }
+      },
+      {
+        "kind": "bugs_created",
+        "values": {
+          "easy": 0,
+          "medium": 0,
+          "hard": 0
+        }
+      },
+      {
+        "kind": "incorrect_specifications_created",
+        "values": {
+          "easy": 0,
+          "medium": 0,
+          "hard": 0
+        }
+      },
+      {
+        "kind": "tasks_integration_tested",
+        "values": {
+          "easy": 0,
+          "medium": 0,
+          "hard": 0
+        }
+      },
+      {
+        "kind": "tasks_returned_to_backlog",
+        "values": {
+          "easy": 0,
+          "medium": 0,
+          "hard": 0
+        }
+      },
+      {
+        "kind": "employee_dynamics_updated",
+        "values": {
+          "overtime_hours_per_employee": 0,
+          "meeting_hours_per_employee": 0,
+          "training_hours_per_employee": 0
+        }
+      },
+      {
+        "kind": "staff_cost_charged",
+        "values": {
+          "amount": 500.0
+        }
+      },
+      {
+        "kind": "week_completed",
+        "values": {
+          "week": 1,
+          "working_days": 5
+        }
+      }
+    ]
+  }
+}

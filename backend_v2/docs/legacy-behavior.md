@@ -30,7 +30,7 @@ parity work, not a claim that every legacy behavior is desirable.
 Golden values are stored in `tests/parity/fixtures`. `app.parity.comparison` compares nested
 old/new snapshots and reports exact JSON-style paths.
 
-## Confirmed differences requiring a decision
+## Approved simplified rewrite behavior
 
 - Legacy tasks have one scalar throughput plus a development-quality field. The rewrite uses
   easy/medium/hard throughput values.
@@ -48,5 +48,10 @@ old/new snapshots and reports exact JSON-style paths.
 - Legacy randomness uses both Python's global RNG and NumPy's global RNG. Replaying a run
   requires controlling both streams and stabilizing unordered task-set iteration.
 
-No difference in this section should be changed silently. It must be classified as parity,
-an approved redesign, or an unresolved ambiguity before altering the new engine.
+The differences above are approved redesigns and must remain the rewrite behavior. Their
+machine-readable decision records are in `docs/approved-redesigns.json`. Legacy formulas stay
+available for archaeology and comparison, but parity work must not reintroduce the old scalar
+throughput, boolean work modes, reserved integration day, global RNG, or legacy scoring rules.
+
+Any newly discovered difference must still be classified as parity, an approved redesign, or
+an unresolved ambiguity before altering the new engine.

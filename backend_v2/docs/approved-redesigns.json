@@ -1,0 +1,51 @@
+[
+  {
+    "id": "ADR-SIM-001",
+    "topic": "task throughput",
+    "decision": "Use easy, medium, and hard throughput per employee type.",
+    "legacy": "One scalar throughput plus development quality.",
+    "status": "approved"
+  },
+  {
+    "id": "ADR-SIM-002",
+    "topic": "weekly work allocation",
+    "decision": "Students allocate percentages of shared weekly staff capacity.",
+    "legacy": "Boolean actions consume each member's capacity in a fixed order.",
+    "status": "approved"
+  },
+  {
+    "id": "ADR-SIM-003",
+    "topic": "integration testing",
+    "decision": "Integration testing uses its allocated share of team hours.",
+    "legacy": "Integration testing reserves one complete project day.",
+    "status": "approved"
+  },
+  {
+    "id": "ADR-SIM-004",
+    "topic": "employee dynamics",
+    "decision": "Apply configured weekly stress, motivation, familiarity, and training rules.",
+    "legacy": "Apply daily rules, including weekend reduction on day zero.",
+    "status": "approved"
+  },
+  {
+    "id": "ADR-SIM-005",
+    "topic": "accepted tasks",
+    "decision": "Only integration-tested tasks count as accepted for scoring.",
+    "legacy": "Done, bug-free, correctly specified tasks count as accepted.",
+    "status": "approved"
+  },
+  {
+    "id": "ADR-SIM-006",
+    "topic": "score rounding",
+    "decision": "Use the rewrite's explicit score model and rounding behavior.",
+    "legacy": "Truncate remaining percentage before applying category limits.",
+    "status": "approved"
+  },
+  {
+    "id": "ADR-SIM-007",
+    "topic": "randomness",
+    "decision": "Use one injected, seeded random source and record turn seeds.",
+    "legacy": "Use global Python and NumPy random streams.",
+    "status": "approved"
+  }
+]
