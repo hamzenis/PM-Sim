@@ -5,11 +5,22 @@ This directory contains the Python 3.13 rewrite. It deliberately coexists with t
 
 ## Run locally
 
+Using the standard Python tools:
+
 ```bash
-uv sync
-uv run alembic upgrade head
-uv run uvicorn app.main:app --reload
+python3.13 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+python main.py create-professor --username professor
+python main.py --reload
 ```
+
+`python main.py` applies Alembic migrations and starts one Uvicorn process. Use
+`python main.py --help` for host, port, reload, and migration options. Runtime settings are
+listed in `.env.example`; export the values you want before starting the process. The project
+also remains compatible with `uv sync` and `uv run python main.py`.
+
+Expired login sessions can be removed with `python main.py cleanup-sessions`.
 
 The API currently covers authentication, professor-owned scenarios and classes, student
 simulation runs, weekly decisions, submissions, and professor result audits. Interactive API

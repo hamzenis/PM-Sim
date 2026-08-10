@@ -1,20 +1,19 @@
-import os
 from collections.abc import Generator
 
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./pm_sim.db")
-SQLITE_BUSY_TIMEOUT_MS = int(os.getenv("SQLITE_BUSY_TIMEOUT_MS", "5000"))
-SQLITE_WAL = os.getenv("SQLITE_WAL", "true").lower() == "true"
+from app.config import settings
+
+DATABASE_URL = settings.database_url
 
 
 def create_database_engine(
     database_url: str,
     *,
-    sqlite_busy_timeout_ms: int = SQLITE_BUSY_TIMEOUT_MS,
-    sqlite_wal: bool = SQLITE_WAL,
+    sqlite_busy_timeout_ms: int = settings.sqlite_busy_timeout_ms,
+    sqlite_wal: bool = settings.sqlite_wal,
     **engine_options: object,
 ) -> Engine:
     """Create a portable engine with safe SQLite classroom defaults."""

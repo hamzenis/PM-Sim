@@ -1,4 +1,3 @@
-import os
 from typing import Annotated
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
@@ -6,11 +5,11 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from app.auth.service import AuthenticationError, login, logout, user_for_token
+from app.config import settings
 from app.db.models import UserRecord, UserRole
 from app.db.session import get_session
 
 SESSION_COOKIE = "pm_sim_session"
-COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 DatabaseSession = Annotated[Session, Depends(get_session)]
@@ -64,7 +63,7 @@ def login_route(credentials: LoginRequest, response: Response, session: Database
         SESSION_COOKIE,
         authenticated.token,
         httponly=True,
-        secure=COOKIE_SECURE,
+        secure=settings.cookie_secure,
         samesite="lax",
         expires=authenticated.expires_at,
     )
