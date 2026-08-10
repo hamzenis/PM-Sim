@@ -1,32 +1,63 @@
-from fastapi.testclient import TestClient
+from collections.abc import Generator
 
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.db.models import Base
+from app.db.session import get_session
 from app.main import app
 
-client = TestClient(app)
+
+@pytest.fixture
+def client() -> Generator[TestClient]:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    test_sessions = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
+
+    def override_session() -> Generator[Session]:
+        with test_sessions() as session:
+            yield session
+
+    app.dependency_overrides[get_session] = override_session
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
+    Base.metadata.drop_all(engine)
 
 
-def test_health() -> None:
+def test_health(client: TestClient) -> None:
     assert client.get("/health").json() == {"status": "ok"}
 
 
-def test_scenario_example_is_valid() -> None:
+def scenario_payload() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "name": "Example",
+        "project": {"budget": 1000, "working_days": 10},
+        "tasks": {"total": 20},
+        "employee_types": [
+            {
+                "code": "junior",
+                "name": "Junior",
+                "cost_per_day": 100,
+                "throughput": {"easy": 4, "medium": 2, "hard": 1},
+                "error_rate": 0.1,
+            }
+        ],
+    }
+
+
+def test_scenario_example_is_valid(client: TestClient) -> None:
     response = client.post(
         "/api/scenarios/validate",
-        json={
-            "schema_version": 1,
-            "name": "Example",
-            "project": {"budget": 1000, "working_days": 10},
-            "tasks": {"total": 20},
-            "employee_types": [
-                {
-                    "code": "junior",
-                    "name": "Junior",
-                    "cost_per_day": 100,
-                    "throughput": {"easy": 4, "medium": 2, "hard": 1},
-                    "error_rate": 0.1,
-                }
-            ],
-        },
+        json=scenario_payload(),
     )
     assert response.status_code == 200
     assert response.json()["tasks"]["difficulty_distribution"] == {
@@ -34,3 +65,32 @@ def test_scenario_example_is_valid() -> None:
         "medium": 0.5,
         "hard": 0.25,
     }
+
+
+def test_scenario_can_be_uploaded_listed_and_published(client: TestClient) -> None:
+    upload = client.post("/api/scenarios", json=scenario_payload())
+    assert upload.status_code == 201
+    revision = upload.json()
+    assert revision["revision_number"] == 1
+    assert revision["status"] == "draft"
+
+    scenarios = client.get("/api/scenarios")
+    assert scenarios.status_code == 200
+    scenario = scenarios.json()[0]
+    assert scenario["name"] == "Example"
+    assert scenario["latest_status"] == "draft"
+
+    publish = client.post(f"/api/scenarios/{scenario['id']}/revisions/1/publish")
+    assert publish.status_code == 200
+    assert publish.json()["status"] == "published"
+    assert publish.json()["published_at"] is not None
+
+    revisions = client.get(f"/api/scenarios/{scenario['id']}")
+    assert revisions.status_code == 200
+    assert revisions.json()[0]["definition"]["tasks"]["total"] == 20
+
+
+def test_missing_scenario_returns_not_found(client: TestClient) -> None:
+    response = client.get("/api/scenarios/missing")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "scenario not found"}
