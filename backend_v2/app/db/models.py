@@ -43,6 +43,25 @@ class AuthSessionRecord(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
 
+class ClassRecord(Base):
+    __tablename__ = "classes"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    name: Mapped[str] = mapped_column(String(200))
+    professor_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ClassMembershipRecord(Base):
+    __tablename__ = "class_memberships"
+    __table_args__ = (UniqueConstraint("class_id", "user_id", name="uq_class_membership"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    class_id: Mapped[str] = mapped_column(ForeignKey("classes.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class ScenarioRecord(Base):
     __tablename__ = "scenarios"
 
@@ -75,6 +94,20 @@ class ScenarioRevisionRecord(Base):
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     scenario: Mapped[ScenarioRecord] = relationship(back_populates="revisions")
+
+
+class ScenarioAvailabilityRecord(Base):
+    __tablename__ = "scenario_availability"
+    __table_args__ = (
+        UniqueConstraint("class_id", "scenario_revision_id", name="uq_class_scenario"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    class_id: Mapped[str] = mapped_column(ForeignKey("classes.id", ondelete="CASCADE"), index=True)
+    scenario_revision_id: Mapped[str] = mapped_column(
+        ForeignKey("scenario_revisions.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class SimulationRunRecord(Base):

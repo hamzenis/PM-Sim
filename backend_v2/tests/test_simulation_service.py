@@ -6,7 +6,10 @@ from sqlalchemy.orm import Session
 
 from app.db.models import (
     Base,
+    ClassMembershipRecord,
+    ClassRecord,
     RevisionStatus,
+    ScenarioAvailabilityRecord,
     ScenarioRecord,
     ScenarioRevisionRecord,
     UserRecord,
@@ -60,6 +63,12 @@ def persisted_inputs(session: Session, *, published: bool = True):
         role=UserRole.STUDENT,
         created_at=now,
     )
+    professor = UserRecord(
+        username="professor",
+        password_hash="not-used-in-this-service-test",
+        role=UserRole.PROFESSOR,
+        created_at=now,
+    )
     scenario = ScenarioRecord(name="Service Test", created_at=now)
     revision = ScenarioRevisionRecord(
         scenario=scenario,
@@ -70,7 +79,25 @@ def persisted_inputs(session: Session, *, published: bool = True):
         created_at=now,
         published_at=now if published else None,
     )
-    session.add_all([user, scenario])
+    session.add_all([user, professor, scenario])
+    session.commit()
+    course_class = ClassRecord(name="Class", professor_id=professor.id, created_at=now)
+    session.add(course_class)
+    session.flush()
+    session.add_all(
+        [
+            ClassMembershipRecord(
+                class_id=course_class.id,
+                user_id=user.id,
+                created_at=now,
+            ),
+            ScenarioAvailabilityRecord(
+                class_id=course_class.id,
+                scenario_revision_id=revision.id,
+                created_at=now,
+            ),
+        ]
+    )
     session.commit()
     return user, revision
 
@@ -85,6 +112,20 @@ def development_decision() -> WeeklyDecision:
 def test_run_requires_a_published_scenario_revision(session: Session) -> None:
     user, revision = persisted_inputs(session, published=False)
     with pytest.raises(SimulationRunError, match="published scenario"):
+        start_simulation_run(
+            session,
+            user_id=user.id,
+            scenario_revision_id=revision.id,
+            seed=42,
+        )
+
+
+def test_run_requires_class_scenario_availability(session: Session) -> None:
+    user, revision = persisted_inputs(session)
+    availability = session.query(ScenarioAvailabilityRecord).one()
+    session.delete(availability)
+    session.commit()
+    with pytest.raises(SimulationRunError, match="not available"):
         start_simulation_run(
             session,
             user_id=user.id,

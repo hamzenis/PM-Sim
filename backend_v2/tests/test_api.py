@@ -35,6 +35,12 @@ def client() -> Generator[TestClient]:
                 password="professor-password",
                 role=UserRole.PROFESSOR,
             )
+            create_user(
+                session,
+                username="student",
+                password="student-password",
+                role=UserRole.STUDENT,
+            )
         login = test_client.post(
             "/api/auth/login",
             json={"username": "professor", "password": "professor-password"},
@@ -107,3 +113,35 @@ def test_missing_scenario_returns_not_found(client: TestClient) -> None:
     response = client.get("/api/scenarios/missing")
     assert response.status_code == 404
     assert response.json() == {"detail": "scenario not found"}
+
+
+def test_professor_assigns_published_scenario_and_student_can_list_it(
+    client: TestClient,
+) -> None:
+    revision = client.post("/api/scenarios", json=scenario_payload()).json()
+    scenario_id = client.get("/api/scenarios").json()[0]["id"]
+    client.post(f"/api/scenarios/{scenario_id}/revisions/1/publish")
+
+    course_class = client.post("/api/classes", json={"name": "PM 2026"})
+    assert course_class.status_code == 201
+    class_id = course_class.json()["id"]
+    assert (
+        client.post(f"/api/classes/{class_id}/students", json={"username": "student"}).status_code
+        == 201
+    )
+    assert (
+        client.post(
+            f"/api/classes/{class_id}/scenarios",
+            json={"scenario_revision_id": revision["id"]},
+        ).status_code
+        == 201
+    )
+
+    client.post("/api/auth/logout")
+    client.post(
+        "/api/auth/login",
+        json={"username": "student", "password": "student-password"},
+    )
+    available = client.get("/api/classes/available-scenarios")
+    assert available.status_code == 200
+    assert available.json()[0]["id"] == revision["id"]

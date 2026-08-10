@@ -5,6 +5,7 @@ from uuid import uuid4
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.classes.service import user_can_access_revision
 from app.db.models import (
     RevisionStatus,
     ScenarioRevisionRecord,
@@ -56,6 +57,8 @@ def start_simulation_run(
     revision = session.get(ScenarioRevisionRecord, scenario_revision_id)
     if revision is None or revision.status != RevisionStatus.PUBLISHED:
         raise SimulationRunError("a published scenario revision is required")
+    if not user_can_access_revision(session, user.id, revision.id):
+        raise SimulationRunError("scenario revision is not available to this user")
     scenario = ScenarioDefinition.model_validate(revision.definition)
     now = datetime.now(UTC)
     run = SimulationRunRecord(
