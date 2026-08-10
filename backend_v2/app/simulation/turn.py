@@ -20,6 +20,7 @@ from app.simulation.quality import (
     incorrect_specification_probability,
 )
 from app.simulation.randomness import RandomSource
+from app.simulation.results import SimulationOutcome, evaluate_outcome
 from app.simulation.staffing import apply_staffing_changes, weekly_staff_cost
 from app.simulation.testing import BugFixResult, UnitTestResult, apply_bug_fixes, apply_unit_testing
 
@@ -179,6 +180,9 @@ def process_week(
             ),
         )
     )
+    outcome = evaluate_outcome(current)
+    if outcome is not SimulationOutcome.ACTIVE:
+        events.append(SimulationEvent(kind="simulation_finished", values={"outcome": outcome}))
     return TurnResult(
         state=current,
         activity_hours=activity_hours,

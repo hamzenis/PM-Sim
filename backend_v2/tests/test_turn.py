@@ -101,6 +101,8 @@ def test_final_week_uses_only_remaining_working_days() -> None:
     assert second.state.elapsed_working_days == 7
     assert second.state.remaining_working_days == 0
     assert second.state.remaining_budget == 9_300
+    assert second.events[-1].kind == "simulation_finished"
+    assert second.events[-1].values == {"outcome": "deadline_reached"}
 
     with pytest.raises(ValueError, match="deadline has already been reached"):
         process_week(

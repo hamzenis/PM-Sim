@@ -30,6 +30,15 @@ from app.simulation.quality import (
     incorrect_specification_probability,
 )
 from app.simulation.randomness import RandomSource, RecordedRandomSource, SeededRandomSource
+from app.simulation.results import (
+    ScoreRules,
+    SimulationOutcome,
+    SimulationResult,
+    SimulationScore,
+    build_simulation_result,
+    calculate_score,
+    evaluate_outcome,
+)
 from app.simulation.staffing import StaffingError, apply_staffing_changes, weekly_staff_cost
 from app.simulation.tasks import distribute_tasks
 from app.simulation.testing import (
@@ -56,8 +65,12 @@ __all__ = [
     "IntegrationTestResult",
     "RandomSource",
     "RecordedRandomSource",
+    "ScoreRules",
     "SimulationState",
     "SimulationEvent",
+    "SimulationOutcome",
+    "SimulationResult",
+    "SimulationScore",
     "SeededRandomSource",
     "StaffingError",
     "TaskPool",
@@ -74,9 +87,12 @@ __all__ = [
     "apply_unit_testing",
     "allocate_weekly_hours",
     "bug_probabilities",
+    "build_simulation_result",
+    "calculate_score",
     "create_initial_state",
     "distribute_tasks",
     "expected_development_output",
+    "evaluate_outcome",
     "hours_from_allocation",
     "incorrect_specification_probability",
     "member_efficiency",

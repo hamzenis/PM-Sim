@@ -63,6 +63,15 @@ class RuleDefinition(StrictModel):
     integration_test_days: int = Field(default=1, ge=0)
 
 
+class ScoringDefinition(StrictModel):
+    quality_limit: int = Field(default=100, ge=0)
+    time_limit: int = Field(default=100, ge=0)
+    budget_limit: int = Field(default=100, ge=0)
+    quality_exponent: NonNegative = 1
+    time_exponent: NonNegative = 1
+    budget_exponent: NonNegative = 1
+
+
 class ScenarioDefinition(StrictModel):
     schema_version: Literal[1]
     name: str = Field(min_length=1)
@@ -71,6 +80,7 @@ class ScenarioDefinition(StrictModel):
     tasks: TaskDefinition
     employee_types: list[EmployeeTypeDefinition] = Field(min_length=1)
     rules: RuleDefinition = Field(default_factory=RuleDefinition)
+    scoring: ScoringDefinition = Field(default_factory=ScoringDefinition)
 
     @model_validator(mode="after")
     def employee_codes_are_unique(self) -> "ScenarioDefinition":

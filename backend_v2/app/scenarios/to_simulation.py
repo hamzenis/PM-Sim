@@ -2,6 +2,7 @@ from app.scenarios.models import ScenarioDefinition
 from app.simulation.employee_dynamics import EmployeeDynamicsRules
 from app.simulation.engine import create_initial_state
 from app.simulation.models import EmployeeType, SimulationState, Throughput
+from app.simulation.results import ScoreRules
 from app.simulation.turn import TurnRules
 
 
@@ -48,4 +49,16 @@ def turn_rules_from_scenario(scenario: ScenarioDefinition) -> TurnRules:
             training_skill_increase_rate=rules.training_skill_increase_rate,
             training_motivation_boost=rules.training_motivation_boost,
         ),
+    )
+
+
+def score_rules_from_scenario(scenario: ScenarioDefinition) -> ScoreRules:
+    scoring = scenario.scoring
+    return ScoreRules(
+        quality_limit=scoring.quality_limit,
+        time_limit=scoring.time_limit,
+        budget_limit=scoring.budget_limit,
+        quality_exponent=scoring.quality_exponent,
+        time_exponent=scoring.time_exponent,
+        budget_exponent=scoring.budget_exponent,
     )
