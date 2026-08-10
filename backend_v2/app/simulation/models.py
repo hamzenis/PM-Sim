@@ -1,4 +1,11 @@
 from dataclasses import dataclass
+from enum import StrEnum
+
+
+class Difficulty(StrEnum):
+    EASY = "easy"
+    MEDIUM = "medium"
+    HARD = "hard"
 
 
 @dataclass(frozen=True, slots=True)
@@ -14,6 +21,90 @@ class TaskPool:
     @property
     def total(self) -> int:
         return self.easy + self.medium + self.hard
+
+
+@dataclass(frozen=True, slots=True)
+class Throughput:
+    easy: float
+    medium: float
+    hard: float
+
+    def __post_init__(self) -> None:
+        if min(self.easy, self.medium, self.hard) < 0:
+            raise ValueError("throughput cannot be negative")
+
+    def for_difficulty(self, difficulty: Difficulty) -> float:
+        return {
+            Difficulty.EASY: self.easy,
+            Difficulty.MEDIUM: self.medium,
+            Difficulty.HARD: self.hard,
+        }[difficulty]
+
+
+@dataclass(frozen=True, slots=True)
+class EmployeeType:
+    code: str
+    name: str
+    cost_per_day: float
+    throughput: Throughput
+    error_rate: float
+    management_skill: float = 0
+
+    def __post_init__(self) -> None:
+        if not self.code or not self.name:
+            raise ValueError("employee type code and name are required")
+        if self.cost_per_day < 0:
+            raise ValueError("employee cost cannot be negative")
+        if not 0 <= self.error_rate <= 1 or not 0 <= self.management_skill <= 1:
+            raise ValueError("employee probabilities must be between zero and one")
+
+
+@dataclass(frozen=True, slots=True)
+class Employee:
+    id: str
+    employee_type_code: str
+    motivation: float = 0.75
+    stress: float = 0.10
+    experience: float = 0
+    familiarity: float = 0
+
+    def __post_init__(self) -> None:
+        if not self.id or not self.employee_type_code:
+            raise ValueError("employee id and type are required")
+        for name, value in (
+            ("motivation", self.motivation),
+            ("stress", self.stress),
+            ("familiarity", self.familiarity),
+        ):
+            if not 0 <= value <= 1:
+                raise ValueError(f"{name} must be between zero and one")
+        if self.experience < 0:
+            raise ValueError("experience cannot be negative")
+
+
+@dataclass(frozen=True, slots=True)
+class SimulationState:
+    week: int
+    elapsed_working_days: int
+    remaining_working_days: int
+    initial_budget: float
+    remaining_budget: float
+    tasks_todo: TaskPool
+    tasks_completed: TaskPool
+    tasks_unit_tested: TaskPool
+    tasks_integration_tested: TaskPool
+    known_bugs: TaskPool
+    employees: tuple[Employee, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.week < 0 or self.elapsed_working_days < 0 or self.remaining_working_days < 0:
+            raise ValueError("simulation time cannot be negative")
+        if self.initial_budget < 0:
+            raise ValueError("initial budget cannot be negative")
+
+    @property
+    def total_tasks(self) -> int:
+        return self.tasks_todo.total + self.tasks_completed.total
 
 
 @dataclass(frozen=True, slots=True)
