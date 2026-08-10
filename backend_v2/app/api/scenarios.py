@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
+from app.api.auth import ProfessorUser
 from app.db.session import get_session
 from app.scenarios.models import ScenarioDefinition
 from app.scenarios.service import (
@@ -40,7 +41,7 @@ class ScenarioSummary(BaseModel):
 
 
 @router.post("/validate", response_model=ScenarioDefinition)
-def validate_scenario(scenario: ScenarioDefinition) -> ScenarioDefinition:
+def validate_scenario(scenario: ScenarioDefinition, _user: ProfessorUser) -> ScenarioDefinition:
     """Validate and normalize a scenario without persisting it."""
     return scenario
 
@@ -49,12 +50,13 @@ def validate_scenario(scenario: ScenarioDefinition) -> ScenarioDefinition:
 def upload_scenario(
     scenario: ScenarioDefinition,
     session: DatabaseSession,
+    _user: ProfessorUser,
 ) -> object:
     return create_scenario(session, scenario)
 
 
 @router.get("", response_model=list[ScenarioSummary])
-def get_scenarios(session: DatabaseSession) -> list[ScenarioSummary]:
+def get_scenarios(session: DatabaseSession, _user: ProfessorUser) -> list[ScenarioSummary]:
     return [
         ScenarioSummary(
             id=scenario.id,
@@ -70,6 +72,7 @@ def get_scenarios(session: DatabaseSession) -> list[ScenarioSummary]:
 def get_scenario_revisions(
     scenario_id: str,
     session: DatabaseSession,
+    _user: ProfessorUser,
 ) -> object:
     try:
         return get_scenario(session, scenario_id).revisions
@@ -85,6 +88,7 @@ def publish_scenario_revision(
     scenario_id: str,
     revision_number: int,
     session: DatabaseSession,
+    _user: ProfessorUser,
 ) -> object:
     try:
         return publish_revision(session, scenario_id, revision_number)

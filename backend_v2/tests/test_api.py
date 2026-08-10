@@ -6,7 +6,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.db.models import Base
+from app.auth.service import create_user
+from app.db.models import Base, UserRole
 from app.db.session import get_session
 from app.main import app
 
@@ -27,6 +28,18 @@ def client() -> Generator[TestClient]:
 
     app.dependency_overrides[get_session] = override_session
     with TestClient(app) as test_client:
+        with test_sessions() as session:
+            create_user(
+                session,
+                username="professor",
+                password="professor-password",
+                role=UserRole.PROFESSOR,
+            )
+        login = test_client.post(
+            "/api/auth/login",
+            json={"username": "professor", "password": "professor-password"},
+        )
+        assert login.status_code == 200
         yield test_client
     app.dependency_overrides.clear()
     Base.metadata.drop_all(engine)
