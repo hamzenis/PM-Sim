@@ -21,6 +21,8 @@ from app.simulations.service import (
     ConcurrentTurnError,
     SimulationRunError,
     complete_simulation_turn,
+    get_simulation_run,
+    list_simulation_runs,
     start_simulation_run,
 )
 
@@ -132,6 +134,15 @@ def test_run_requires_class_scenario_availability(session: Session) -> None:
             scenario_revision_id=revision.id,
             seed=42,
         )
+
+
+def test_runs_are_listed_and_read_only_for_their_owner(session: Session) -> None:
+    user, revision = persisted_inputs(session)
+    run = start_simulation_run(session, user_id=user.id, scenario_revision_id=revision.id, seed=3)
+    assert list_simulation_runs(session, user.id) == [run]
+    assert get_simulation_run(session, run_id=run.id, user_id=user.id) == run
+    with pytest.raises(SimulationRunError, match="not found"):
+        get_simulation_run(session, run_id=run.id, user_id="another-user")
 
 
 def test_turn_is_persisted_with_state_events_seed_and_optimistic_version(session: Session) -> None:

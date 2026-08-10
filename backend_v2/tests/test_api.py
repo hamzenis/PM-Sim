@@ -145,3 +145,92 @@ def test_professor_assigns_published_scenario_and_student_can_list_it(
     available = client.get("/api/classes/available-scenarios")
     assert available.status_code == 200
     assert available.json()[0]["id"] == revision["id"]
+
+
+def _assign_scenario_and_login_student(client: TestClient) -> str:
+    revision = client.post("/api/scenarios", json=scenario_payload()).json()
+    scenario_id = client.get("/api/scenarios").json()[0]["id"]
+    assert client.post(f"/api/scenarios/{scenario_id}/revisions/1/publish").status_code == 200
+    course_class = client.post("/api/classes", json={"name": "Simulation API"}).json()
+    client.post(f"/api/classes/{course_class['id']}/students", json={"username": "student"})
+    client.post(
+        f"/api/classes/{course_class['id']}/scenarios",
+        json={"scenario_revision_id": revision["id"]},
+    )
+    client.post("/api/auth/logout")
+    login = client.post(
+        "/api/auth/login",
+        json={"username": "student", "password": "student-password"},
+    )
+    assert login.status_code == 200
+    return revision["id"]
+
+
+def test_student_can_start_read_and_complete_a_simulation_turn(client: TestClient) -> None:
+    revision_id = _assign_scenario_and_login_student(client)
+    started = client.post(
+        "/api/simulations",
+        json={"scenario_revision_id": revision_id, "seed": 123},
+    )
+    assert started.status_code == 201
+    run = started.json()
+    assert run["version"] == 1
+    assert "undiscovered_bugs" not in run["state"]
+    assert "incorrect_specifications" not in run["state"]
+
+    assert client.get("/api/simulations").json()[0]["id"] == run["id"]
+    assert client.get(f"/api/simulations/{run['id']}").status_code == 200
+
+    decision = {
+        "expected_version": 1,
+        "allocation": {
+            "development": 100,
+            "unit_testing": 0,
+            "bug_fixing": 0,
+            "integration_testing": 0,
+        },
+        "hires": [{"employee_type_code": "junior", "count": 1}],
+    }
+    completed = client.post(
+        f"/api/simulations/{run['id']}/turns",
+        json=decision,
+        headers={"Idempotency-Key": "week-1"},
+    )
+    assert completed.status_code == 200
+    result = completed.json()
+    assert result["run"]["current_week"] == 1
+    assert result["run"]["version"] == 2
+    assert result["replayed"] is False
+    assert "bugs_created" not in {event["kind"] for event in result["events"]}
+
+    replay = client.post(
+        f"/api/simulations/{run['id']}/turns",
+        json=decision,
+        headers={"Idempotency-Key": "week-1"},
+    )
+    assert replay.status_code == 200
+    assert replay.json()["replayed"] is True
+
+
+def test_turn_api_requires_idempotency_and_rejects_stale_versions(client: TestClient) -> None:
+    revision_id = _assign_scenario_and_login_student(client)
+    run = client.post(
+        "/api/simulations", json={"scenario_revision_id": revision_id, "seed": 1}
+    ).json()
+    decision = {
+        "expected_version": 99,
+        "allocation": {
+            "development": 100,
+            "unit_testing": 0,
+            "bug_fixing": 0,
+            "integration_testing": 0,
+        },
+    }
+    missing_key = client.post(f"/api/simulations/{run['id']}/turns", json=decision)
+    assert missing_key.status_code == 422
+    stale = client.post(
+        f"/api/simulations/{run['id']}/turns",
+        json=decision,
+        headers={"Idempotency-Key": "stale"},
+    )
+    assert stale.status_code == 409

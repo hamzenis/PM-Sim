@@ -44,6 +44,29 @@ class CompletedTurn:
     replayed: bool = False
 
 
+def list_simulation_runs(session: Session, user_id: str) -> list[SimulationRunRecord]:
+    """Return only runs owned by the requesting student."""
+    statement = (
+        select(SimulationRunRecord)
+        .where(SimulationRunRecord.user_id == user_id)
+        .order_by(SimulationRunRecord.started_at.desc(), SimulationRunRecord.id)
+    )
+    return list(session.scalars(statement))
+
+
+def get_simulation_run(
+    session: Session,
+    *,
+    run_id: str,
+    user_id: str,
+) -> SimulationRunRecord:
+    """Load an owned run without revealing whether another student's run exists."""
+    run = session.get(SimulationRunRecord, run_id)
+    if run is None or run.user_id != user_id:
+        raise SimulationRunError("simulation run not found")
+    return run
+
+
 def start_simulation_run(
     session: Session,
     *,
@@ -101,9 +124,7 @@ def complete_simulation_turn(
             raise SimulationRunError("simulation run not found")
         return CompletedTurn(run=run, turn=existing, replayed=True)
 
-    run = session.get(SimulationRunRecord, run_id)
-    if run is None or run.user_id != user_id:
-        raise SimulationRunError("simulation run not found")
+    run = get_simulation_run(session, run_id=run_id, user_id=user_id)
     if run.status != SimulationOutcome.ACTIVE:
         raise SimulationRunError("simulation run is not active")
     if run.version != expected_version:
