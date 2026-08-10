@@ -115,6 +115,9 @@ class SimulationRunRecord(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    class_id: Mapped[str | None] = mapped_column(
+        ForeignKey("classes.id"), index=True, nullable=True
+    )
     scenario_revision_id: Mapped[str] = mapped_column(
         ForeignKey("scenario_revisions.id"), index=True
     )

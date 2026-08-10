@@ -278,3 +278,61 @@ def test_student_can_submit_a_run_and_cannot_take_more_turns(client: TestClient)
     )
     assert turn.status_code == 400
     assert turn.json()["detail"] == "simulation run is not active"
+
+
+def test_professor_can_compare_final_results_and_inspect_full_audit(client: TestClient) -> None:
+    revision = client.post("/api/scenarios", json=scenario_payload()).json()
+    scenario_id = client.get("/api/scenarios").json()[0]["id"]
+    client.post(f"/api/scenarios/{scenario_id}/revisions/1/publish")
+    course_class = client.post("/api/classes", json={"name": "Results"}).json()
+    client.post(f"/api/classes/{course_class['id']}/students", json={"username": "student"})
+    client.post(
+        f"/api/classes/{course_class['id']}/scenarios",
+        json={"scenario_revision_id": revision["id"]},
+    )
+    client.post("/api/auth/logout")
+    client.post(
+        "/api/auth/login",
+        json={"username": "student", "password": "student-password"},
+    )
+    run = client.post(
+        "/api/simulations",
+        json={
+            "scenario_revision_id": revision["id"],
+            "class_id": course_class["id"],
+            "seed": 11,
+        },
+    ).json()
+    decision = {
+        "expected_version": 1,
+        "allocation": {
+            "development": 100,
+            "unit_testing": 0,
+            "bug_fixing": 0,
+            "integration_testing": 0,
+        },
+        "hires": [{"employee_type_code": "junior", "count": 1}],
+    }
+    client.post(
+        f"/api/simulations/{run['id']}/turns",
+        json=decision,
+        headers={"Idempotency-Key": "audit-week"},
+    )
+    client.post(f"/api/simulations/{run['id']}/submit", json={"expected_version": 2})
+
+    client.post("/api/auth/logout")
+    client.post(
+        "/api/auth/login",
+        json={"username": "professor", "password": "professor-password"},
+    )
+    results = client.get(f"/api/classes/{course_class['id']}/results")
+    assert results.status_code == 200
+    assert results.json()[0]["student_username"] == "student"
+    assert results.json()[0]["final_result"]["outcome"] == "submitted"
+
+    audit = client.get(f"/api/classes/{course_class['id']}/results/{run['id']}")
+    assert audit.status_code == 200
+    assert audit.json()["seed"] == 11
+    assert audit.json()["turns"][0]["turn_seed"] == 11
+    assert "undiscovered_bugs" in audit.json()["current_state"]
+    assert client.get(f"/api/classes/missing/results/{run['id']}").status_code == 404

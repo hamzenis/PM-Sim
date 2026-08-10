@@ -29,6 +29,7 @@ class StartSimulationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     scenario_revision_id: str
+    class_id: str | None = None
     seed: int
 
 
@@ -73,6 +74,7 @@ class CompleteTurnRequest(BaseModel):
 class RunSummaryResponse(BaseModel):
     id: str
     scenario_revision_id: str
+    class_id: str | None
     status: str
     current_week: int
     version: int
@@ -118,6 +120,7 @@ def start_run(
             user_id=user.id,
             scenario_revision_id=request.scenario_revision_id,
             seed=request.seed,
+            class_id=request.class_id,
         )
     except SimulationRunError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
@@ -204,6 +207,7 @@ def _run_summary(run: SimulationRunRecord) -> RunSummaryResponse:
     return RunSummaryResponse(
         id=run.id,
         scenario_revision_id=run.scenario_revision_id,
+        class_id=run.class_id,
         status=run.status,
         current_week=run.current_week,
         version=run.version,

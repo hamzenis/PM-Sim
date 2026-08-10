@@ -146,6 +146,31 @@ def user_can_access_revision(session: Session, user_id: str, revision_id: str) -
     return session.scalar(statement) is not None
 
 
+def accessible_class_for_revision(
+    session: Session,
+    *,
+    user_id: str,
+    revision_id: str,
+    class_id: str | None = None,
+) -> str | None:
+    """Resolve the class through which a student may start this scenario revision."""
+    statement = (
+        select(ClassMembershipRecord.class_id)
+        .join(
+            ScenarioAvailabilityRecord,
+            ScenarioAvailabilityRecord.class_id == ClassMembershipRecord.class_id,
+        )
+        .where(
+            ClassMembershipRecord.user_id == user_id,
+            ScenarioAvailabilityRecord.scenario_revision_id == revision_id,
+        )
+        .order_by(ClassMembershipRecord.class_id)
+    )
+    if class_id is not None:
+        statement = statement.where(ClassMembershipRecord.class_id == class_id)
+    return session.scalar(statement)
+
+
 def _owned_class(session: Session, class_id: str, professor_id: str) -> ClassRecord:
     course_class = session.get(ClassRecord, class_id)
     if course_class is None or course_class.professor_id != professor_id:
