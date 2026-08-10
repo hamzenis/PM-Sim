@@ -8,9 +8,6 @@ import {
   Text,
   MenuButton,
   MenuGroup,
-  MenuItemOption,
-  MenuOptionGroup,
-  MenuDivider,
   MenuItem,
   MenuList,
 } from "@chakra-ui/react";
@@ -19,17 +16,10 @@ import { HiMenu, HiOutlineLogout, HiUserCircle  } from "react-icons/hi";
 import { useContext, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthProvider";
-import { useCookies } from "react-cookie";
-import { getCookie } from "../utils/utils";
-import { HiOutlineCog } from "react-icons/hi";
-import { FaAngleDown } from "react-icons/fa";
 
 
 const Navbar = () => {
-  const { currentUser, setCurrentUser } = useContext(AuthContext);
-  const [csrfCookie, setCsrfCookie, removeCsrfCookie] = useCookies([
-    "csrftoken",
-  ]);
+  const { currentUser, logout } = useContext(AuthContext);
 
   const menuButton = useRef();
 
@@ -48,28 +38,11 @@ const Navbar = () => {
   }, []);
 
   async function handleLogout() {
-    // send logout to backend --> deletes local sessionid cookie
     try {
-      const res = await fetch(
-        `${process.env.REACT_APP_DJANGO_HOST}/api/logout`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "X-CSRFToken": getCookie("csrftoken"),
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      console.log(res);
+      await logout();
     } catch (err) {
-      console.log("Error:", err);
+      console.error("Logout failed", err);
     }
-    // delete crsf cookie
-    removeCsrfCookie("csrftoken");
-    // refresh user object
-    // required for refreshing frontend state
-    setCurrentUser(null);
   }
 
 
@@ -93,47 +66,10 @@ const Navbar = () => {
           Scenarios
         </Button>
 
-        {currentUser?.creator && (
-        <Button variant="link" as={Link} to="/scenario-studio" onClick={handleClick}>
-          Scenario Studio
-        </Button>
-        )}
         <Button variant="link" as={Link} to="/help" onClick={handleClick}>
           Help
         </Button>
-        {currentUser?.creator && (
-            <Button variant="link" as={Link} to="/scenariomanagement" onClick={handleClick}>
-              Admin Panel
-            </Button>
-        )}
       </HStack>
-
-      {currentUser?.creator && (
-        <HStack direction="row" spacing={4} justifyContent="flex-end">
-          <HStack
-            borderRadius="full"
-            backgroundColor="white"
-            p={3}
-            boxShadow="xl"
-          >
-            <Menu>
-              <MenuButton ref={menuButton} size="sm" cursor="pointer">
-                <HiOutlineCog />
-              </MenuButton>
-              <MenuList mt={2}>
-                <MenuGroup>
-                  <MenuItem color="black" as={Link} to="/skill-types" onClick={handleClick}>
-                    Skill Types
-                  </MenuItem>
-                  <MenuItem color="black" as={Link} to="/scenario-config" onClick={handleClick}>
-                    Scenario Configurations
-                  </MenuItem>
-                </MenuGroup>
-              </MenuList>
-            </Menu>
-          </HStack>
-        </HStack>
-      )}
 
       <HStack justifyContent="flex-end">
         <HStack

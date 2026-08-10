@@ -18,15 +18,7 @@ from app.api.views.simulation import (
 )
 from app.api.views.team import SkillTypeView, TeamViews, MemberView
 
-# all request with /api/ land here (see softDsim/urls.py)
-from app.api.views.template_scenario import (
-    TemplateScenarioUserListView,
-    TemplateScenarioView,
-    StudioTemplateScenarioView,
-    TemplateScenarioFromStudioView,
-    StudioTemplateScenarioIsPublishedValidatorView,
-    ScenarioCoursesView,
-)
+# The MongoDB-backed template scenario builder is intentionally disabled during the v2 rewrite.
 from app.api.views.user import UserView
 
 # from app.api.views.sim_api import ParameterSimulation
@@ -38,7 +30,6 @@ from app.api.views.course import (
     CourseScenarioView,
     UserCoursesView,
 )
-from app.api.views.score_card import ScoreCardView
 
 urlpatterns = [
     # User stuff
@@ -49,24 +40,6 @@ urlpatterns = [
     path("user", UserView.as_view()),
     path("user/create-many", UserCreationView.as_view()),
     path("user/<str:username>", UserView.as_view()),
-    # template scenario
-    path("template-scenario", TemplateScenarioView.as_view()),
-    path("template-scenario/<int:scenario_id>", TemplateScenarioView.as_view()),
-    # Score Card
-    path("template-scenario/<int:scenario_id>/score-card", ScoreCardView.as_view()),
-    path("template-overview", TemplateScenarioUserListView.as_view()),
-    path("template-overview/<int:scenario_id>", TemplateScenarioUserListView.as_view()),
-    path("template-scenario/from-studio", TemplateScenarioFromStudioView.as_view()),
-    # template scenario studio
-    path("studio/template-scenario", StudioTemplateScenarioView.as_view()),
-    path(
-        "studio/template-scenario/<str:scenario_id>",
-        StudioTemplateScenarioView.as_view(),
-    ),
-    path(
-        "studio/template-scenario-is-published-validator",
-        StudioTemplateScenarioIsPublishedValidatorView.as_view(),
-    ),
     # user scenario
     path("user-scenario", UserScenarioViews.as_view()),
     path("user-scenario/<int:id>", UserScenarioViews.as_view()),
@@ -116,5 +89,4 @@ urlpatterns = [
     ),
     ##
     path("courses/user-scenarios", UserCoursesView.as_view(), name="course-detail"),
-    path("template-scenario/<int:scenario_id>/courses", ScenarioCoursesView.as_view()),
 ]
