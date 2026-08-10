@@ -59,6 +59,7 @@ def client() -> Generator[TestClient]:
 
 def test_health(client: TestClient) -> None:
     assert client.get("/health").json() == {"status": "ok"}
+    assert client.get("/health/ready").json() == {"status": "ready"}
 
 
 def scenario_payload() -> dict[str, object]:

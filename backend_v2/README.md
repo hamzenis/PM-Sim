@@ -27,6 +27,8 @@ transcribed formulas, known differences, and parity rules.
 
 The default database URL is `sqlite:///./pm_sim.db`. Persistence code must use portable
 SQLAlchemy types and migrations so PostgreSQL can replace SQLite later.
+SQLite deployment, migration, backup, and restore procedures are documented in
+[`docs/sqlite-operations.md`](docs/sqlite-operations.md).
 
 ## Checks
 

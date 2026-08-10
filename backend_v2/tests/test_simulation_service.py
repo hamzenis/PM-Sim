@@ -15,6 +15,7 @@ from app.db.models import (
     UserRecord,
     UserRole,
 )
+from app.db.session import create_database_engine
 from app.scenarios.models import ScenarioDefinition
 from app.simulation.models import ActivityAllocation, HireRequest, WeeklyDecision
 from app.simulations.service import (
@@ -266,3 +267,45 @@ def test_stale_run_version_is_rejected(session: Session) -> None:
             expected_version=99,
             idempotency_key="stale",
         )
+
+
+def test_separate_sessions_cannot_apply_the_same_run_version(tmp_path) -> None:
+    engine = create_database_engine(f"sqlite:///{tmp_path / 'concurrent.db'}")
+    Base.metadata.create_all(engine)
+    with Session(engine, expire_on_commit=False) as setup:
+        user, revision = persisted_inputs(setup)
+        definition = scenario_definition().model_dump(mode="json")
+        definition["project"]["working_days"] = 10
+        revision.definition = definition
+        setup.commit()
+        user_id = user.id
+        run = start_simulation_run(
+            setup,
+            user_id=user_id,
+            scenario_revision_id=revision.id,
+            seed=17,
+        )
+        run_id = run.id
+
+    with Session(engine, expire_on_commit=False) as first:
+        complete_simulation_turn(
+            first,
+            run_id=run_id,
+            user_id=user_id,
+            decision=development_decision(),
+            expected_version=1,
+            idempotency_key="first-writer",
+        )
+    with (
+        Session(engine, expire_on_commit=False) as stale_client,
+        pytest.raises(ConcurrentTurnError, match="version has changed"),
+    ):
+        complete_simulation_turn(
+            stale_client,
+            run_id=run_id,
+            user_id=user_id,
+            decision=development_decision(),
+            expected_version=1,
+            idempotency_key="stale-writer",
+        )
+    engine.dispose()
