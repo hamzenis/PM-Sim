@@ -29,19 +29,19 @@ def apply_unit_testing(
         raise ValueError("cannot unit test more eligible tasks than remain")
 
     discovered = TaskPool(
-        easy=_sample_existing(
+        easy=sample_existing(
             successes=state.undiscovered_bugs.easy,
             population=eligible.easy,
             draws=tested.easy,
             random=random,
         ),
-        medium=_sample_existing(
+        medium=sample_existing(
             successes=state.undiscovered_bugs.medium,
             population=eligible.medium,
             draws=tested.medium,
             random=random,
         ),
-        hard=_sample_existing(
+        hard=sample_existing(
             successes=state.undiscovered_bugs.hard,
             population=eligible.hard,
             draws=tested.hard,
@@ -65,7 +65,7 @@ def apply_bug_fixes(state: SimulationState, *, fixed: TaskPool) -> BugFixResult:
     return BugFixResult(state=updated, bugs_fixed=fixed)
 
 
-def _sample_existing(
+def sample_existing(
     *,
     successes: int,
     population: int,

@@ -38,7 +38,12 @@ def test_unit_testing_discovers_bugs_without_replacement() -> None:
 
 
 def test_already_tested_tasks_cannot_be_tested_twice() -> None:
-    state = replace(developed_state(), tasks_unit_tested=TaskPool(easy=4, medium=0, hard=0))
+    state = replace(
+        developed_state(),
+        tasks_unit_tested=TaskPool(easy=4, medium=0, hard=0),
+        known_bugs=TaskPool(easy=2, medium=0, hard=0),
+        undiscovered_bugs=TaskPool(easy=0, medium=1, hard=0),
+    )
     with pytest.raises(ValueError, match="more eligible tasks"):
         apply_unit_testing(
             state,
@@ -50,6 +55,7 @@ def test_already_tested_tasks_cannot_be_tested_twice() -> None:
 def test_only_known_bugs_can_be_fixed() -> None:
     state = replace(
         developed_state(),
+        tasks_unit_tested=TaskPool(easy=1, medium=1, hard=0),
         known_bugs=TaskPool(easy=1, medium=1, hard=0),
         undiscovered_bugs=TaskPool(easy=1, medium=0, hard=0),
     )

@@ -124,8 +124,12 @@ class SimulationState:
             raise ValueError("unit-tested tasks must be completed")
         if not self.tasks_unit_tested.contains(self.tasks_integration_tested):
             raise ValueError("integration-tested tasks must be unit tested")
-        if not self.tasks_completed.contains(self.known_bugs.plus(self.undiscovered_bugs)):
-            raise ValueError("bugs cannot exceed completed tasks")
+        untested = self.tasks_completed.minus(self.tasks_unit_tested)
+        tested_not_integrated = self.tasks_unit_tested.minus(self.tasks_integration_tested)
+        if not untested.contains(self.undiscovered_bugs):
+            raise ValueError("undiscovered bugs must belong to untested tasks")
+        if not tested_not_integrated.contains(self.known_bugs):
+            raise ValueError("known bugs must belong to unit-tested, unintegrated tasks")
         if not self.tasks_completed.contains(self.incorrect_specifications):
             raise ValueError("incorrect specifications cannot exceed completed tasks")
 

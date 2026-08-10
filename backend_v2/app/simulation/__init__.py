@@ -1,5 +1,6 @@
 from app.simulation.capacity import CapacityError, allocate_weekly_hours, hours_from_allocation
 from app.simulation.engine import create_initial_state
+from app.simulation.integration import IntegrationTestResult, apply_integration_testing
 from app.simulation.models import (
     ActivityAllocation,
     ActivityHours,
@@ -49,6 +50,7 @@ __all__ = [
     "EmployeeType",
     "ExpectedTaskOutput",
     "HireRequest",
+    "IntegrationTestResult",
     "RandomSource",
     "RecordedRandomSource",
     "SimulationState",
@@ -61,6 +63,7 @@ __all__ = [
     "UnitTestResult",
     "apply_bug_fixes",
     "apply_development_result",
+    "apply_integration_testing",
     "apply_staffing_changes",
     "apply_unit_testing",
     "allocate_weekly_hours",
