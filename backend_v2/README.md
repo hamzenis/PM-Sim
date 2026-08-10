@@ -21,6 +21,10 @@ same engine to run complete scenarios over many deterministic seeds. Its built-i
 baselines for scenario balancing rather than authoritative student behavior. Reports can be
 converted to dictionaries for JSON output or exported as CSV.
 
+Legacy behavior is being characterized before formulas are replaced. See
+[`docs/legacy-behavior.md`](docs/legacy-behavior.md) for the observed execution order,
+transcribed formulas, known differences, and parity rules.
+
 The default database URL is `sqlite:///./pm_sim.db`. Persistence code must use portable
 SQLAlchemy types and migrations so PostgreSQL can replace SQLite later.
 
