@@ -67,9 +67,14 @@ const Navbar = () => {
 				</Button>
 
 				{currentUser?.role === 'professor' && (
-					<Button variant="link" as={Link} to="/classes" onClick={handleClick}>
-						Classes
-					</Button>
+					<>
+						<Button variant="link" as={Link} to="/classes" onClick={handleClick}>
+							Classes
+						</Button>
+						<Button variant="link" as={Link} to="/audit" onClick={handleClick}>
+							Audit
+						</Button>
+					</>
 				)}
 			</HStack>
 

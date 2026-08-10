@@ -19,6 +19,7 @@ import { completeSimulationTurn, getSimulationRun, listSimulationTurns, submitSi
 import FinalResult from '../components/SimulationV2/FinalResult';
 import TurnHistory from '../components/SimulationV2/TurnHistory';
 import WeeklyDecisionForm, { decisionIsValid } from '../components/SimulationV2/WeeklyDecisionForm';
+import ConfirmDialog from '../components/ClassManagement/ConfirmDialog';
 
 const DEFAULT_ALLOCATION = {
 	development: 50,
@@ -46,6 +47,7 @@ const SimulationV2 = () => {
 	const [error, setError] = useState(null);
 	const [turns, setTurns] = useState([]);
 	const [pendingSubmission, setPendingSubmission] = useState(null);
+	const [isSubmitOpen, setIsSubmitOpen] = useState(false);
 
 	const load = async () => {
 		setIsLoading(true);
@@ -112,6 +114,7 @@ const SimulationV2 = () => {
 		setError(null);
 		try {
 			setRun(await submitSimulationRun(runId, run.version));
+			setIsSubmitOpen(false);
 		} catch (requestError) {
 			setError(requestError.message || 'Could not submit the simulation');
 		} finally {
@@ -181,7 +184,7 @@ const SimulationV2 = () => {
 								Discard retry
 							</Button>
 						)}
-						<Button variant="outline" isLoading={isSaving} onClick={submit}>
+						<Button variant="outline" isLoading={isSaving} onClick={() => setIsSubmitOpen(true)}>
 							Submit project
 						</Button>
 					</Stack>
@@ -191,6 +194,15 @@ const SimulationV2 = () => {
 			)}
 
 			<TurnHistory turns={turns} />
+			<ConfirmDialog
+				isOpen={isSubmitOpen}
+				title="Submit project"
+				message="Submit the project now? You will not be able to complete another week."
+				confirmLabel="Submit project"
+				isBusy={isSaving}
+				onCancel={() => setIsSubmitOpen(false)}
+				onConfirm={submit}
+			/>
 		</Container>
 	);
 };

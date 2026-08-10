@@ -28,6 +28,7 @@ class RevisionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    scenario_id: str
     revision_number: int
     schema_version: int
     status: str

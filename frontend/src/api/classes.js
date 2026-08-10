@@ -51,3 +51,5 @@ export const unassignScenario = (classId, revisionId) =>
 	apiRequest(`/api/classes/${classId}/scenarios/${revisionId}`, { method: 'DELETE' });
 
 export const listClassResults = (classId) => apiRequest(`/api/classes/${classId}/results`);
+
+export const getClassResult = (classId, runId) => apiRequest(`/api/classes/${classId}/results/${runId}`);

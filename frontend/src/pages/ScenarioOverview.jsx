@@ -20,9 +20,17 @@ import {
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError } from '../api/client';
-import { listAvailableScenarios, listOwnedScenarios } from '../api/scenarios';
+import {
+	archiveScenario,
+	createScenario,
+	listAvailableScenarios,
+	listOwnedScenarios,
+	publishScenarioRevision,
+	validateScenario,
+} from '../api/scenarios';
 import { listSimulationRuns, startSimulationRun } from '../api/simulations';
 import { AuthContext } from '../context/AuthProvider';
+import ScenarioImportDialog from '../components/ScenarioImportDialog';
 
 export const scenarioAssignmentKey = (classId, revisionId) => `${classId}:${revisionId}`;
 
@@ -34,7 +42,35 @@ const ScenarioOverview = () => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [startingId, setStartingId] = useState(null);
 	const [error, setError] = useState(null);
+	const [isImportOpen, setIsImportOpen] = useState(false);
 	const isProfessor = currentUser?.role === 'professor';
+
+	const refreshProfessorScenarios = async () => setScenarios(await listOwnedScenarios());
+
+	const importScenario = async (definition) => {
+		setStartingId('import');
+		setError(null);
+		try {
+			const normalized = await validateScenario(definition);
+			await createScenario(normalized);
+			await refreshProfessorScenarios();
+			setIsImportOpen(false);
+		} catch (requestError) {
+			setError(requestError.message || 'Could not import the scenario');
+		} finally {
+			setStartingId(null);
+		}
+	};
+
+	const updateScenario = async (action) => {
+		setError(null);
+		try {
+			await action();
+			await refreshProfessorScenarios();
+		} catch (requestError) {
+			setError(requestError.message || 'Could not update the scenario');
+		}
+	};
 
 	useEffect(() => {
 		let active = true;
@@ -87,7 +123,14 @@ const ScenarioOverview = () => {
 
 	return (
 		<Flex px={10} pt={2} flexDir="column" flexGrow={1}>
-			<Heading mb={5}>Scenarios</Heading>
+			<Flex justify="space-between" align="center" mb={5}>
+				<Heading>Scenarios</Heading>
+				{isProfessor && (
+					<Button colorScheme="blue" onClick={() => setIsImportOpen(true)}>
+						Import scenario JSON
+					</Button>
+				)}
+			</Flex>
 			{error && (
 				<Alert status="error" mb={4}>
 					<AlertIcon />
@@ -99,7 +142,7 @@ const ScenarioOverview = () => {
 					{isProfessor && (
 						<Alert status="info" mb={5}>
 							<AlertIcon />
-							Scenario authoring is not part of this version. Existing backend-v2 scenarios are listed
+							The visual scenario editor is not part of this version. Import backend-v2 scenario JSON
 							here.
 						</Alert>
 					)}
@@ -143,6 +186,36 @@ const ScenarioOverview = () => {
 													</Badge>
 												</Td>
 												<Td textAlign="right">
+													{isProfessor && (
+														<Flex justify="flex-end" gap={2}>
+															{scenario.latest_status === 'draft' && (
+																<Button
+																	size="sm"
+																	colorScheme="green"
+																	onClick={() =>
+																		updateScenario(() =>
+																			publishScenarioRevision(
+																				scenario.id,
+																				scenario.latest_revision
+																			)
+																		)
+																	}
+																>
+																	Publish
+																</Button>
+															)}
+															<Button
+																size="sm"
+																colorScheme="red"
+																variant="outline"
+																onClick={() =>
+																	updateScenario(() => archiveScenario(scenario.id))
+																}
+															>
+																Archive
+															</Button>
+														</Flex>
+													)}
 													{!isProfessor &&
 														(run ? (
 															<Button onClick={() => navigate(`/simulations/${run.id}`)}>
@@ -167,6 +240,12 @@ const ScenarioOverview = () => {
 					)}
 				</Container>
 			</Box>
+			<ScenarioImportDialog
+				isOpen={isImportOpen}
+				isBusy={startingId === 'import'}
+				onCancel={() => setIsImportOpen(false)}
+				onImport={importScenario}
+			/>
 		</Flex>
 	);
 };

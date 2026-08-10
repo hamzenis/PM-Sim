@@ -16,6 +16,17 @@ const TurnHistory = ({ turns }) => {
 						<Heading size="sm" mb={2}>
 							Week {turn.week_number}
 						</Heading>
+						<Text fontWeight="semibold">
+							Allocation:{' '}
+							{Object.entries(turn.decision.allocation || {})
+								.map(([name, value]) => `${readableKind(name)} ${value}%`)
+								.join(', ')}
+						</Text>
+						<Text mb={2}>
+							Hires: {turn.decision.hires?.length || 0}; dismissals:{' '}
+							{turn.decision.dismiss_employee_ids?.length || 0}; overtime:{' '}
+							{turn.decision.overtime_hours_per_employee || 0} hours
+						</Text>
 						{turn.events.length === 0 ? (
 							<Text>No visible events.</Text>
 						) : (

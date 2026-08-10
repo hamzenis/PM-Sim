@@ -1,5 +1,6 @@
 import argparse
 import getpass
+import json
 import logging
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
@@ -11,10 +12,13 @@ from sqlalchemy import delete
 
 from alembic import command
 from app.auth.service import AuthenticationError, create_user
+from app.classes.service import assign_scenario, create_class, import_students
 from app.config import Settings, settings
 from app.db.backup import backup_sqlite_database
 from app.db.models import AuthSessionRecord, UserRole
 from app.db.session import SessionFactory
+from app.scenarios.models import ScenarioDefinition
+from app.scenarios.service import create_scenario, publish_revision
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 
@@ -25,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
         "command",
         nargs="?",
         default="serve",
-        choices=("serve", "create-professor", "cleanup-sessions", "backup"),
+        choices=("serve", "create-professor", "create-demo", "cleanup-sessions", "backup"),
     )
     parser.add_argument("--host", default=None, help="Server address (serve only)")
     parser.add_argument("--port", type=int, default=None, help="Server port (serve only)")
@@ -33,6 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-migrate", action="store_true", help="Do not apply migrations")
     parser.add_argument("--username", help="Professor username")
     parser.add_argument("--output", type=Path, default=Path("backups"), help="Backup directory")
+    parser.add_argument(
+        "--scenario",
+        type=Path,
+        default=PROJECT_ROOT / "scenario_examples" / "basic_project.json",
+        help="Scenario JSON for create-demo",
+    )
     return parser
 
 
@@ -50,6 +60,8 @@ def main(
         run_migrations()
     if args.command == "create-professor":
         return create_professor(args.username, password_reader=password_reader)
+    if args.command == "create-demo":
+        return create_demo_data(args.scenario)
     if args.command == "cleanup-sessions":
         return cleanup_sessions()
     if args.command == "backup":
@@ -102,6 +114,44 @@ def cleanup_sessions() -> int:
         )
         session.commit()
     print(f"Removed {result.rowcount} expired sessions")
+    return 0
+
+
+def create_demo_data(scenario_path: Path) -> int:
+    """Create a small local classroom for manual frontend tests."""
+    try:
+        definition = ScenarioDefinition.model_validate(json.loads(scenario_path.read_text()))
+        with SessionFactory() as session:
+            professor = create_user(
+                session,
+                username="professor",
+                password="professor-password",
+                role=UserRole.PROFESSOR,
+            )
+            course_class = create_class(session, professor_id=professor.id, name="Demo class")
+            import_students(
+                session,
+                professor_id=professor.id,
+                class_id=course_class.id,
+                students=[("student", "student-password")],
+            )
+            revision = create_scenario(session, definition, owner_id=professor.id)
+            publish_revision(
+                session,
+                revision.scenario_id,
+                revision.revision_number,
+                owner_id=professor.id,
+            )
+            assign_scenario(
+                session,
+                professor_id=professor.id,
+                class_id=course_class.id,
+                scenario_revision_id=revision.id,
+            )
+    except (OSError, ValueError, AuthenticationError) as error:
+        print(f"Could not create demo data: {error}")
+        return 2
+    print("Created demo users: professor/professor-password and student/student-password")
     return 0
 
 

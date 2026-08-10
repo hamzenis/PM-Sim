@@ -216,7 +216,7 @@ const CourseOverview = () => {
 				}
 			/>
 
-			<ResultsPanel results={results} />
+			<ResultsPanel classId={selectedId} results={results} />
 
 			<ResetPasswordDialog
 				student={resetStudent}

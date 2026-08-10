@@ -20,6 +20,10 @@ python main.py --reload
 listed in `.env.example`; export the values you want before starting the process. The project
 also remains compatible with `uv sync` and `uv run python main.py`.
 
+For a local end-to-end classroom test, use a fresh database and run `python main.py create-demo`.
+This creates a professor, student, class, and published example scenario. The command prints its
+development-only credentials when it succeeds.
+
 Expired login sessions can be removed with `python main.py cleanup-sessions`.
 Create a consistent SQLite backup with `python main.py backup --output backups`.
 

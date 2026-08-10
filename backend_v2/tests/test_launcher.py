@@ -55,3 +55,12 @@ def test_backup_command_forwards_output_directory(monkeypatch, tmp_path) -> None
     )
     assert launcher.main(["backup", "--output", str(tmp_path)]) == 0
     assert calls == [tmp_path]
+
+
+def test_demo_command_forwards_scenario_path(monkeypatch, tmp_path) -> None:
+    scenario = tmp_path / "scenario.json"
+    calls = []
+    monkeypatch.setattr(launcher, "run_migrations", lambda: None)
+    monkeypatch.setattr(launcher, "create_demo_data", lambda path: calls.append(path) or 0)
+    assert launcher.main(["create-demo", "--scenario", str(scenario)]) == 0
+    assert calls == [scenario]

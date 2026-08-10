@@ -103,6 +103,7 @@ def test_scenario_can_be_uploaded_listed_and_published(client: TestClient) -> No
     scenarios = client.get("/api/scenarios")
     assert scenarios.status_code == 200
     scenario = scenarios.json()[0]
+    assert revision["scenario_id"] == scenario["id"]
     assert scenario["name"] == "Example"
     assert scenario["latest_status"] == "draft"
 

@@ -81,8 +81,8 @@ All scenario-authoring endpoints require a professor.
 | `POST` | `/api/scenarios/{scenario_id}/revisions/{number}/publish` | Publish a revision. |
 | `POST` | `/api/scenarios/{scenario_id}/archive` | Archive without deleting history. |
 
-A revision response contains `id`, `revision_number`, `schema_version`, `status`, `definition`,
-`created_at`, and `published_at`. The frontend should retain the revision **ID** when assigning
+A revision response contains `id`, `scenario_id`, `revision_number`, `schema_version`, `status`,
+`definition`, `created_at`, and `published_at`. The frontend should retain the revision **ID** when assigning
 or starting simulations; the revision number is only meaningful within its scenario.
 
 ## Class endpoints

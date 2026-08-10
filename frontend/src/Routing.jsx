@@ -11,6 +11,8 @@ import GDPR from './pages/GDPR';
 import Imprint from './pages/Imprint';
 import NotFoundPage from './components/NotFoundPage';
 import CourseOverview from './pages/CourseOverview';
+import AuditOverview from './pages/AuditOverview';
+import ClassResultDetail from './pages/ClassResultDetail';
 
 const Routing = () => {
 	const { currentUser, isAuthenticating } = useContext(AuthContext);
@@ -50,6 +52,8 @@ const Routing = () => {
 				<>
 					{/* adding routes which are accessible for every logged-in user with role staff */}
 					<Route path="/classes" element={<CourseOverview />} />
+					<Route path="/classes/:class_id/results/:run_id" element={<ClassResultDetail />} />
+					<Route path="/audit" element={<AuditOverview />} />
 				</>
 			)}
 		</Routes>
