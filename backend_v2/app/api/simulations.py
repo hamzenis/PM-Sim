@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from app.api.auth import CurrentUser
-from app.db.models import SimulationRunRecord
+from app.db.models import SimulationRunRecord, SimulationTurnRecord
 from app.db.session import get_session
 from app.simulation.models import ActivityAllocation, HireRequest, WeeklyDecision
 from app.simulations.service import (
@@ -15,7 +15,9 @@ from app.simulations.service import (
     complete_simulation_turn,
     get_simulation_run,
     list_simulation_runs,
+    list_simulation_turns,
     start_simulation_run,
+    submit_simulation_run,
 )
 
 router = APIRouter(prefix="/simulations", tags=["simulations"])
@@ -91,6 +93,19 @@ class TurnResponse(BaseModel):
     replayed: bool
 
 
+class SubmitRunRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_version: int = Field(ge=1)
+
+
+class TurnHistoryResponse(BaseModel):
+    week_number: int
+    decision: dict[str, object]
+    events: list[dict[str, object]]
+    submitted_at: datetime
+
+
 @router.post("", response_model=RunResponse, status_code=status.HTTP_201_CREATED)
 def start_run(
     request: StartSimulationRequest,
@@ -122,6 +137,19 @@ def get_run(run_id: str, session: DatabaseSession, user: CurrentUser) -> RunResp
         raise HTTPException(status_code=404, detail=str(error)) from error
 
 
+@router.get("/{run_id}/turns", response_model=list[TurnHistoryResponse])
+def get_turn_history(
+    run_id: str,
+    session: DatabaseSession,
+    user: CurrentUser,
+) -> list[TurnHistoryResponse]:
+    try:
+        turns = list_simulation_turns(session, run_id=run_id, user_id=user.id)
+    except SimulationRunError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    return [_turn_history_response(turn) for turn in turns]
+
+
 @router.post("/{run_id}/turns", response_model=TurnResponse)
 def complete_turn(
     run_id: str,
@@ -149,6 +177,27 @@ def complete_turn(
         events=_student_events(completed.turn.events),
         replayed=completed.replayed,
     )
+
+
+@router.post("/{run_id}/submit", response_model=RunResponse)
+def submit_run(
+    run_id: str,
+    request: SubmitRunRequest,
+    session: DatabaseSession,
+    user: CurrentUser,
+) -> RunResponse:
+    try:
+        run = submit_simulation_run(
+            session,
+            run_id=run_id,
+            user_id=user.id,
+            expected_version=request.expected_version,
+        )
+    except ConcurrentTurnError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except SimulationRunError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    return _run_response(run)
 
 
 def _run_summary(run: SimulationRunRecord) -> RunSummaryResponse:
@@ -182,3 +231,12 @@ def _student_state(state: dict[str, object]) -> dict[str, object]:
 def _student_events(events: list[dict[str, object]]) -> list[dict[str, object]]:
     hidden_kinds = {"bugs_created", "incorrect_specifications_created"}
     return [event for event in events if event.get("kind") not in hidden_kinds]
+
+
+def _turn_history_response(turn: SimulationTurnRecord) -> TurnHistoryResponse:
+    return TurnHistoryResponse(
+        week_number=turn.week_number,
+        decision=turn.decision,
+        events=_student_events(turn.events),
+        submitted_at=turn.submitted_at,
+    )

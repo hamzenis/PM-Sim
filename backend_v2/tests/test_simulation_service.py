@@ -23,7 +23,9 @@ from app.simulations.service import (
     complete_simulation_turn,
     get_simulation_run,
     list_simulation_runs,
+    list_simulation_turns,
     start_simulation_run,
+    submit_simulation_run,
 )
 
 
@@ -143,6 +145,56 @@ def test_runs_are_listed_and_read_only_for_their_owner(session: Session) -> None
     assert get_simulation_run(session, run_id=run.id, user_id=user.id) == run
     with pytest.raises(SimulationRunError, match="not found"):
         get_simulation_run(session, run_id=run.id, user_id="another-user")
+
+
+def test_student_can_submit_an_active_run_once(session: Session) -> None:
+    user, revision = persisted_inputs(session)
+    run = start_simulation_run(session, user_id=user.id, scenario_revision_id=revision.id, seed=3)
+    submitted = submit_simulation_run(
+        session,
+        run_id=run.id,
+        user_id=user.id,
+        expected_version=1,
+    )
+    assert submitted.status == "submitted"
+    assert submitted.version == 2
+    assert submitted.finished_at is not None
+    assert submitted.final_result["outcome"] == "submitted"
+
+    replay = submit_simulation_run(
+        session,
+        run_id=run.id,
+        user_id=user.id,
+        expected_version=1,
+    )
+    assert replay.version == 2
+    with pytest.raises(SimulationRunError, match="not active"):
+        complete_simulation_turn(
+            session,
+            run_id=run.id,
+            user_id=user.id,
+            decision=development_decision(),
+            expected_version=2,
+            idempotency_key="after-submit",
+        )
+
+
+def test_turn_history_requires_run_ownership(session: Session) -> None:
+    user, revision = persisted_inputs(session)
+    run = start_simulation_run(session, user_id=user.id, scenario_revision_id=revision.id, seed=3)
+    complete_simulation_turn(
+        session,
+        run_id=run.id,
+        user_id=user.id,
+        decision=development_decision(),
+        expected_version=1,
+        idempotency_key="history",
+    )
+    assert [
+        turn.week_number for turn in list_simulation_turns(session, run_id=run.id, user_id=user.id)
+    ] == [1]
+    with pytest.raises(SimulationRunError, match="not found"):
+        list_simulation_turns(session, run_id=run.id, user_id="another-user")
 
 
 def test_turn_is_persisted_with_state_events_seed_and_optimistic_version(session: Session) -> None:

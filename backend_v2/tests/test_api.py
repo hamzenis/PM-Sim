@@ -203,6 +203,11 @@ def test_student_can_start_read_and_complete_a_simulation_turn(client: TestClien
     assert result["replayed"] is False
     assert "bugs_created" not in {event["kind"] for event in result["events"]}
 
+    history = client.get(f"/api/simulations/{run['id']}/turns")
+    assert history.status_code == 200
+    assert history.json()[0]["week_number"] == 1
+    assert "bugs_created" not in {event["kind"] for event in history.json()[0]["events"]}
+
     replay = client.post(
         f"/api/simulations/{run['id']}/turns",
         json=decision,
@@ -234,3 +239,42 @@ def test_turn_api_requires_idempotency_and_rejects_stale_versions(client: TestCl
         headers={"Idempotency-Key": "stale"},
     )
     assert stale.status_code == 409
+
+
+def test_student_can_submit_a_run_and_cannot_take_more_turns(client: TestClient) -> None:
+    revision_id = _assign_scenario_and_login_student(client)
+    run = client.post(
+        "/api/simulations", json={"scenario_revision_id": revision_id, "seed": 9}
+    ).json()
+    submitted = client.post(
+        f"/api/simulations/{run['id']}/submit",
+        json={"expected_version": 1},
+    )
+    assert submitted.status_code == 200
+    result = submitted.json()
+    assert result["status"] == "submitted"
+    assert result["version"] == 2
+    assert result["final_result"]["outcome"] == "submitted"
+
+    replay = client.post(
+        f"/api/simulations/{run['id']}/submit",
+        json={"expected_version": 1},
+    )
+    assert replay.status_code == 200
+    assert replay.json()["version"] == 2
+
+    turn = client.post(
+        f"/api/simulations/{run['id']}/turns",
+        json={
+            "expected_version": 2,
+            "allocation": {
+                "development": 100,
+                "unit_testing": 0,
+                "bug_fixing": 0,
+                "integration_testing": 0,
+            },
+        },
+        headers={"Idempotency-Key": "too-late"},
+    )
+    assert turn.status_code == 400
+    assert turn.json()["detail"] == "simulation run is not active"

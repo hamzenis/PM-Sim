@@ -67,6 +67,74 @@ def get_simulation_run(
     return run
 
 
+def list_simulation_turns(
+    session: Session,
+    *,
+    run_id: str,
+    user_id: str,
+) -> list[SimulationTurnRecord]:
+    """Return the persisted history of an owned run in week order."""
+    get_simulation_run(session, run_id=run_id, user_id=user_id)
+    statement = (
+        select(SimulationTurnRecord)
+        .where(SimulationTurnRecord.run_id == run_id)
+        .order_by(SimulationTurnRecord.week_number)
+    )
+    return list(session.scalars(statement))
+
+
+def submit_simulation_run(
+    session: Session,
+    *,
+    run_id: str,
+    user_id: str,
+    expected_version: int,
+) -> SimulationRunRecord:
+    """Finalize an active run without advancing another simulation week."""
+    run = get_simulation_run(session, run_id=run_id, user_id=user_id)
+    if run.status != SimulationOutcome.ACTIVE:
+        return run
+    if run.version != expected_version:
+        raise ConcurrentTurnError("simulation run version has changed")
+
+    revision = session.get(ScenarioRevisionRecord, run.scenario_revision_id)
+    if revision is None:
+        raise SimulationRunError("scenario revision not found")
+    scenario = ScenarioDefinition.model_validate(revision.definition)
+    state = state_from_dict(run.current_state)
+    now = datetime.now(UTC)
+    final_result = asdict(
+        build_simulation_result(
+            state,
+            rules=score_rules_from_scenario(scenario),
+            submitted=True,
+        )
+    )
+    statement = (
+        update(SimulationRunRecord)
+        .where(
+            SimulationRunRecord.id == run.id,
+            SimulationRunRecord.user_id == user_id,
+            SimulationRunRecord.version == expected_version,
+            SimulationRunRecord.status == SimulationOutcome.ACTIVE,
+        )
+        .values(
+            status=SimulationOutcome.SUBMITTED,
+            version=expected_version + 1,
+            final_result=final_result,
+            finished_at=now,
+        )
+    )
+    if session.execute(statement).rowcount != 1:
+        session.rollback()
+        raise ConcurrentTurnError("simulation run version has changed")
+    session.commit()
+    submitted = session.get(SimulationRunRecord, run.id)
+    if submitted is None:
+        raise SimulationRunError("simulation run disappeared after submission")
+    return submitted
+
+
 def start_simulation_run(
     session: Session,
     *,
