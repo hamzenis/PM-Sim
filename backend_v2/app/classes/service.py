@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import delete, select
@@ -21,6 +22,13 @@ from app.db.models import (
 
 class ClassError(ValueError):
     pass
+
+
+@dataclass(frozen=True, slots=True)
+class AvailableScenario:
+    class_id: str
+    class_name: str
+    revision: ScenarioRevisionRecord
 
 
 def import_students(
@@ -395,6 +403,33 @@ def available_scenario_revisions(
         .order_by(ScenarioRevisionRecord.id)
     )
     return list(session.scalars(statement))
+
+
+def available_scenarios_for_user(session: Session, user_id: str) -> list[AvailableScenario]:
+    """List each active class assignment available to a student."""
+    statement = (
+        select(ScenarioRevisionRecord, ClassRecord)
+        .join(
+            ScenarioAvailabilityRecord,
+            ScenarioAvailabilityRecord.scenario_revision_id == ScenarioRevisionRecord.id,
+        )
+        .join(ClassRecord, ClassRecord.id == ScenarioAvailabilityRecord.class_id)
+        .join(
+            ClassMembershipRecord,
+            ClassMembershipRecord.class_id == ClassRecord.id,
+        )
+        .join(ScenarioRecord, ScenarioRecord.id == ScenarioRevisionRecord.scenario_id)
+        .where(
+            ClassMembershipRecord.user_id == user_id,
+            ClassRecord.archived_at.is_(None),
+            ScenarioRecord.archived_at.is_(None),
+        )
+        .order_by(ClassRecord.name, ClassRecord.id, ScenarioRevisionRecord.id)
+    )
+    return [
+        AvailableScenario(class_id=course_class.id, class_name=course_class.name, revision=revision)
+        for revision, course_class in session.execute(statement)
+    ]
 
 
 def user_can_access_revision(session: Session, user_id: str, revision_id: str) -> bool:

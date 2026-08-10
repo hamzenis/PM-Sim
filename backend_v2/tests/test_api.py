@@ -218,6 +218,12 @@ def test_professor_assigns_published_scenario_and_student_can_list_it(
         ).status_code
         == 201
     )
+    second_class = client.post("/api/classes", json={"name": "PM 2027"}).json()
+    client.post(f"/api/classes/{second_class['id']}/students", json={"username": "student"})
+    client.post(
+        f"/api/classes/{second_class['id']}/scenarios",
+        json={"scenario_revision_id": revision["id"]},
+    )
 
     client.post("/api/auth/logout")
     client.post(
@@ -227,6 +233,10 @@ def test_professor_assigns_published_scenario_and_student_can_list_it(
     available = client.get("/api/classes/available-scenarios")
     assert available.status_code == 200
     assert available.json()[0]["id"] == revision["id"]
+    assert available.json()[0]["class_id"] == class_id
+    assert available.json()[0]["class_name"] == "PM 2026"
+    assert available.json()[1]["class_id"] == second_class["id"]
+    assert available.json()[1]["class_name"] == "PM 2027"
 
 
 def test_professor_can_manage_class_members_assignments_and_archival(

@@ -106,7 +106,8 @@ Except for `available-scenarios`, class endpoints require a professor and enforc
 | `GET` | `/api/classes/available-scenarios` | List revisions available to the current user. |
 
 `GET /api/classes/available-scenarios` is the student's entry point for choosing a scenario. Its
-items contain `id`, `revision_number`, and the complete `definition`.
+items contain `id`, `class_id`, `class_name`, `revision_number`, and the complete `definition`.
+The same revision can appear more than once when it is assigned through multiple classes.
 
 ## Simulation endpoints
 

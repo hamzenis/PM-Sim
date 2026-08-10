@@ -11,7 +11,7 @@ from app.classes.service import (
     add_student,
     archive_class,
     assign_scenario,
-    available_scenario_revisions,
+    available_scenarios_for_user,
     create_class,
     import_students,
     list_assigned_scenarios,
@@ -90,6 +90,14 @@ class AssignedScenarioResponse(BaseModel):
     scenario_id: str
     revision_number: int
     status: str
+
+
+class AvailableScenarioResponse(BaseModel):
+    id: str
+    class_id: str
+    class_name: str
+    revision_number: int
+    definition: dict[str, object]
 
 
 @router.post("", response_model=ClassResponse, status_code=status.HTTP_201_CREATED)
@@ -292,13 +300,15 @@ def assign_scenario_route(
         raise HTTPException(status_code=404, detail=str(error)) from error
 
 
-@router.get("/available-scenarios", response_model=list[dict[str, object]])
+@router.get("/available-scenarios", response_model=list[AvailableScenarioResponse])
 def available_scenarios_route(session: DatabaseSession, user: CurrentUser) -> object:
     return [
-        {
-            "id": revision.id,
-            "revision_number": revision.revision_number,
-            "definition": revision.definition,
-        }
-        for revision in available_scenario_revisions(session, user.id)
+        AvailableScenarioResponse(
+            id=item.revision.id,
+            class_id=item.class_id,
+            class_name=item.class_name,
+            revision_number=item.revision.revision_number,
+            definition=item.revision.definition,
+        )
+        for item in available_scenarios_for_user(session, user.id)
     ]

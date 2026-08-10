@@ -24,6 +24,8 @@ import { listAvailableScenarios, listOwnedScenarios } from '../api/scenarios';
 import { listSimulationRuns, startSimulationRun } from '../api/simulations';
 import { AuthContext } from '../context/AuthProvider';
 
+export const scenarioAssignmentKey = (classId, revisionId) => `${classId}:${revisionId}`;
+
 const ScenarioOverview = () => {
 	const { currentUser } = useContext(AuthContext);
 	const navigate = useNavigate();
@@ -60,17 +62,20 @@ const ScenarioOverview = () => {
 		};
 	}, [isProfessor]);
 
-	const runsByRevision = useMemo(() => new Map(runs.map((run) => [run.scenario_revision_id, run])), [runs]);
+	const runsByAssignment = useMemo(
+		() => new Map(runs.map((run) => [scenarioAssignmentKey(run.class_id, run.scenario_revision_id), run])),
+		[runs]
+	);
 
-	const start = async (revisionId) => {
-		setStartingId(revisionId);
+	const start = async (scenario) => {
+		const assignmentKey = scenarioAssignmentKey(scenario.class_id, scenario.id);
+		setStartingId(assignmentKey);
 		setError(null);
 		try {
-			const scenario = scenarios.find((item) => item.id === revisionId);
 			const run = await startSimulationRun(
-				revisionId,
+				scenario.id,
 				Math.floor(Math.random() * 2147483647),
-				scenario?.class_id
+				scenario.class_id
 			);
 			navigate(`/simulations/${run.id}`);
 		} catch (requestError) {
@@ -110,6 +115,7 @@ const ScenarioOverview = () => {
 								<Thead>
 									<Tr>
 										<Th>Name</Th>
+										{!isProfessor && <Th>Class</Th>}
 										<Th>Revision</Th>
 										<Th>Status</Th>
 										<Th />
@@ -118,12 +124,14 @@ const ScenarioOverview = () => {
 								<Tbody>
 									{scenarios.map((scenario) => {
 										const revisionId = isProfessor ? null : scenario.id;
-										const run = revisionId ? runsByRevision.get(revisionId) : null;
+										const assignmentKey = scenarioAssignmentKey(scenario.class_id, revisionId);
+										const run = revisionId ? runsByAssignment.get(assignmentKey) : null;
 										return (
-											<Tr key={scenario.id}>
+											<Tr key={isProfessor ? scenario.id : assignmentKey}>
 												<Td fontWeight="semibold">
 													{isProfessor ? scenario.name : scenario.definition.name}
 												</Td>
+												{!isProfessor && <Td>{scenario.class_name}</Td>}
 												<Td>
 													{isProfessor ? scenario.latest_revision : scenario.revision_number}
 												</Td>
@@ -143,8 +151,8 @@ const ScenarioOverview = () => {
 														) : (
 															<Button
 																colorScheme="blue"
-																isLoading={startingId === revisionId}
-																onClick={() => start(revisionId)}
+																isLoading={startingId === assignmentKey}
+																onClick={() => start(scenario)}
 															>
 																Start
 															</Button>
