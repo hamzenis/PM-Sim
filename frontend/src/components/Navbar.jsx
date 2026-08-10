@@ -16,7 +16,6 @@ import { HiMenu, HiOutlineLogout, HiUserCircle  } from "react-icons/hi";
 import { useContext, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthProvider";
-import { HiOutlineCog } from "react-icons/hi";
 
 
 const Navbar = () => {
@@ -67,47 +66,10 @@ const Navbar = () => {
           Scenarios
         </Button>
 
-        {currentUser?.role === "professor" && (
-        <Button variant="link" as={Link} to="/scenario-studio" onClick={handleClick}>
-          Scenario Studio
-        </Button>
-        )}
         <Button variant="link" as={Link} to="/help" onClick={handleClick}>
           Help
         </Button>
-        {currentUser?.role === "professor" && (
-            <Button variant="link" as={Link} to="/scenariomanagement" onClick={handleClick}>
-              Admin Panel
-            </Button>
-        )}
       </HStack>
-
-      {currentUser?.role === "professor" && (
-        <HStack direction="row" spacing={4} justifyContent="flex-end">
-          <HStack
-            borderRadius="full"
-            backgroundColor="white"
-            p={3}
-            boxShadow="xl"
-          >
-            <Menu>
-              <MenuButton ref={menuButton} size="sm" cursor="pointer">
-                <HiOutlineCog />
-              </MenuButton>
-              <MenuList mt={2}>
-                <MenuGroup>
-                  <MenuItem color="black" as={Link} to="/skill-types" onClick={handleClick}>
-                    Skill Types
-                  </MenuItem>
-                  <MenuItem color="black" as={Link} to="/scenario-config" onClick={handleClick}>
-                    Scenario Configurations
-                  </MenuItem>
-                </MenuGroup>
-              </MenuList>
-            </Menu>
-          </HStack>
-        </HStack>
-      )}
 
       <HStack justifyContent="flex-end">
         <HStack

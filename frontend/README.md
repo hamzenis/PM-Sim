@@ -29,6 +29,10 @@ to backend v2 at `http://127.0.0.1:8000`. The legacy host is temporary and is us
 that have not yet been migrated. Run the old backend on another port only when one of those pages
 is still needed.
 
+The frontend session, scenario list, and basic weekly simulation screen now use backend v2. The
+legacy MongoDB scenario builder, skill-type editor, and scenario-configuration routes are hidden
+until a backend-v2 scenario editor replaces them.
+
 ---
 
 ## Installation

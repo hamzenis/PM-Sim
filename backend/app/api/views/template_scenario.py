@@ -737,3 +737,8 @@ class ScenarioCoursesView(APIView):
             {"status": f"Scenario {scenario_id} removed from all associated courses."},
             status=status.HTTP_200_OK,
         )
+"""Disabled legacy MongoDB scenario builder implementation.
+
+The URL routes importing this module were removed while the frontend is migrated to backend v2.
+The source remains temporarily as a reference for the future SQL-backed scenario editor.
+"""
