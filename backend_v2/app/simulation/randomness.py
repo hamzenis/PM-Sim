@@ -1,6 +1,8 @@
 from collections.abc import Iterable
 from typing import Protocol
 
+import numpy as np
+
 
 class RandomSource(Protocol):
     """Random values required by the engine, supplied by the caller."""
@@ -43,3 +45,21 @@ class RecordedRandomSource:
         if value < 0:
             raise ValueError("recorded Poisson values cannot be negative")
         return value
+
+
+class SeededRandomSource:
+    """Production random source whose complete sequence is identified by one seed."""
+
+    def __init__(self, seed: int) -> None:
+        self.seed = seed
+        self._generator = np.random.default_rng(seed)
+
+    def probability(self, chance: float) -> bool:
+        if not 0 <= chance <= 1:
+            raise ValueError("probability must be between zero and one")
+        return bool(self._generator.random() < chance)
+
+    def poisson(self, expected_value: float) -> int:
+        if expected_value < 0:
+            raise ValueError("expected Poisson value cannot be negative")
+        return int(self._generator.poisson(expected_value))

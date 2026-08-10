@@ -10,7 +10,7 @@ from app.simulation.models import (
     Throughput,
     WeeklyCapacity,
 )
-from app.simulation.randomness import RandomSource, RecordedRandomSource
+from app.simulation.randomness import RandomSource, RecordedRandomSource, SeededRandomSource
 from app.simulation.tasks import distribute_tasks
 
 __all__ = [
@@ -22,6 +22,7 @@ __all__ = [
     "RandomSource",
     "RecordedRandomSource",
     "SimulationState",
+    "SeededRandomSource",
     "TaskPool",
     "Throughput",
     "WeeklyCapacity",
