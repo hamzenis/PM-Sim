@@ -36,18 +36,33 @@ def expected_development_output(
     development_hours: float,
 ) -> ExpectedTaskOutput:
     """Automatically spread development time across the remaining difficulty mix."""
-    if development_hours < 0:
-        raise ValueError("development hours cannot be negative")
-    if not state.employees or development_hours == 0 or state.tasks_todo.total == 0:
+    return expected_output_for_tasks(
+        state,
+        employee_types=employee_types,
+        work_hours=development_hours,
+        available=state.tasks_todo,
+    )
+
+
+def expected_output_for_tasks(
+    state: SimulationState,
+    *,
+    employee_types: tuple[EmployeeType, ...],
+    work_hours: float,
+    available: TaskPool,
+) -> ExpectedTaskOutput:
+    """Spread team time across an anonymous pool and calculate expected actions."""
+    if work_hours < 0:
+        raise ValueError("work hours cannot be negative")
+    if not state.employees or work_hours == 0 or available.total == 0:
         return ExpectedTaskOutput(easy=0, medium=0, hard=0)
 
     types_by_code = {employee_type.code: employee_type for employee_type in employee_types}
-    hours_per_employee = development_hours / len(state.employees)
-    backlog = state.tasks_todo
+    hours_per_employee = work_hours / len(state.employees)
     difficulty_shares = {
-        Difficulty.EASY: backlog.easy / backlog.total,
-        Difficulty.MEDIUM: backlog.medium / backlog.total,
-        Difficulty.HARD: backlog.hard / backlog.total,
+        Difficulty.EASY: available.easy / available.total,
+        Difficulty.MEDIUM: available.medium / available.total,
+        Difficulty.HARD: available.hard / available.total,
     }
     output = {difficulty: 0.0 for difficulty in Difficulty}
     communication_efficiency = team_efficiency(len(state.employees))
@@ -83,6 +98,8 @@ def realize_task_output(
         raise ValueError(f"unknown randomness mode: {randomness}")
 
     def realize(value: float, maximum: int) -> int:
+        if value <= 0 or maximum == 0:
+            return 0
         if randomness == "none":
             completed = _round_half_up(value)
         else:

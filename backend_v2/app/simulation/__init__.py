@@ -37,6 +37,7 @@ from app.simulation.testing import (
     apply_bug_fixes,
     apply_unit_testing,
 )
+from app.simulation.turn import SimulationEvent, TurnResult, TurnRules, process_week
 
 __all__ = [
     "ActivityAllocation",
@@ -54,10 +55,13 @@ __all__ = [
     "RandomSource",
     "RecordedRandomSource",
     "SimulationState",
+    "SimulationEvent",
     "SeededRandomSource",
     "StaffingError",
     "TaskPool",
     "Throughput",
+    "TurnResult",
+    "TurnRules",
     "WeeklyCapacity",
     "WeeklyDecision",
     "UnitTestResult",
@@ -74,6 +78,7 @@ __all__ = [
     "hours_from_allocation",
     "incorrect_specification_probability",
     "member_efficiency",
+    "process_week",
     "realize_task_output",
     "team_efficiency",
     "weekly_staff_cost",

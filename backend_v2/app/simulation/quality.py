@@ -130,4 +130,8 @@ def _sample_uniform_pool(tasks: TaskPool, probability: float, random: RandomSour
 def _successes(count: int, probability: float, random: RandomSource) -> int:
     if not 0 <= probability <= 1:
         raise ValueError("task probability must be between zero and one")
+    if probability == 0 or count == 0:
+        return 0
+    if probability == 1:
+        return count
     return sum(random.probability(probability) for _ in range(count))
