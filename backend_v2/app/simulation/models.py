@@ -147,3 +147,49 @@ class ActivityHours:
     @property
     def total(self) -> float:
         return self.development + self.unit_testing + self.bug_fixing + self.integration_testing
+
+
+@dataclass(frozen=True, slots=True)
+class ActivityAllocation:
+    """Student-selected percentages of the team's available engineering time."""
+
+    development: float
+    unit_testing: float
+    bug_fixing: float
+    integration_testing: float
+
+    def __post_init__(self) -> None:
+        values = (
+            self.development,
+            self.unit_testing,
+            self.bug_fixing,
+            self.integration_testing,
+        )
+        if any(value < 0 or value > 100 for value in values):
+            raise ValueError("activity percentages must be between zero and 100")
+        if abs(sum(values) - 100) > 1e-9:
+            raise ValueError("activity percentages must total 100")
+
+
+@dataclass(frozen=True, slots=True)
+class HireRequest:
+    employee_type_code: str
+    count: int
+
+    def __post_init__(self) -> None:
+        if not self.employee_type_code:
+            raise ValueError("employee type code is required")
+        if self.count <= 0:
+            raise ValueError("hire count must be positive")
+
+
+@dataclass(frozen=True, slots=True)
+class WeeklyDecision:
+    allocation: ActivityAllocation
+    hires: tuple[HireRequest, ...] = ()
+    dismiss_employee_ids: tuple[str, ...] = ()
+    overtime_hours_per_employee: float = 0
+
+    def __post_init__(self) -> None:
+        if len(self.dismiss_employee_ids) != len(set(self.dismiss_employee_ids)):
+            raise ValueError("an employee cannot be dismissed more than once")
