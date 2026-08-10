@@ -116,6 +116,35 @@ def test_scenario_can_be_uploaded_listed_and_published(client: TestClient) -> No
     assert revisions.json()[0]["definition"]["tasks"]["total"] == 20
 
 
+def test_professor_audit_history_records_actions_and_supports_pagination(
+    client: TestClient,
+) -> None:
+    client.post("/api/scenarios", json=scenario_payload())
+    scenario_id = client.get("/api/scenarios").json()[0]["id"]
+    client.post(f"/api/scenarios/{scenario_id}/revisions/1/publish")
+    course_class = client.post("/api/classes", json={"name": "Audited"}).json()
+    client.post(f"/api/classes/{course_class['id']}/students", json={"username": "student"})
+
+    history = client.get("/api/audit?limit=2&offset=0")
+    assert history.status_code == 200
+    assert len(history.json()) == 2
+    all_actions = {entry["action"] for entry in client.get("/api/audit?limit=20&offset=0").json()}
+    assert {
+        "scenario.created",
+        "scenario.revision_published",
+        "class.created",
+        "class.student_added",
+    } <= all_actions
+    assert "password" not in str(history.json()).lower()
+
+    client.post("/api/auth/logout")
+    client.post(
+        "/api/auth/login",
+        json={"username": "student", "password": "student-password"},
+    )
+    assert client.get("/api/audit").status_code == 403
+
+
 def test_missing_scenario_returns_not_found(client: TestClient) -> None:
     response = client.get("/api/scenarios/missing")
     assert response.status_code == 404

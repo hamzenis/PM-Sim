@@ -5,6 +5,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.api.audit import router as audit_router
 from app.api.auth import router as auth_router
 from app.api.classes import router as class_router
 from app.api.results import router as result_router
@@ -14,6 +15,7 @@ from app.db.session import get_session
 
 app = FastAPI(title="PM-Sim API", version="0.1.0")
 app.include_router(auth_router, prefix="/api")
+app.include_router(audit_router, prefix="/api")
 app.include_router(class_router, prefix="/api")
 app.include_router(scenario_router, prefix="/api")
 app.include_router(result_router, prefix="/api")

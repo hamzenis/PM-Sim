@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.audit.service import record_audit
 from app.db.models import RevisionStatus, ScenarioRecord, ScenarioRevisionRecord
 from app.scenarios.models import ScenarioDefinition
 
@@ -34,6 +35,15 @@ def create_scenario(
     )
     revision = _new_revision(scenario, definition, revision_number=1, now=now)
     session.add(scenario)
+    session.flush()
+    record_audit(
+        session,
+        actor_id=owner_id,
+        action="scenario.created",
+        target_type="scenario",
+        target_id=scenario.id,
+        details={"name": scenario.name, "revision_id": revision.id},
+    )
     session.commit()
     session.refresh(revision)
     return revision
@@ -57,6 +67,15 @@ def create_revision(
         now=datetime.now(UTC),
     )
     session.add(revision)
+    session.flush()
+    record_audit(
+        session,
+        actor_id=owner_id,
+        action="scenario.revision_created",
+        target_type="scenario_revision",
+        target_id=revision.id,
+        details={"scenario_id": scenario.id, "revision_number": revision.revision_number},
+    )
     session.commit()
     session.refresh(revision)
     return revision
@@ -100,6 +119,14 @@ def publish_revision(
     if revision.status == RevisionStatus.DRAFT:
         revision.status = RevisionStatus.PUBLISHED
         revision.published_at = datetime.now(UTC)
+        record_audit(
+            session,
+            actor_id=owner_id,
+            action="scenario.revision_published",
+            target_type="scenario_revision",
+            target_id=revision.id,
+            details={"scenario_id": scenario.id, "revision_number": revision.revision_number},
+        )
         session.commit()
         session.refresh(revision)
     return revision
@@ -109,6 +136,14 @@ def archive_scenario(session: Session, scenario_id: str, *, owner_id: str) -> Sc
     scenario = get_scenario(session, scenario_id, owner_id=owner_id)
     if scenario.archived_at is None:
         scenario.archived_at = datetime.now(UTC)
+        record_audit(
+            session,
+            actor_id=owner_id,
+            action="scenario.archived",
+            target_type="scenario",
+            target_id=scenario.id,
+            details={"name": scenario.name},
+        )
         session.commit()
         session.refresh(scenario)
     return scenario

@@ -4,6 +4,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.audit.service import record_audit
 from app.auth.service import AuthenticationError, hash_password
 from app.db.models import (
     AuthSessionRecord,
@@ -64,6 +65,14 @@ def import_students(
         ClassMembershipRecord(class_id=course_class.id, user_id=user.id, created_at=now)
         for user in users
     )
+    record_audit(
+        session,
+        actor_id=professor_id,
+        action="class.students_imported",
+        target_type="class",
+        target_id=course_class.id,
+        details={"count": len(users), "usernames": usernames},
+    )
     try:
         session.commit()
     except IntegrityError as error:
@@ -97,6 +106,14 @@ def reset_student_password(
     except AuthenticationError as error:
         raise ClassError(str(error)) from error
     session.execute(delete(AuthSessionRecord).where(AuthSessionRecord.user_id == student.id))
+    record_audit(
+        session,
+        actor_id=professor_id,
+        action="student.password_reset",
+        target_type="user",
+        target_id=student.id,
+        details={"class_id": course_class.id, "username": student.username},
+    )
     session.commit()
 
 
@@ -113,6 +130,15 @@ def create_class(session: Session, *, professor_id: str, name: str) -> ClassReco
         created_at=datetime.now(UTC),
     )
     session.add(course_class)
+    session.flush()
+    record_audit(
+        session,
+        actor_id=professor_id,
+        action="class.created",
+        target_type="class",
+        target_id=course_class.id,
+        details={"name": course_class.name},
+    )
     session.commit()
     session.refresh(course_class)
     return course_class
@@ -142,6 +168,14 @@ def rename_class(
     if not normalized:
         raise ClassError("class name is required")
     course_class.name = normalized
+    record_audit(
+        session,
+        actor_id=professor_id,
+        action="class.renamed",
+        target_type="class",
+        target_id=course_class.id,
+        details={"name": normalized},
+    )
     session.commit()
     session.refresh(course_class)
     return course_class
@@ -151,6 +185,14 @@ def archive_class(session: Session, *, professor_id: str, class_id: str) -> Clas
     course_class = _owned_class(session, class_id, professor_id)
     if course_class.archived_at is None:
         course_class.archived_at = datetime.now(UTC)
+        record_audit(
+            session,
+            actor_id=professor_id,
+            action="class.archived",
+            target_type="class",
+            target_id=course_class.id,
+            details={"name": course_class.name},
+        )
         session.commit()
         session.refresh(course_class)
     return course_class
@@ -184,6 +226,14 @@ def remove_student(
     if membership is None:
         raise ClassError("student membership not found")
     session.delete(membership)
+    record_audit(
+        session,
+        actor_id=professor_id,
+        action="class.student_removed",
+        target_type="user",
+        target_id=student_id,
+        details={"class_id": course_class.id},
+    )
     session.commit()
 
 
@@ -223,6 +273,14 @@ def unassign_scenario(
     if availability is None:
         raise ClassError("scenario assignment not found")
     session.delete(availability)
+    record_audit(
+        session,
+        actor_id=professor_id,
+        action="class.scenario_unassigned",
+        target_type="scenario_revision",
+        target_id=scenario_revision_id,
+        details={"class_id": course_class.id},
+    )
     session.commit()
 
 
@@ -256,6 +314,15 @@ def add_student(
         created_at=datetime.now(UTC),
     )
     session.add(membership)
+    session.flush()
+    record_audit(
+        session,
+        actor_id=professor_id,
+        action="class.student_added",
+        target_type="user",
+        target_id=student.id,
+        details={"class_id": course_class.id, "username": student.username},
+    )
     session.commit()
     session.refresh(membership)
     return membership
@@ -289,6 +356,15 @@ def assign_scenario(
         created_at=datetime.now(UTC),
     )
     session.add(availability)
+    session.flush()
+    record_audit(
+        session,
+        actor_id=professor_id,
+        action="class.scenario_assigned",
+        target_type="scenario_revision",
+        target_id=revision.id,
+        details={"class_id": course_class.id},
+    )
     session.commit()
     session.refresh(availability)
     return availability
