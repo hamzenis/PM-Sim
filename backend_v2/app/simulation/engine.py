@@ -28,4 +28,6 @@ def create_initial_state(
         tasks_unit_tested=empty,
         tasks_integration_tested=empty,
         known_bugs=empty,
+        undiscovered_bugs=empty,
+        incorrect_specifications=empty,
     )

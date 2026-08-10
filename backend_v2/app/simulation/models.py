@@ -22,6 +22,20 @@ class TaskPool:
     def total(self) -> int:
         return self.easy + self.medium + self.hard
 
+    def plus(self, other: "TaskPool") -> "TaskPool":
+        return TaskPool(
+            easy=self.easy + other.easy,
+            medium=self.medium + other.medium,
+            hard=self.hard + other.hard,
+        )
+
+    def minus(self, other: "TaskPool") -> "TaskPool":
+        return TaskPool(
+            easy=self.easy - other.easy,
+            medium=self.medium - other.medium,
+            hard=self.hard - other.hard,
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class Throughput:
@@ -94,6 +108,8 @@ class SimulationState:
     tasks_unit_tested: TaskPool
     tasks_integration_tested: TaskPool
     known_bugs: TaskPool
+    undiscovered_bugs: TaskPool
+    incorrect_specifications: TaskPool
     employees: tuple[Employee, ...] = ()
 
     def __post_init__(self) -> None:

@@ -39,6 +39,8 @@ def state_from_dict(data: dict[str, object]) -> SimulationState:
         tasks_unit_tested=task_pool("tasks_unit_tested"),
         tasks_integration_tested=task_pool("tasks_integration_tested"),
         known_bugs=task_pool("known_bugs"),
+        undiscovered_bugs=task_pool("undiscovered_bugs"),
+        incorrect_specifications=task_pool("incorrect_specifications"),
         employees=employees,
     )
 

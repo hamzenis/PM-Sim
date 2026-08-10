@@ -20,6 +20,13 @@ from app.simulation.productivity import (
     realize_task_output,
     team_efficiency,
 )
+from app.simulation.quality import (
+    DevelopmentResult,
+    DifficultyProbabilities,
+    apply_development_result,
+    bug_probabilities,
+    incorrect_specification_probability,
+)
 from app.simulation.randomness import RandomSource, RecordedRandomSource, SeededRandomSource
 from app.simulation.staffing import StaffingError, apply_staffing_changes, weekly_staff_cost
 from app.simulation.tasks import distribute_tasks
@@ -29,6 +36,8 @@ __all__ = [
     "ActivityHours",
     "CapacityError",
     "Difficulty",
+    "DifficultyProbabilities",
+    "DevelopmentResult",
     "Employee",
     "EmployeeType",
     "ExpectedTaskOutput",
@@ -42,12 +51,15 @@ __all__ = [
     "Throughput",
     "WeeklyCapacity",
     "WeeklyDecision",
+    "apply_development_result",
     "apply_staffing_changes",
     "allocate_weekly_hours",
+    "bug_probabilities",
     "create_initial_state",
     "distribute_tasks",
     "expected_development_output",
     "hours_from_allocation",
+    "incorrect_specification_probability",
     "member_efficiency",
     "realize_task_output",
     "team_efficiency",
