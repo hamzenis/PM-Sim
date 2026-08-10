@@ -1,25 +1,4 @@
-import {
-	Alert,
-	AlertIcon,
-	Box,
-	Button,
-	Container,
-	Flex,
-	FormControl,
-	FormLabel,
-	Heading,
-	Input,
-	Select,
-	SimpleGrid,
-	Stack,
-	Table,
-	Tbody,
-	Td,
-	Text,
-	Th,
-	Thead,
-	Tr,
-} from '@chakra-ui/react';
+import { Alert, AlertIcon, Container, Heading, SimpleGrid, Text } from '@chakra-ui/react';
 import React, { useEffect, useState } from 'react';
 import {
 	addStudent,
@@ -32,10 +11,17 @@ import {
 	listClassResults,
 	listStudents,
 	removeStudent,
+	renameClass,
 	resetStudentPassword,
 	unassignScenario,
 } from '../api/classes';
 import { listOwnedScenarios, listScenarioRevisions } from '../api/scenarios';
+import ClassPanel from '../components/ClassManagement/ClassPanel';
+import ConfirmDialog from '../components/ClassManagement/ConfirmDialog';
+import ResetPasswordDialog from '../components/ClassManagement/ResetPasswordDialog';
+import ResultsPanel from '../components/ClassManagement/ResultsPanel';
+import ScenarioPanel from '../components/ClassManagement/ScenarioPanel';
+import StudentPanel from '../components/ClassManagement/StudentPanel';
 
 const CourseOverview = () => {
 	const [classes, setClasses] = useState([]);
@@ -44,13 +30,11 @@ const CourseOverview = () => {
 	const [assignments, setAssignments] = useState([]);
 	const [results, setResults] = useState([]);
 	const [publishedRevisions, setPublishedRevisions] = useState([]);
-	const [newClassName, setNewClassName] = useState('');
-	const [username, setUsername] = useState('');
-	const [password, setPassword] = useState('');
-	const [revisionId, setRevisionId] = useState('');
 	const [error, setError] = useState('');
 	const [message, setMessage] = useState('');
 	const [isBusy, setIsBusy] = useState(false);
+	const [resetStudent, setResetStudent] = useState(null);
+	const [confirmation, setConfirmation] = useState(null);
 
 	const selectedClass = classes.find((item) => item.id === selectedId);
 
@@ -60,70 +44,104 @@ const CourseOverview = () => {
 		setSelectedId((current) => current || loaded[0]?.id || '');
 	};
 
-	useEffect(() => {
-		loadClasses().catch((requestError) => setError(requestError.message));
-		listOwnedScenarios()
-			.then((scenarios) => Promise.all(scenarios.map((scenario) => listScenarioRevisions(scenario.id))))
-			.then((revisionGroups) =>
-				setPublishedRevisions(revisionGroups.flat().filter((item) => item.status === 'published'))
-			)
-			.catch((requestError) => setError(requestError.message));
-	}, []);
-
-	useEffect(() => {
-		if (!selectedId) {
+	const loadClassDetails = async (classId) => {
+		if (!classId) {
 			setStudents([]);
 			setAssignments([]);
 			setResults([]);
 			return;
 		}
-		Promise.all([listStudents(selectedId), listAssignedScenarios(selectedId), listClassResults(selectedId)])
-			.then(([loadedStudents, loadedAssignments, loadedResults]) => {
-				setStudents(loadedStudents);
-				setAssignments(loadedAssignments);
-				setResults(loadedResults);
-			})
+		const [loadedStudents, loadedAssignments, loadedResults] = await Promise.all([
+			listStudents(classId),
+			listAssignedScenarios(classId),
+			listClassResults(classId),
+		]);
+		setStudents(loadedStudents);
+		setAssignments(loadedAssignments);
+		setResults(loadedResults);
+	};
+
+	useEffect(() => {
+		loadClasses().catch((requestError) => setError(requestError.message));
+		listOwnedScenarios()
+			.then((scenarios) => Promise.all(scenarios.map((scenario) => listScenarioRevisions(scenario.id))))
+			.then((groups) => setPublishedRevisions(groups.flat().filter((item) => item.status === 'published')))
 			.catch((requestError) => setError(requestError.message));
+	}, []);
+
+	useEffect(() => {
+		let active = true;
+		loadClassDetails(selectedId).catch((requestError) => {
+			if (active) setError(requestError.message);
+		});
+		return () => {
+			active = false;
+		};
 	}, [selectedId]);
 
-	const runAction = async (action, successMessage) => {
+	const runAction = async (action, successMessage, refreshDetails = true) => {
 		setIsBusy(true);
 		setError('');
 		setMessage('');
 		try {
 			await action();
 			setMessage(successMessage);
-			if (selectedId) {
-				const [loadedStudents, loadedAssignments, loadedResults] = await Promise.all([
-					listStudents(selectedId),
-					listAssignedScenarios(selectedId),
-					listClassResults(selectedId),
-				]);
-				setStudents(loadedStudents);
-				setAssignments(loadedAssignments);
-				setResults(loadedResults);
-			}
+			if (refreshDetails) await loadClassDetails(selectedId);
+			return true;
 		} catch (requestError) {
 			setError(requestError.message || 'The request failed.');
+			return false;
 		} finally {
 			setIsBusy(false);
 		}
 	};
 
-	const handleCreateClass = () =>
-		runAction(async () => {
-			const created = await createClass(newClassName);
-			setNewClassName('');
-			await loadClasses();
-			setSelectedId(created.id);
-		}, 'Class created.');
+	const createNewClass = async (name) => {
+		await runAction(
+			async () => {
+				const created = await createClass(name);
+				await loadClasses();
+				setSelectedId(created.id);
+			},
+			'Class created.',
+			false
+		);
+	};
 
-	const handleCreateStudent = () =>
-		runAction(async () => {
-			await importStudents(selectedId, [{ username, password }]);
-			setUsername('');
-			setPassword('');
-		}, 'Student created and added to the class.');
+	const renameSelectedClass = async (name) => {
+		await runAction(async () => {
+			await renameClass(selectedId, name);
+			await loadClasses();
+		}, 'Class renamed.');
+	};
+
+	const askForConfirmation = (title, message, confirmLabel, action, successMessage, refreshDetails = true) => {
+		setConfirmation({ title, message, confirmLabel, action, successMessage, refreshDetails });
+	};
+
+	const confirmAction = async () => {
+		const completed = await runAction(
+			confirmation.action,
+			confirmation.successMessage,
+			confirmation.refreshDetails
+		);
+		if (completed) setConfirmation(null);
+	};
+
+	const archiveSelectedClass = () => {
+		askForConfirmation(
+			'Archive class',
+			`Archive ${selectedClass.name}? It will no longer appear in the active class list.`,
+			'Archive',
+			async () => {
+				await archiveClass(selectedId);
+				setSelectedId('');
+				await loadClasses();
+			},
+			'Class archived.',
+			false
+		);
+	};
 
 	return (
 		<Container maxW="7xl" py={8} flexGrow={1}>
@@ -144,216 +162,84 @@ const CourseOverview = () => {
 				</Alert>
 			)}
 
-			<SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6}>
-				<Box bg="white" p={6} borderRadius="xl">
-					<Heading size="md" mb={4}>
-						Classes
-					</Heading>
-					<Stack>
-						<Input
-							placeholder="New class name"
-							value={newClassName}
-							onChange={(event) => setNewClassName(event.target.value)}
-						/>
-						<Button
-							colorScheme="blue"
-							isDisabled={!newClassName.trim()}
-							isLoading={isBusy}
-							onClick={handleCreateClass}
-						>
-							Create class
-						</Button>
-						<Select
-							placeholder="Select a class"
-							value={selectedId}
-							onChange={(event) => setSelectedId(event.target.value)}
-						>
-							{classes.map((item) => (
-								<option key={item.id} value={item.id}>
-									{item.name}
-								</option>
-							))}
-						</Select>
-						{selectedClass && (
-							<Button
-								colorScheme="red"
-								variant="outline"
-								onClick={() =>
-									runAction(async () => {
-										await archiveClass(selectedId);
-										setSelectedId('');
-										await loadClasses();
-									}, 'Class archived.')
-								}
-							>
-								Archive class
-							</Button>
-						)}
-					</Stack>
-				</Box>
-
-				<Box bg="white" p={6} borderRadius="xl">
-					<Heading size="md" mb={4}>
-						Add a student
-					</Heading>
-					<Stack>
-						<FormControl>
-							<FormLabel>Username</FormLabel>
-							<Input value={username} onChange={(event) => setUsername(event.target.value)} />
-						</FormControl>
-						<FormControl>
-							<FormLabel>Temporary password</FormLabel>
-							<Input
-								type="password"
-								value={password}
-								onChange={(event) => setPassword(event.target.value)}
-							/>
-						</FormControl>
-						<Button
-							colorScheme="blue"
-							isDisabled={!selectedId || !username.trim() || password.length < 10}
-							isLoading={isBusy}
-							onClick={handleCreateStudent}
-						>
-							Create student
-						</Button>
-						<Button
-							variant="outline"
-							isDisabled={!selectedId || !username.trim()}
-							onClick={() => runAction(() => addStudent(selectedId, username), 'Existing student added.')}
-						>
-							Add existing student
-						</Button>
-					</Stack>
-				</Box>
-
-				<Box bg="white" p={6} borderRadius="xl">
-					<Heading size="md" mb={4}>
-						Assign a scenario
-					</Heading>
-					<Stack>
-						<Select
-							placeholder="Published revision"
-							value={revisionId}
-							onChange={(event) => setRevisionId(event.target.value)}
-						>
-							{publishedRevisions.map((revision) => (
-								<option key={revision.id} value={revision.id}>
-									{revision.definition.name} (revision {revision.revision_number})
-								</option>
-							))}
-						</Select>
-						<Button
-							colorScheme="blue"
-							isDisabled={!selectedId || !revisionId}
-							onClick={() =>
-								runAction(() => assignScenario(selectedId, revisionId), 'Scenario assigned.')
-							}
-						>
-							Assign
-						</Button>
-					</Stack>
-				</Box>
+			<SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+				<ClassPanel
+					classes={classes}
+					selectedId={selectedId}
+					selectedClass={selectedClass}
+					isBusy={isBusy}
+					onSelect={setSelectedId}
+					onCreate={createNewClass}
+					onRename={renameSelectedClass}
+					onArchive={archiveSelectedClass}
+				/>
+				<ScenarioPanel
+					selectedId={selectedId}
+					revisions={publishedRevisions}
+					assignments={assignments}
+					onAssign={(revisionId) =>
+						runAction(() => assignScenario(selectedId, revisionId), 'Scenario assigned.')
+					}
+					onUnassign={(assignment) =>
+						askForConfirmation(
+							'Unassign scenario',
+							`Unassign revision ${assignment.revision_number} from this class?`,
+							'Unassign',
+							() => unassignScenario(selectedId, assignment.id),
+							'Scenario unassigned.'
+						)
+					}
+				/>
 			</SimpleGrid>
 
-			<Box bg="white" p={6} borderRadius="xl" mt={6}>
-				<Heading size="md" mb={4}>
-					Students in {selectedClass?.name || 'the selected class'}
-				</Heading>
-				{students.length === 0 ? (
-					<Text>No students in this class.</Text>
-				) : (
-					<Table>
-						<Thead>
-							<Tr>
-								<Th>Username</Th>
-								<Th>Actions</Th>
-							</Tr>
-						</Thead>
-						<Tbody>
-							{students.map((student) => (
-								<Tr key={student.id}>
-									<Td>{student.username}</Td>
-									<Td>
-										<Flex gap={2}>
-											<Button
-												size="sm"
-												onClick={() => {
-													const value = window.prompt(`New password for ${student.username}`);
-													if (value)
-														runAction(
-															() => resetStudentPassword(selectedId, student.id, value),
-															'Password reset.'
-														);
-												}}
-											>
-												Reset password
-											</Button>
-											<Button
-												size="sm"
-												colorScheme="red"
-												variant="outline"
-												onClick={() =>
-													runAction(
-														() => removeStudent(selectedId, student.id),
-														'Student removed.'
-													)
-												}
-											>
-												Remove
-											</Button>
-										</Flex>
-									</Td>
-								</Tr>
-							))}
-						</Tbody>
-					</Table>
-				)}
-			</Box>
+			<StudentPanel
+				className={selectedClass?.name}
+				selectedId={selectedId}
+				students={students}
+				isBusy={isBusy}
+				onCreate={(username, password) =>
+					runAction(
+						() => importStudents(selectedId, [{ username, password }]),
+						'Student created and added to the class.'
+					)
+				}
+				onAdd={(username) => runAction(() => addStudent(selectedId, username), 'Existing student added.')}
+				onReset={setResetStudent}
+				onRemove={(student) =>
+					askForConfirmation(
+						'Remove student',
+						`Remove ${student.username} from this class?`,
+						'Remove',
+						() => removeStudent(selectedId, student.id),
+						'Student removed.'
+					)
+				}
+			/>
 
-			<SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} mt={6}>
-				<Box bg="white" p={6} borderRadius="xl">
-					<Heading size="md" mb={4}>
-						Assigned scenarios
-					</Heading>
-					{assignments.length === 0 ? (
-						<Text>No scenarios assigned.</Text>
-					) : (
-						assignments.map((item) => (
-							<Flex key={item.id} justify="space-between" align="center" py={2}>
-								<Text>
-									Revision {item.revision_number} ({item.status})
-								</Text>
-								<Button
-									size="sm"
-									onClick={() =>
-										runAction(() => unassignScenario(selectedId, item.id), 'Scenario unassigned.')
-									}
-								>
-									Unassign
-								</Button>
-							</Flex>
-						))
-					)}
-				</Box>
-				<Box bg="white" p={6} borderRadius="xl">
-					<Heading size="md" mb={4}>
-						Simulation results
-					</Heading>
-					{results.length === 0 ? (
-						<Text>No simulation results yet.</Text>
-					) : (
-						results.map((result) => (
-							<Flex key={result.run_id} justify="space-between" py={2}>
-								<Text>{result.student_username}</Text>
-								<Text>
-									{result.status}, week {result.current_week}
-								</Text>
-							</Flex>
-						))
-					)}
-				</Box>
-			</SimpleGrid>
+			<ResultsPanel results={results} />
+
+			<ResetPasswordDialog
+				student={resetStudent}
+				isOpen={Boolean(resetStudent)}
+				isBusy={isBusy}
+				onCancel={() => setResetStudent(null)}
+				onSave={async (password) => {
+					const completed = await runAction(
+						() => resetStudentPassword(selectedId, resetStudent.id, password),
+						'Password reset.'
+					);
+					if (completed) setResetStudent(null);
+				}}
+			/>
+			<ConfirmDialog
+				isOpen={Boolean(confirmation)}
+				title={confirmation?.title}
+				message={confirmation?.message}
+				confirmLabel={confirmation?.confirmLabel}
+				isBusy={isBusy}
+				onCancel={() => setConfirmation(null)}
+				onConfirm={confirmAction}
+			/>
 		</Container>
 	);
 };

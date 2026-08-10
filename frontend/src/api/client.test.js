@@ -32,3 +32,20 @@ test('exposes status and backend details for failed requests', async () => {
 	expect(error).toBeInstanceOf(ApiError);
 	expect(error).toEqual(expect.objectContaining({ name: 'ApiError', status: 401, message: 'invalid credentials' }));
 });
+
+test('preserves field errors from FastAPI validation responses', async () => {
+	jest.spyOn(global, 'fetch').mockResolvedValue({
+		ok: false,
+		status: 422,
+		json: async () => ({
+			detail: [{ loc: ['body', 'students', 0, 'password'], msg: 'String should have at least 10 characters' }],
+		}),
+	});
+
+	const error = await apiRequest('/api/classes/class-1/students/import').catch((reason) => reason);
+
+	expect(error.message).toBe('String should have at least 10 characters');
+	expect(error.getFieldErrors()).toEqual({
+		'students.0.password': 'String should have at least 10 characters',
+	});
+});

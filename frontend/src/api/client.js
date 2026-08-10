@@ -4,12 +4,27 @@ export const API_BASE_URL = configuredBaseUrl.replace(/\/$/, '');
 
 export class ApiError extends Error {
 	constructor(status, body) {
-		const detail = typeof body?.detail === 'string' ? body.detail : 'Request failed';
+		const detail = getErrorMessage(body);
 		super(detail);
 		this.name = 'ApiError';
 		this.status = status;
 		this.body = body;
 	}
+
+	getFieldErrors() {
+		if (!Array.isArray(this.body?.detail)) return {};
+		return this.body.detail.reduce((errors, item) => {
+			const field = Array.isArray(item.loc) ? item.loc.filter((part) => part !== 'body').join('.') : '';
+			if (field && item.msg) errors[field] = item.msg;
+			return errors;
+		}, {});
+	}
+}
+
+function getErrorMessage(body) {
+	if (typeof body?.detail === 'string') return body.detail;
+	if (Array.isArray(body?.detail) && body.detail[0]?.msg) return body.detail[0].msg;
+	return 'Request failed';
 }
 
 export async function apiRequest(path, options = {}) {
