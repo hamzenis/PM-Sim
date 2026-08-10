@@ -36,6 +36,9 @@ class TaskPool:
             hard=self.hard - other.hard,
         )
 
+    def contains(self, other: "TaskPool") -> bool:
+        return self.easy >= other.easy and self.medium >= other.medium and self.hard >= other.hard
+
 
 @dataclass(frozen=True, slots=True)
 class Throughput:
@@ -117,6 +120,14 @@ class SimulationState:
             raise ValueError("simulation time cannot be negative")
         if self.initial_budget < 0:
             raise ValueError("initial budget cannot be negative")
+        if not self.tasks_completed.contains(self.tasks_unit_tested):
+            raise ValueError("unit-tested tasks must be completed")
+        if not self.tasks_unit_tested.contains(self.tasks_integration_tested):
+            raise ValueError("integration-tested tasks must be unit tested")
+        if not self.tasks_completed.contains(self.known_bugs.plus(self.undiscovered_bugs)):
+            raise ValueError("bugs cannot exceed completed tasks")
+        if not self.tasks_completed.contains(self.incorrect_specifications):
+            raise ValueError("incorrect specifications cannot exceed completed tasks")
 
     @property
     def total_tasks(self) -> int:

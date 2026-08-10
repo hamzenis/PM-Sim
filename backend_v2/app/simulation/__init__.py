@@ -30,10 +30,17 @@ from app.simulation.quality import (
 from app.simulation.randomness import RandomSource, RecordedRandomSource, SeededRandomSource
 from app.simulation.staffing import StaffingError, apply_staffing_changes, weekly_staff_cost
 from app.simulation.tasks import distribute_tasks
+from app.simulation.testing import (
+    BugFixResult,
+    UnitTestResult,
+    apply_bug_fixes,
+    apply_unit_testing,
+)
 
 __all__ = [
     "ActivityAllocation",
     "ActivityHours",
+    "BugFixResult",
     "CapacityError",
     "Difficulty",
     "DifficultyProbabilities",
@@ -51,8 +58,11 @@ __all__ = [
     "Throughput",
     "WeeklyCapacity",
     "WeeklyDecision",
+    "UnitTestResult",
+    "apply_bug_fixes",
     "apply_development_result",
     "apply_staffing_changes",
+    "apply_unit_testing",
     "allocate_weekly_hours",
     "bug_probabilities",
     "create_initial_state",
