@@ -43,3 +43,15 @@ def test_professor_password_confirmation_is_required(capsys) -> None:
 
     assert launcher.create_professor("professor", password_reader=reader) == 2
     assert "Passwords do not match" in capsys.readouterr().out
+
+
+def test_backup_command_forwards_output_directory(monkeypatch, tmp_path) -> None:
+    calls = []
+    monkeypatch.setattr(launcher, "run_migrations", lambda: None)
+    monkeypatch.setattr(
+        launcher,
+        "backup_database",
+        lambda output: calls.append(output) or 0,
+    )
+    assert launcher.main(["backup", "--output", str(tmp_path)]) == 0
+    assert calls == [tmp_path]

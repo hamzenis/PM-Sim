@@ -21,6 +21,7 @@ listed in `.env.example`; export the values you want before starting the process
 also remains compatible with `uv sync` and `uv run python main.py`.
 
 Expired login sessions can be removed with `python main.py cleanup-sessions`.
+Create a consistent SQLite backup with `python main.py backup --output backups`.
 
 The API currently covers authentication, professor-owned scenarios and classes, student
 simulation runs, weekly decisions, submissions, and professor result audits. Interactive API

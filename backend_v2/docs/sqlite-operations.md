@@ -30,11 +30,10 @@ schema creation in production.
 
 ## Backup
 
-Create a consistent online backup with SQLite's backup command:
+Create a consistent online backup using the Python launcher:
 
 ```bash
-mkdir -p backups
-sqlite3 pm_sim.db ".backup 'backups/pm_sim-$(date +%Y%m%d-%H%M%S).db'"
+python main.py backup --output backups
 ```
 
 Keep backups outside the deployment directory and periodically copy them to another machine.

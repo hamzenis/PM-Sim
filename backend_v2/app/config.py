@@ -9,6 +9,7 @@ class Settings:
     port: int = 8000
     reload: bool = False
     cookie_secure: bool = False
+    session_lifetime_hours: int = 8
     sqlite_busy_timeout_ms: int = 5000
     sqlite_wal: bool = True
     log_level: str = "info"
@@ -22,6 +23,9 @@ class Settings:
             port=_integer("PORT", defaults.port),
             reload=_boolean("RELOAD", defaults.reload),
             cookie_secure=_boolean("COOKIE_SECURE", defaults.cookie_secure),
+            session_lifetime_hours=_integer(
+                "SESSION_LIFETIME_HOURS", defaults.session_lifetime_hours
+            ),
             sqlite_busy_timeout_ms=_integer(
                 "SQLITE_BUSY_TIMEOUT_MS", defaults.sqlite_busy_timeout_ms
             ),
@@ -40,6 +44,8 @@ class Settings:
             raise ValueError("PORT must be between 1 and 65535")
         if self.sqlite_busy_timeout_ms < 0:
             raise ValueError("SQLITE_BUSY_TIMEOUT_MS cannot be negative")
+        if self.session_lifetime_hours < 1:
+            raise ValueError("SESSION_LIFETIME_HOURS must be positive")
         if self.log_level not in {"critical", "error", "warning", "info", "debug", "trace"}:
             raise ValueError("LOG_LEVEL is invalid")
 

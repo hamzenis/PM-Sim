@@ -7,12 +7,12 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db.models import AuthSessionRecord, UserRecord, UserRole
 
 SCRYPT_N = 2**14
 SCRYPT_R = 8
 SCRYPT_P = 1
-SESSION_LIFETIME = timedelta(hours=8)
 
 
 class AuthenticationError(ValueError):
@@ -83,7 +83,7 @@ def login(session: Session, *, username: str, password: str) -> AuthenticatedSes
         raise AuthenticationError("invalid username or password")
     token = secrets.token_urlsafe(32)
     now = datetime.now(UTC)
-    expires_at = now + SESSION_LIFETIME
+    expires_at = now + timedelta(hours=settings.session_lifetime_hours)
     session.add(
         AuthSessionRecord(
             token_hash=token_hash(token),
@@ -115,6 +115,21 @@ def logout(session: Session, token: str) -> None:
     if auth_session is not None:
         session.delete(auth_session)
         session.commit()
+
+
+def change_password(
+    session: Session,
+    *,
+    user_id: str,
+    current_password: str,
+    new_password: str,
+) -> None:
+    user = session.get(UserRecord, user_id)
+    if user is None or not verify_password(current_password, user.password_hash):
+        raise AuthenticationError("current password is incorrect")
+    user.password_hash = hash_password(new_password)
+    session.query(AuthSessionRecord).filter(AuthSessionRecord.user_id == user.id).delete()
+    session.commit()
 
 
 def _scrypt(password: str, salt: bytes) -> bytes:

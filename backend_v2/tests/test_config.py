@@ -9,6 +9,7 @@ def test_settings_parse_environment(monkeypatch) -> None:
     monkeypatch.setenv("PORT", "9000")
     monkeypatch.setenv("RELOAD", "yes")
     monkeypatch.setenv("COOKIE_SECURE", "on")
+    monkeypatch.setenv("SESSION_LIFETIME_HOURS", "12")
     monkeypatch.setenv("SQLITE_BUSY_TIMEOUT_MS", "1234")
     monkeypatch.setenv("SQLITE_WAL", "false")
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
@@ -19,6 +20,7 @@ def test_settings_parse_environment(monkeypatch) -> None:
         port=9000,
         reload=True,
         cookie_secure=True,
+        session_lifetime_hours=12,
         sqlite_busy_timeout_ms=1234,
         sqlite_wal=False,
         log_level="debug",
@@ -31,6 +33,7 @@ def test_settings_parse_environment(monkeypatch) -> None:
         ("PORT", "zero", "must be an integer"),
         ("RELOAD", "sometimes", "must be true or false"),
         ("LOG_LEVEL", "verbose", "LOG_LEVEL is invalid"),
+        ("SESSION_LIFETIME_HOURS", "0", "must be positive"),
     ],
 )
 def test_invalid_environment_is_rejected(monkeypatch, name: str, value: str, message: str) -> None:

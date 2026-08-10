@@ -12,6 +12,7 @@ from sqlalchemy import delete
 from alembic import command
 from app.auth.service import AuthenticationError, create_user
 from app.config import Settings, settings
+from app.db.backup import backup_sqlite_database
 from app.db.models import AuthSessionRecord, UserRole
 from app.db.session import SessionFactory
 
@@ -24,13 +25,14 @@ def build_parser() -> argparse.ArgumentParser:
         "command",
         nargs="?",
         default="serve",
-        choices=("serve", "create-professor", "cleanup-sessions"),
+        choices=("serve", "create-professor", "cleanup-sessions", "backup"),
     )
     parser.add_argument("--host", default=None, help="Server address (serve only)")
     parser.add_argument("--port", type=int, default=None, help="Server port (serve only)")
     parser.add_argument("--reload", action="store_true", help="Reload after code changes")
     parser.add_argument("--no-migrate", action="store_true", help="Do not apply migrations")
     parser.add_argument("--username", help="Professor username")
+    parser.add_argument("--output", type=Path, default=Path("backups"), help="Backup directory")
     return parser
 
 
@@ -50,6 +52,8 @@ def main(
         return create_professor(args.username, password_reader=password_reader)
     if args.command == "cleanup-sessions":
         return cleanup_sessions()
+    if args.command == "backup":
+        return backup_database(args.output)
     start_server(
         settings,
         host=args.host,
@@ -98,6 +102,16 @@ def cleanup_sessions() -> int:
         )
         session.commit()
     print(f"Removed {result.rowcount} expired sessions")
+    return 0
+
+
+def backup_database(output_directory: Path) -> int:
+    try:
+        backup_path = backup_sqlite_database(settings.database_url, output_directory)
+    except (ValueError, FileNotFoundError, FileExistsError) as error:
+        print(f"Could not create backup: {error}")
+        return 2
+    print(f"Created backup: {backup_path}")
     return 0
 
 

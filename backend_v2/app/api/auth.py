@@ -1,10 +1,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-from app.auth.service import AuthenticationError, login, logout, user_for_token
+from app.auth.service import AuthenticationError, change_password, login, logout, user_for_token
 from app.config import settings
 from app.db.models import UserRecord, UserRole
 from app.db.session import get_session
@@ -29,6 +29,13 @@ class UserResponse(BaseModel):
     id: str
     username: str
     role: str
+
+
+class ChangePasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: str
+    new_password: str = Field(min_length=10, max_length=200)
 
 
 def current_user(session: DatabaseSession, token: SessionCookie = None) -> UserRecord:
@@ -84,3 +91,22 @@ def logout_route(
 @router.get("/me", response_model=UserResponse)
 def me(user: CurrentUser) -> object:
     return user
+
+
+@router.put("/password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password_route(
+    request: ChangePasswordRequest,
+    response: Response,
+    session: DatabaseSession,
+    user: CurrentUser,
+) -> None:
+    try:
+        change_password(
+            session,
+            user_id=user.id,
+            current_password=request.current_password,
+            new_password=request.new_password,
+        )
+    except AuthenticationError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    response.delete_cookie(SESSION_COOKIE, httponly=True, samesite="lax")

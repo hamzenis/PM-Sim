@@ -85,6 +85,44 @@ def test_invalid_login_does_not_disclose_which_credential_failed(auth_client) ->
     assert response.json() == {"detail": "invalid username or password"}
 
 
+def test_authenticated_user_can_change_password_and_sessions_are_revoked(auth_client) -> None:
+    client, _sessions = auth_client
+    client.post(
+        "/api/auth/login",
+        json={"username": "student", "password": "student-password"},
+    )
+    incorrect = client.put(
+        "/api/auth/password",
+        json={"current_password": "wrong-password", "new_password": "replacement-password"},
+    )
+    assert incorrect.status_code == 400
+    assert client.get("/api/auth/me").status_code == 200
+
+    changed = client.put(
+        "/api/auth/password",
+        json={
+            "current_password": "student-password",
+            "new_password": "replacement-password",
+        },
+    )
+    assert changed.status_code == 204
+    assert client.get("/api/auth/me").status_code == 401
+    assert (
+        client.post(
+            "/api/auth/login",
+            json={"username": "student", "password": "student-password"},
+        ).status_code
+        == 401
+    )
+    assert (
+        client.post(
+            "/api/auth/login",
+            json={"username": "student", "password": "replacement-password"},
+        ).status_code
+        == 200
+    )
+
+
 def test_student_cannot_access_professor_scenario_routes(auth_client) -> None:
     client, _sessions = auth_client
     client.post(
