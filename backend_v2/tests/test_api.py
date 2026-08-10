@@ -199,6 +199,42 @@ def test_professor_assigns_published_scenario_and_student_can_list_it(
     assert available.json()[0]["id"] == revision["id"]
 
 
+def test_professor_can_manage_class_members_assignments_and_archival(
+    client: TestClient,
+) -> None:
+    revision = client.post("/api/scenarios", json=scenario_payload()).json()
+    scenario_id = client.get("/api/scenarios").json()[0]["id"]
+    client.post(f"/api/scenarios/{scenario_id}/revisions/1/publish")
+    course_class = client.post("/api/classes", json={"name": "Before"}).json()
+    class_id = course_class["id"]
+    membership = client.post(f"/api/classes/{class_id}/students", json={"username": "student"})
+    assert membership.status_code == 201
+    client.post(
+        f"/api/classes/{class_id}/scenarios",
+        json={"scenario_revision_id": revision["id"]},
+    )
+
+    renamed = client.patch(f"/api/classes/{class_id}", json={"name": "After"})
+    assert renamed.status_code == 200
+    assert renamed.json()["name"] == "After"
+    students = client.get(f"/api/classes/{class_id}/students").json()
+    assert students[0]["username"] == "student"
+    actual_student_id = students[0]["id"]
+    assignments = client.get(f"/api/classes/{class_id}/scenarios").json()
+    assert assignments[0]["id"] == revision["id"]
+
+    assert client.delete(f"/api/classes/{class_id}/students/{actual_student_id}").status_code == 204
+    assert client.get(f"/api/classes/{class_id}/students").json() == []
+    assert client.delete(f"/api/classes/{class_id}/scenarios/{revision['id']}").status_code == 204
+    assert client.get(f"/api/classes/{class_id}/scenarios").json() == []
+    assert client.post(f"/api/classes/{class_id}/archive").status_code == 204
+    assert client.get("/api/classes").json() == []
+    assert (
+        client.post(f"/api/classes/{class_id}/students", json={"username": "student"}).status_code
+        == 404
+    )
+
+
 def _assign_scenario_and_login_student(client: TestClient) -> str:
     revision = client.post("/api/scenarios", json=scenario_payload()).json()
     scenario_id = client.get("/api/scenarios").json()[0]["id"]

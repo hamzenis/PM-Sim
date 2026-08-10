@@ -8,6 +8,7 @@ from app.auth.service import create_user
 from app.classes.service import (
     ClassError,
     add_student,
+    archive_class,
     assign_scenario,
     available_scenario_revisions,
     create_class,
@@ -133,3 +134,24 @@ def test_duplicate_membership_and_availability_are_idempotent(session: Session) 
     )
     assert first_member.id == second_member.id
     assert first_availability.id == second_availability.id
+
+
+def test_archived_class_no_longer_makes_scenarios_available(session: Session) -> None:
+    professor, student = users(session)
+    course_class = create_class(session, professor_id=professor.id, name="Archived")
+    add_student(
+        session,
+        professor_id=professor.id,
+        class_id=course_class.id,
+        username=student.username,
+    )
+    revision = published_revision(session, owner_id=professor.id)
+    assign_scenario(
+        session,
+        professor_id=professor.id,
+        class_id=course_class.id,
+        scenario_revision_id=revision.id,
+    )
+    archive_class(session, professor_id=professor.id, class_id=course_class.id)
+    assert available_scenario_revisions(session, student.id) == []
+    assert user_can_access_revision(session, student.id, revision.id) is False
