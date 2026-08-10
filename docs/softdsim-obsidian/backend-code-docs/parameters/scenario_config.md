@@ -1,7 +1,0 @@
-[[stress_error_increase]]
-[[stress_overtime_increase]]
-[[stress_weekend_reduction]]
-[[done_tasks_per_meeting]]
-[[train_skill_increase_rate]]
-[[cost_member_team_event]]
-[[randomness]]

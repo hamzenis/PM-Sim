@@ -1,79 +1,52 @@
-# Frontend
+# PM-Sim frontend
 
-Diesen Abschnitt beschreibt die Frontend-Anwendung, die mit React 18 erstellt wurde.
-
+The frontend is a React 18 application using Chakra UI. It provides professor workflows for
+scenarios, classes, students, results, and audit history, plus the complete student simulation
+workflow.
 
 ## Requirements
 
-| Requirement | Minimum Version | Notes |
-|-------------|-----------------|-------|
-| **Node.js** | 18 LTS | CRA 5 supports Node ≥14; Node 18 is recommended |
-| **npm**     | 8.x (bundled) | Package manager for scripts & dependencies |
+- Node.js 20
+- npm
+- the PM-Sim backend running on `http://127.0.0.1:8000`
 
-> **Tipp:** Verwalte mehrere Node-Versionen mit [`nvm`](https://github.com/nvm-sh/nvm)
-
----
-
-## Konfiguration
-
-Erstelle eine `.env`-Datei im `frontend/`-Verzeichnis basierend auf `.env.template`.
-
-```bash
-# .env
-REACT_APP_API_BASE_URL=
-```
-
-`REACT_APP_API_BASE_URL` is empty during local development so Create React App proxies requests
-to backend v2 at `http://127.0.0.1:8000`.
-
-The frontend session, class management, scenario list, and weekly simulation screen use backend
-v2. Scenario authoring is intentionally unavailable until a backend-v2 editor is designed.
-
----
-
-## Installation
+## Setup
 
 ```bash
 cd frontend
-npm install --legacy-peer-deps
+npm install
+npm start
 ```
 
----
+Open <http://127.0.0.1:3000>. Create React App proxies relative API requests to the backend.
 
-## npm Scripts
+For a separate API origin, copy `.env.template` to `.env` and set:
 
-### Core scripts
+```bash
+REACT_APP_API_BASE_URL=https://api.example.test
+```
 
-| Script | Command |
-|--------|---------|
-| `start` | `react-scripts start` |
-| `build` | `react-scripts build` |
-| `test` | `react-scripts test` |
-| `eject` | `react-scripts eject` |
+The backend must explicitly allow the frontend origin when the applications are not served from
+the same origin.
 
----
+## Application routes
 
-## Development Workflow
+- `/login`: authentication.
+- `/scenarios`: professor scenario lifecycle or student assignments and runs.
+- `/simulations/:run_id`: weekly student decisions, history, and final result.
+- `/classes`: professor class, student, assignment, and result management.
+- `/classes/:class_id/results/:run_id`: professor run audit.
+- `/audit`: professor administrative history.
+- `/change-password`: authenticated password change.
 
-1. **Starten** des Development-Servers:
+All HTTP requests go through `src/api/client.js`. Authentication uses an HTTP-only cookie; the
+frontend must not store session tokens or passwords.
 
-   ```bash
-   npm start
-   ```
+## Checks
 
-   Öffnet <http://localhost:3000>. 
-   Änderungen im Verzeichnis `src/` führen zu einer sofortigen Aktualisierung.
+```bash
+CI=true npm test -- --runInBand
+npm run build
+```
 
-2. **Tests kontinuierlich ausführen:**
-
-   ```bash
-   npm test
-   ```
-
-3. **Build** für den Prod erstellen:
-
-   ```bash
-   npm run build
-   ```
-
-   Optimierte Dateien werden im Verzeichnis `build/` abgelegt und können von jedem statischen Webserver wie Nginx oder Apache bereitgestellt werden.
+Place API mapping tests beside modules in `src/api` and component tests beside the component.

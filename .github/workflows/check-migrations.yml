@@ -1,29 +1,38 @@
-name: Check Django migrations
+name: Application checks
 
 on:
   push:
-    branches: [develop]
   pull_request:
-    branches: [develop]
 
 jobs:
-  migrations:
+  backend:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: backend
     steps:
-      - name: 📥  Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🐍  Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
         with:
-          python-version: '3.10'
+          python-version: '3.13'
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run pytest
 
-      - name: 📦  Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
-
-      - name: ✅  Check migrations
-        run: |
-          python backend/manage.py makemigrations --dry-run --check
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: CI=true npm test -- --runInBand
+      - run: npm run build
