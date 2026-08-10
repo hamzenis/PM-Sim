@@ -42,6 +42,21 @@ SQLAlchemy types and migrations so PostgreSQL can replace SQLite later.
 SQLite deployment, migration, backup, and restore procedures are documented in
 [`docs/sqlite-operations.md`](docs/sqlite-operations.md).
 
+## Documentation
+
+- [`docs/architecture.md`](docs/architecture.md) explains the application layers, data model,
+  transaction boundaries, and simulation lifecycle.
+- [`docs/api.md`](docs/api.md) documents authentication, roles, HTTP endpoints, concurrency,
+  idempotency, and response conventions.
+- [`docs/frontend-migration.md`](docs/frontend-migration.md) is the integration contract and
+  incremental plan for adapting the existing frontend to this backend.
+- [`docs/development.md`](docs/development.md) covers the venv workflow, commands, migrations,
+  tests, and troubleshooting without containers.
+- [`docs/legacy-behavior.md`](docs/legacy-behavior.md) records characterized legacy behavior and
+  the approved simplifications used by the rewrite.
+- [`docs/sqlite-operations.md`](docs/sqlite-operations.md) covers SQLite deployment, backup, and
+  recovery procedures.
+
 ## Checks
 
 ```bash
