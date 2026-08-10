@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "name": "Standard Software Project",
+  "description": "Complete 400 anonymous tasks within 60 working days.",
+  "project": {
+    "budget": 250000,
+    "working_days": 60,
+    "hours_per_day": 8,
+    "working_days_per_week": 5
+  },
+  "tasks": {
+    "total": 400,
+    "difficulty_distribution": {
+      "easy": 0.25,
+      "medium": 0.5,
+      "hard": 0.25
+    }
+  },
+  "employee_types": [
+    {
+      "code": "junior_backend",
+      "name": "Junior Backend Developer",
+      "cost_per_day": 171.15,
+      "throughput": {"easy": 4, "medium": 2, "hard": 0.5},
+      "error_rate": 0.06,
+      "management_skill": 0.3
+    },
+    {
+      "code": "senior_backend",
+      "name": "Senior Backend Developer",
+      "cost_per_day": 250,
+      "throughput": {"easy": 6, "medium": 3, "hard": 1.5},
+      "error_rate": 0.03,
+      "management_skill": 0.4
+    }
+  ],
+  "rules": {
+    "randomness": "full",
+    "stress_overtime_increase": 0.05,
+    "stress_weekend_reduction": 0.2,
+    "integration_test_days": 1
+  }
+}
