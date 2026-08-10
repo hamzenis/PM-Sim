@@ -235,6 +235,57 @@ def test_professor_can_manage_class_members_assignments_and_archival(
     )
 
 
+def test_professor_can_import_students_transactionally_and_reset_passwords(
+    client: TestClient,
+) -> None:
+    course_class = client.post("/api/classes", json={"name": "Imported"}).json()
+    class_id = course_class["id"]
+    imported = client.post(
+        f"/api/classes/{class_id}/students/import",
+        json={
+            "students": [
+                {"username": "Alice", "password": "alice-password"},
+                {"username": "Bob", "password": "bob-password-1"},
+            ]
+        },
+    )
+    assert imported.status_code == 201
+    assert [student["username"] for student in imported.json()] == ["alice", "bob"]
+    alice_id = imported.json()[0]["id"]
+
+    rejected = client.post(
+        f"/api/classes/{class_id}/students/import",
+        json={
+            "students": [
+                {"username": "Charlie", "password": "charlie-password"},
+                {"username": "Charlie", "password": "another-password"},
+            ]
+        },
+    )
+    assert rejected.status_code == 409
+    assert "unique" in rejected.json()["detail"]
+    assert "charlie" not in {
+        student["username"] for student in client.get(f"/api/classes/{class_id}/students").json()
+    }
+
+    reset = client.put(
+        f"/api/classes/{class_id}/students/{alice_id}/password",
+        json={"new_password": "alice-new-password"},
+    )
+    assert reset.status_code == 204
+    client.post("/api/auth/logout")
+    old_login = client.post(
+        "/api/auth/login",
+        json={"username": "alice", "password": "alice-password"},
+    )
+    assert old_login.status_code == 401
+    new_login = client.post(
+        "/api/auth/login",
+        json={"username": "alice", "password": "alice-new-password"},
+    )
+    assert new_login.status_code == 200
+
+
 def _assign_scenario_and_login_student(client: TestClient) -> str:
     revision = client.post("/api/scenarios", json=scenario_payload()).json()
     scenario_id = client.get("/api/scenarios").json()[0]["id"]

@@ -1,9 +1,12 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.auth.service import AuthenticationError, hash_password
 from app.db.models import (
+    AuthSessionRecord,
     ClassMembershipRecord,
     ClassRecord,
     RevisionStatus,
@@ -17,6 +20,84 @@ from app.db.models import (
 
 class ClassError(ValueError):
     pass
+
+
+def import_students(
+    session: Session,
+    *,
+    professor_id: str,
+    class_id: str,
+    students: list[tuple[str, str]],
+) -> list[UserRecord]:
+    """Create student accounts and memberships in one transaction."""
+    course_class = _active_owned_class(session, class_id, professor_id)
+    if not students:
+        raise ClassError("at least one student is required")
+    normalized = [(username.strip().lower(), password) for username, password in students]
+    usernames = [username for username, _password in normalized]
+    if any(not username for username in usernames):
+        raise ClassError("username is required")
+    if len(usernames) != len(set(usernames)):
+        raise ClassError("student usernames must be unique")
+    existing = session.scalars(
+        select(UserRecord.username).where(UserRecord.username.in_(usernames))
+    )
+    if existing_username := next(iter(existing), None):
+        raise ClassError(f"username already exists: {existing_username}")
+
+    now = datetime.now(UTC)
+    try:
+        users = [
+            UserRecord(
+                username=username,
+                password_hash=hash_password(password),
+                role=UserRole.STUDENT,
+                created_at=now,
+            )
+            for username, password in normalized
+        ]
+    except AuthenticationError as error:
+        raise ClassError(str(error)) from error
+    session.add_all(users)
+    session.flush()
+    session.add_all(
+        ClassMembershipRecord(class_id=course_class.id, user_id=user.id, created_at=now)
+        for user in users
+    )
+    try:
+        session.commit()
+    except IntegrityError as error:
+        session.rollback()
+        raise ClassError("student import conflicts with existing data") from error
+    return users
+
+
+def reset_student_password(
+    session: Session,
+    *,
+    professor_id: str,
+    class_id: str,
+    student_id: str,
+    new_password: str,
+) -> None:
+    course_class = _active_owned_class(session, class_id, professor_id)
+    student = session.scalar(
+        select(UserRecord)
+        .join(ClassMembershipRecord, ClassMembershipRecord.user_id == UserRecord.id)
+        .where(
+            ClassMembershipRecord.class_id == course_class.id,
+            UserRecord.id == student_id,
+            UserRecord.role == UserRole.STUDENT,
+        )
+    )
+    if student is None:
+        raise ClassError("student membership not found")
+    try:
+        student.password_hash = hash_password(new_password)
+    except AuthenticationError as error:
+        raise ClassError(str(error)) from error
+    session.execute(delete(AuthSessionRecord).where(AuthSessionRecord.user_id == student.id))
+    session.commit()
 
 
 def create_class(session: Session, *, professor_id: str, name: str) -> ClassRecord:

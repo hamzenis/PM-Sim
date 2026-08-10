@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from app.api.auth import CurrentUser, ProfessorUser
@@ -13,11 +13,13 @@ from app.classes.service import (
     assign_scenario,
     available_scenario_revisions,
     create_class,
+    import_students,
     list_assigned_scenarios,
     list_professor_classes,
     list_students,
     remove_student,
     rename_class,
+    reset_student_password,
     unassign_scenario,
 )
 from app.db.session import get_session
@@ -44,6 +46,22 @@ class AssignScenarioRequest(BaseModel):
 class RenameClassRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str
+
+
+class ImportStudentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    username: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=10, max_length=200)
+
+
+class ImportStudentsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    students: list[ImportStudentRequest] = Field(min_length=1, max_length=100)
+
+
+class ResetPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    new_password: str = Field(min_length=10, max_length=200)
 
 
 class ClassResponse(BaseModel):
@@ -129,6 +147,51 @@ def list_students_route(
 ) -> object:
     try:
         return list_students(session, professor_id=professor.id, class_id=class_id)
+    except ClassError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@router.post(
+    "/{class_id}/students/import",
+    response_model=list[StudentResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+def import_students_route(
+    class_id: str,
+    request: ImportStudentsRequest,
+    session: DatabaseSession,
+    professor: ProfessorUser,
+) -> object:
+    try:
+        return import_students(
+            session,
+            professor_id=professor.id,
+            class_id=class_id,
+            students=[(student.username, student.password) for student in request.students],
+        )
+    except ClassError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@router.put(
+    "/{class_id}/students/{student_id}/password",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def reset_student_password_route(
+    class_id: str,
+    student_id: str,
+    request: ResetPasswordRequest,
+    session: DatabaseSession,
+    professor: ProfessorUser,
+) -> None:
+    try:
+        reset_student_password(
+            session,
+            professor_id=professor.id,
+            class_id=class_id,
+            student_id=student_id,
+            new_password=request.new_password,
+        )
     except ClassError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
