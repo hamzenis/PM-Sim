@@ -13,6 +13,13 @@ from app.simulation.models import (
     WeeklyCapacity,
     WeeklyDecision,
 )
+from app.simulation.productivity import (
+    ExpectedTaskOutput,
+    expected_development_output,
+    member_efficiency,
+    realize_task_output,
+    team_efficiency,
+)
 from app.simulation.randomness import RandomSource, RecordedRandomSource, SeededRandomSource
 from app.simulation.staffing import StaffingError, apply_staffing_changes, weekly_staff_cost
 from app.simulation.tasks import distribute_tasks
@@ -24,6 +31,7 @@ __all__ = [
     "Difficulty",
     "Employee",
     "EmployeeType",
+    "ExpectedTaskOutput",
     "HireRequest",
     "RandomSource",
     "RecordedRandomSource",
@@ -38,6 +46,10 @@ __all__ = [
     "allocate_weekly_hours",
     "create_initial_state",
     "distribute_tasks",
+    "expected_development_output",
     "hours_from_allocation",
+    "member_efficiency",
+    "realize_task_output",
+    "team_efficiency",
     "weekly_staff_cost",
 ]
