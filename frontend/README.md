@@ -21,17 +21,13 @@ Erstelle eine `.env`-Datei im `frontend/`-Verzeichnis basierend auf `.env.templa
 ```bash
 # .env
 REACT_APP_API_BASE_URL=
-REACT_APP_DJANGO_HOST=http://localhost:8001
 ```
 
 `REACT_APP_API_BASE_URL` is empty during local development so Create React App proxies requests
-to backend v2 at `http://127.0.0.1:8000`. The legacy host is temporary and is used only by pages
-that have not yet been migrated. Run the old backend on another port only when one of those pages
-is still needed.
+to backend v2 at `http://127.0.0.1:8000`.
 
-The frontend session, scenario list, and basic weekly simulation screen now use backend v2. The
-legacy MongoDB scenario builder, skill-type editor, and scenario-configuration routes are hidden
-until a backend-v2 scenario editor replaces them.
+The frontend session, class management, scenario list, and weekly simulation screen use backend
+v2. Scenario authoring is intentionally unavailable until a backend-v2 editor is designed.
 
 ---
 

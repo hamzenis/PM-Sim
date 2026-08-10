@@ -3,15 +3,13 @@ import { AuthContext } from './context/AuthProvider';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Landing from './pages/Landing';
 import ScenarioOverview from './pages/ScenarioOverview';
-import UserOverview from './pages/UserOverview';
 import SimulationV2 from './pages/SimulationV2';
 import Login from './pages/Login';
-import ResetPassword from './pages/ResetPassword';
+import ChangePassword from './pages/ChangePassword';
 import Help from './pages/Help';
 import GDPR from './pages/GDPR';
 import Imprint from './pages/Imprint';
 import NotFoundPage from './components/NotFoundPage';
-import AddMultipleUsers from './pages/AddMultipleUsers';
 import CourseOverview from './pages/CourseOverview';
 
 const Routing = () => {
@@ -32,6 +30,7 @@ const Routing = () => {
 					<Route path="/scenarios" element={<ScenarioOverview />} />
 					<Route path="/simulations/:run_id" element={<SimulationV2 />} />
 					<Route path="/help" element={<Help />} />
+					<Route path="/change-password" element={<ChangePassword />} />
 					<Route path="/login" element={<Navigate to="/" replace />} />
 					<Route path="*" element={<NotFoundPage />} />
 				</>
@@ -42,7 +41,6 @@ const Routing = () => {
 						<>
 							<Route path="/" element={<Landing />} />
 							<Route path="/login" element={<Login />} />
-							<Route path="/reset-password" element={<ResetPassword />} />
 							<Route path="*" element={<Navigate to="/login" replace />} />
 						</>
 					)}
@@ -51,9 +49,7 @@ const Routing = () => {
 			{currentUser?.role === 'professor' && (
 				<>
 					{/* adding routes which are accessible for every logged-in user with role staff */}
-					<Route path="/users" element={<UserOverview />} />
-					<Route path="/addusers" element={<AddMultipleUsers />} />
-					<Route path="/courses" element={<CourseOverview />} />
+					<Route path="/classes" element={<CourseOverview />} />
 				</>
 			)}
 		</Routes>

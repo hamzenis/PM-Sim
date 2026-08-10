@@ -20,7 +20,7 @@ import {
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
-import { completeSimulationTurn, getSimulationRun, submitSimulationRun } from '../api/simulations';
+import { completeSimulationTurn, getSimulationRun, listSimulationTurns, submitSimulationRun } from '../api/simulations';
 
 const DEFAULT_ALLOCATION = {
 	development: 50,
@@ -38,12 +38,16 @@ const SimulationV2 = () => {
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState(null);
 	const [events, setEvents] = useState([]);
+	const [turns, setTurns] = useState([]);
+	const [pendingKey, setPendingKey] = useState(null);
 
 	const load = async () => {
 		setIsLoading(true);
 		setError(null);
 		try {
-			setRun(await getSimulationRun(runId));
+			const [loadedRun, loadedTurns] = await Promise.all([getSimulationRun(runId), listSimulationTurns(runId)]);
+			setRun(loadedRun);
+			setTurns(loadedTurns);
 		} catch (requestError) {
 			setError(requestError.message || 'Could not load the simulation');
 		} finally {
@@ -73,6 +77,8 @@ const SimulationV2 = () => {
 		}
 		setIsSaving(true);
 		setError(null);
+		const idempotencyKey = pendingKey || window.crypto.randomUUID();
+		setPendingKey(idempotencyKey);
 		try {
 			const response = await completeSimulationTurn(
 				runId,
@@ -85,13 +91,20 @@ const SimulationV2 = () => {
 					meeting_hours_per_employee: 0,
 					training_hours_per_employee: 0,
 				},
-				window.crypto.randomUUID()
+				idempotencyKey
 			);
 			setRun(response.run);
 			setEvents(response.events);
+			setPendingKey(null);
+			setTurns(await listSimulationTurns(runId));
 		} catch (requestError) {
-			if (requestError instanceof ApiError && requestError.status === 409) await load();
-			setError(requestError.message || 'Could not complete the week');
+			if (requestError instanceof ApiError && requestError.status === 409) {
+				setPendingKey(null);
+				await load();
+				setError('This run changed in another browser tab. Review the updated state before trying again.');
+			} else {
+				setError(`${requestError.message || 'Could not complete the week'} You can retry the same request.`);
+			}
 		} finally {
 			setIsSaving(false);
 		}
@@ -195,6 +208,19 @@ const SimulationV2 = () => {
 					</Heading>
 					{events.map((event, index) => (
 						<Text key={`${event.kind}-${index}`}>{event.kind}</Text>
+					))}
+				</Box>
+			)}
+
+			{turns.length > 0 && (
+				<Box bg="white" borderRadius="2xl" p={7} mt={6}>
+					<Heading size="sm" mb={3}>
+						Completed weeks
+					</Heading>
+					{turns.map((turn) => (
+						<Text key={turn.week_number}>
+							Week {turn.week_number}: {turn.events.length} visible event(s)
+						</Text>
 					))}
 				</Box>
 			)}

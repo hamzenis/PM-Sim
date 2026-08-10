@@ -27,6 +27,9 @@ export async function apiRequest(path, options = {}) {
 
 	if (!response.ok) {
 		const body = await response.json().catch(() => ({ detail: response.statusText }));
+		if (response.status === 401 && path !== '/api/auth/login') {
+			window.dispatchEvent(new Event('pm-sim-session-expired'));
+		}
 		throw new ApiError(response.status, body);
 	}
 	if (response.status === 204) return undefined;

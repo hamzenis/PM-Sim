@@ -66,7 +66,12 @@ const ScenarioOverview = () => {
 		setStartingId(revisionId);
 		setError(null);
 		try {
-			const run = await startSimulationRun(revisionId, Math.floor(Math.random() * 2147483647));
+			const scenario = scenarios.find((item) => item.id === revisionId);
+			const run = await startSimulationRun(
+				revisionId,
+				Math.floor(Math.random() * 2147483647),
+				scenario?.class_id
+			);
 			navigate(`/simulations/${run.id}`);
 		} catch (requestError) {
 			setError(requestError instanceof ApiError ? requestError.message : 'Could not start the simulation');
@@ -89,8 +94,8 @@ const ScenarioOverview = () => {
 					{isProfessor && (
 						<Alert status="info" mb={5}>
 							<AlertIcon />
-							The legacy MongoDB scenario builder is disabled. Existing backend-v2 scenarios are listed
-							here while the new editor is being implemented.
+							Scenario authoring is not part of this version. Existing backend-v2 scenarios are listed
+							here.
 						</Alert>
 					)}
 					{isLoading ? (
