@@ -111,6 +111,8 @@ items contain `id`, `revision_number`, and the complete `definition`.
 ## Simulation endpoints
 
 All simulation endpoints require authentication and expose only runs owned by the current user.
+Run detail responses include the scenario's `employee_types` so the weekly decision screen can
+offer valid hiring choices without duplicating scenario data in the frontend.
 
 ### Start and retrieve a run
 

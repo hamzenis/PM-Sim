@@ -344,6 +344,7 @@ def test_student_can_start_read_and_complete_a_simulation_turn(client: TestClien
     assert started.status_code == 201
     run = started.json()
     assert run["version"] == 1
+    assert run["employee_types"][0]["code"] == "junior"
     assert "undiscovered_bugs" not in run["state"]
     assert "incorrect_specifications" not in run["state"]
 

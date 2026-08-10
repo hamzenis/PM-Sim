@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from app.api.auth import CurrentUser
-from app.db.models import SimulationRunRecord, SimulationTurnRecord
+from app.db.models import ScenarioRevisionRecord, SimulationRunRecord, SimulationTurnRecord
 from app.db.session import get_session
 from app.simulation.models import ActivityAllocation, HireRequest, WeeklyDecision
 from app.simulations.service import (
@@ -85,6 +85,7 @@ class RunSummaryResponse(BaseModel):
 class RunResponse(RunSummaryResponse):
     engine_version: str
     state: dict[str, object]
+    employee_types: list[dict[str, object]]
     final_result: dict[str, object] | None
 
 
@@ -124,7 +125,7 @@ def start_run(
         )
     except SimulationRunError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
-    return _run_response(run)
+    return _run_response(session, run)
 
 
 @router.get("", response_model=list[RunSummaryResponse])
@@ -135,7 +136,7 @@ def list_runs(session: DatabaseSession, user: CurrentUser) -> list[RunSummaryRes
 @router.get("/{run_id}", response_model=RunResponse)
 def get_run(run_id: str, session: DatabaseSession, user: CurrentUser) -> RunResponse:
     try:
-        return _run_response(get_simulation_run(session, run_id=run_id, user_id=user.id))
+        return _run_response(session, get_simulation_run(session, run_id=run_id, user_id=user.id))
     except SimulationRunError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
@@ -175,7 +176,7 @@ def complete_turn(
     except (SimulationRunError, ValueError) as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return TurnResponse(
-        run=_run_response(completed.run),
+        run=_run_response(session, completed.run),
         week_number=completed.turn.week_number,
         events=_student_events(completed.turn.events),
         replayed=completed.replayed,
@@ -200,7 +201,7 @@ def submit_run(
         raise HTTPException(status_code=409, detail=str(error)) from error
     except SimulationRunError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
-    return _run_response(run)
+    return _run_response(session, run)
 
 
 def _run_summary(run: SimulationRunRecord) -> RunSummaryResponse:
@@ -216,12 +217,15 @@ def _run_summary(run: SimulationRunRecord) -> RunSummaryResponse:
     )
 
 
-def _run_response(run: SimulationRunRecord) -> RunResponse:
+def _run_response(session: Session, run: SimulationRunRecord) -> RunResponse:
     summary = _run_summary(run)
+    revision = session.get(ScenarioRevisionRecord, run.scenario_revision_id)
+    employee_types = [] if revision is None else revision.definition.get("employee_types", [])
     return RunResponse(
         **summary.model_dump(),
         engine_version=run.engine_version,
         state=_student_state(run.current_state),
+        employee_types=employee_types,
         final_result=run.final_result,
     )
 
