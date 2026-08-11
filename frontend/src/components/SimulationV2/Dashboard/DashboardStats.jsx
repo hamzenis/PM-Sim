@@ -1,7 +1,7 @@
 import { SimpleGrid } from '@chakra-ui/react';
 import React from 'react';
 import StatCard from './StatCard';
-import { totalTaskPool } from './taskPool';
+import { taskPoolTotal } from './taskPool';
 
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const formatCurrency = (value) => currency.format(Number(value || 0));
@@ -13,11 +13,11 @@ const DashboardStats = ({ state, turns = [], showBudget = true }) => {
 		.sort((left, right) => right.week_number - left.week_number)[0];
 	const previous = precedingTurn?.resulting_state;
 	const expenses = Number(state.initial_budget) - Number(state.remaining_budget);
-	const remainingTasks = totalTaskPool(state.tasks_todo);
+	const remainingTasks = taskPoolTotal(state.tasks_todo);
 	const expenseDelta = previous
 		? expenses - (Number(previous.initial_budget) - Number(previous.remaining_budget))
 		: null;
-	const taskDelta = previous ? remainingTasks - totalTaskPool(previous.tasks_todo) : null;
+	const taskDelta = previous ? remainingTasks - taskPoolTotal(previous.tasks_todo) : null;
 
 	return (
 		<SimpleGrid columns={{ base: 1, sm: 2, lg: showBudget ? 4 : 3 }} spacing={4} mb={8}>

@@ -17,6 +17,7 @@ import TurnHistory from '../components/SimulationV2/TurnHistory';
 import WeeklyDecisionForm, { decisionIsValid } from '../components/SimulationV2/WeeklyDecisionForm';
 import ConfirmDialog from '../components/ClassManagement/ConfirmDialog';
 import DashboardStats from '../components/SimulationV2/Dashboard/DashboardStats';
+import TaskProgressDashboard from '../components/SimulationV2/Dashboard/TaskProgressDashboard';
 
 const DEFAULT_ALLOCATION = {
 	development: 50,
@@ -149,6 +150,7 @@ const SimulationV2 = () => {
 				</Alert>
 			)}
 			<DashboardStats state={state} turns={turns} />
+			<TaskProgressDashboard state={state} turns={turns} />
 
 			{run.status === 'active' ? (
 				<Box bg="white" borderRadius="2xl" p={7}>

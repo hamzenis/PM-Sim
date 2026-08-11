@@ -2,7 +2,7 @@ import { ChakraProvider } from '@chakra-ui/react';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import DashboardStats from './DashboardStats';
-import { totalTaskPool } from './taskPool';
+import { taskPoolTotal } from './taskPool';
 
 const state = (week, remainingBudget, tasks) => ({
 	week,
@@ -54,6 +54,6 @@ test('uses the preceding historical state and formats decimal currency', () => {
 });
 
 test('totals task pools with all supported difficulties', () => {
-	expect(totalTaskPool({ easy: 1, medium: 2, hard: 3 })).toBe(6);
-	expect(totalTaskPool()).toBe(0);
+	expect(taskPoolTotal({ easy: 1, medium: 2, hard: 3 })).toBe(6);
+	expect(taskPoolTotal()).toBe(0);
 });
