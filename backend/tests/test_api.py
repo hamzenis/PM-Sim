@@ -383,11 +383,17 @@ def test_student_can_start_read_and_complete_a_simulation_turn(client: TestClien
     assert result["run"]["version"] == 2
     assert result["replayed"] is False
     assert "bugs_created" not in {event["kind"] for event in result["events"]}
+    assert "undiscovered_bugs" not in result["run"]["state"]
+    assert "incorrect_specifications" not in result["run"]["state"]
 
     history = client.get(f"/api/simulations/{run['id']}/turns")
     assert history.status_code == 200
     assert history.json()[0]["week_number"] == 1
     assert "bugs_created" not in {event["kind"] for event in history.json()[0]["events"]}
+    historical_state = history.json()[0]["resulting_state"]
+    assert historical_state["week"] == 1
+    assert "undiscovered_bugs" not in historical_state
+    assert "incorrect_specifications" not in historical_state
 
     replay = client.post(
         f"/api/simulations/{run['id']}/turns",

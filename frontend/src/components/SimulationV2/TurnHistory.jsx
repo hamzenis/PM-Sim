@@ -11,26 +11,26 @@ const TurnHistory = ({ turns }) => {
 				Turn history
 			</Heading>
 			<Stack spacing={4}>
-				{turns.map((turn) => (
-					<Box key={turn.week_number} borderWidth="1px" borderRadius="md" p={4}>
+				{turns.map(({ week_number: weekNumber, decision, events, resulting_state: resultingState }) => (
+					<Box key={weekNumber} borderWidth="1px" borderRadius="md" p={4} data-state-week={resultingState?.week}>
 						<Heading size="sm" mb={2}>
-							Week {turn.week_number}
+							Week {weekNumber}
 						</Heading>
 						<Text fontWeight="semibold">
 							Allocation:{' '}
-							{Object.entries(turn.decision.allocation || {})
+							{Object.entries(decision.allocation || {})
 								.map(([name, value]) => `${readableKind(name)} ${value}%`)
 								.join(', ')}
 						</Text>
 						<Text mb={2}>
-							Hires: {turn.decision.hires?.length || 0}; dismissals:{' '}
-							{turn.decision.dismiss_employee_ids?.length || 0}; overtime:{' '}
-							{turn.decision.overtime_hours_per_employee || 0} hours
+							Hires: {decision.hires?.length || 0}; dismissals:{' '}
+							{decision.dismiss_employee_ids?.length || 0}; overtime:{' '}
+							{decision.overtime_hours_per_employee || 0} hours
 						</Text>
-						{turn.events.length === 0 ? (
+						{events.length === 0 ? (
 							<Text>No visible events.</Text>
 						) : (
-							turn.events.map((event, index) => (
+							events.map((event, index) => (
 								<Text key={`${event.kind}-${index}`}>• {readableKind(event.kind)}</Text>
 							))
 						)}

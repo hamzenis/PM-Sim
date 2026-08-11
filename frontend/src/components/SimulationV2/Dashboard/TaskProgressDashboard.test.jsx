@@ -21,6 +21,17 @@ test('orders sanitized weekly snapshots before plotting them', () => {
 	expect(orderedSnapshots(current, [turn(2, snapshot(2)), turn(1, snapshot(1))]).map(({ week }) => week)).toEqual([1, 2, 3]);
 });
 
+test('appends an initial state and replaces a persisted latest week with the current state', () => {
+	const initial = snapshot(0);
+	expect(orderedSnapshots(initial, []).map(({ week }) => week)).toEqual([0]);
+
+	const persistedLatest = snapshot(2, { tasks_completed: pool(1) });
+	const current = snapshot(2, { tasks_completed: pool(3) });
+	const snapshots = orderedSnapshots(current, [turn(1, snapshot(1)), turn(2, persistedLatest)]);
+	expect(snapshots.map(({ week }) => week)).toEqual([1, 2]);
+	expect(snapshots[1].snapshot).toBe(current);
+});
+
 test('shows current totals and changes from the preceding week', () => {
 	const previous = snapshot(1, { tasks_completed: pool(2, 1), tasks_unit_tested: pool(1), tasks_todo: pool(4, 2) });
 	const current = snapshot(2, { tasks_completed: pool(3, 2), tasks_unit_tested: pool(2), tasks_integration_tested: pool(1), tasks_todo: pool(3, 1) });
