@@ -45,9 +45,7 @@ def upgrade() -> None:
     op.create_index(
         "ix_content_delivery_run_status", "content_delivery_records", ["run_id", "status"]
     )
-    op.create_index(
-        "ix_content_delivery_records_turn_id", "content_delivery_records", ["turn_id"]
-    )
+    op.create_index("ix_content_delivery_records_turn_id", "content_delivery_records", ["turn_id"])
     op.create_table(
         "content_response_records",
         sa.Column("id", sa.String(length=36), nullable=False),
@@ -64,9 +62,7 @@ def upgrade() -> None:
         sa.UniqueConstraint(
             "run_id", "sequence_entry_id", "response_version", name="uq_content_response_version"
         ),
-        sa.UniqueConstraint(
-            "run_id", "idempotency_key", name="uq_content_response_idempotency"
-        ),
+        sa.UniqueConstraint("run_id", "idempotency_key", name="uq_content_response_idempotency"),
     )
     op.create_table(
         "applied_presentation_effect_records",

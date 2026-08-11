@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getClassResult } from '../api/classes';
 import FinalResult from '../components/SimulationV2/FinalResult';
+import ProfessorAuthoredTimeline from '../components/ProfessorAuthoredTimeline';
 
 const ClassResultDetail = () => {
 	const { class_id: classId, run_id: runId } = useParams();
@@ -42,6 +43,7 @@ const ClassResultDetail = () => {
 				Engine {result.engine_version}, seed {result.seed}
 			</Text>
 			<FinalResult result={result.final_result} />
+			<ProfessorAuthoredTimeline audit={result.contentAudit} />
 			<Heading size="md" mt={6} mb={4}>
 				Weekly audit
 			</Heading>

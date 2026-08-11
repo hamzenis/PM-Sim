@@ -177,9 +177,7 @@ def load_professor_content_audit(
     )
 
 
-def _delivery_verifier_record(
-    row: ContentDeliveryRecord, turns: dict[str, int]
-) -> dict[str, Any]:
+def _delivery_verifier_record(row: ContentDeliveryRecord, turns: dict[str, int]) -> dict[str, Any]:
     return {
         "run_id": row.run_id,
         "sequence_entry_id": row.sequence_entry_id,

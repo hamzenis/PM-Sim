@@ -115,6 +115,10 @@ All simulation endpoints require authentication and expose only runs owned by th
 Run detail responses include the scenario's `employee_types` so the weekly decision screen can
 offer valid hiring choices without duplicating scenario data in the frontend.
 
+They also include an `authored_content` student projection. This projection contains only
+currently delivered, student-visible definitions and presentation state. Professor-only entries,
+undelivered definitions, definition digests, replay metadata, and hidden facts are never included.
+
 ### Start and retrieve a run
 
 ```http
@@ -172,6 +176,35 @@ has succeeded or has been intentionally abandoned. Do **not** generate a new key
 the network timed out. On `409`, refetch the run, show that the state changed elsewhere, and ask
 the user to review the decision against the new version.
 
+Weekly completion is structurally blocked when a required authored delivery at the canonical
+`before_week:N` checkpoint remains incomplete. The `409` response identifies the blocking
+delivery; clients must answer or acknowledge it rather than resubmitting a differently shaped
+weekly decision. After the engine commits week N, `after_week:N` deliveries are resolved and are
+associated with that persisted turn. `run_started` and `before_week` deliveries have no turn;
+`run_finished` deliveries are also unassociated. An effect has a turn only when its delivery does.
+
+### Answer or acknowledge authored content
+
+```http
+POST /api/simulations/{run_id}/content/{delivery_id}/answer
+Idempotency-Key: answer-uuid
+Content-Type: application/json
+
+{"expected_version":2,"answer":{"option_id":"quality"}}
+```
+
+Use `/acknowledge` with `{"expected_version":2}` for fragments and events. Questions accept
+exactly one successful answer; acknowledgement cannot bypass a question. Both commands use the
+run's optimistic `expected_version` and increment it on success. A stale expected version is
+`409 Conflict`. Retrying the same key with the same canonical request returns the original result
+without another response or effect. Reusing a key with a different canonical request digest is a
+`409` idempotency conflict. Canonicalization normalizes the command kind, delivery, expected
+version, and answer (including stable ordering for multi-choice answers) before hashing.
+
+Answers are **authored responses / learning interactions**, never score contributions. Supported
+effects are presentation-only (`show_message`, presentation flags, and presentation themes).
+State-changing effects and scored questions are rejected during scenario validation.
+
 ### Submit a run
 
 ```json
@@ -190,4 +223,16 @@ timestamp, and `final_result`.
 | `GET` | `/api/audit?limit=50&offset=0` | Retrieve the professor's administrative actions. |
 
 The detailed professor run audit contains information intentionally hidden from the student
-during play. It must only appear in professor screens.
+during play. It must only appear in professor screens. Its `content_audit` object contains:
+
+- immutable deliveries with sequence ordinal, canonical checkpoint, visibility and
+  `hidden_from_students`, definition snapshot/digest, status/timestamps, and optional turn ID/week;
+- authored responses with command kind, normalized answer, response version, request digest, and
+  a one-way digest of the idempotency key;
+- applied presentation effects with payload/index, before/after projection digests, timestamp,
+  and optional turn association;
+- aggregate `digest_status` (`verified` or `diverged`) and structured replay `divergences`, each
+  reporting category, record, expected value, and actual value.
+
+The projection digests cover canonical student presentation state, not simulation state or score.
+Professor replay is read-only and does not synthesize historical deliveries, responses, or effects.

@@ -1,4 +1,5 @@
 import { apiRequest } from './client';
+import { mapRunAudit } from './audit';
 
 export const listClasses = () => apiRequest('/api/classes');
 
@@ -52,4 +53,5 @@ export const unassignScenario = (classId, revisionId) =>
 
 export const listClassResults = (classId) => apiRequest(`/api/classes/${classId}/results`);
 
-export const getClassResult = (classId, runId) => apiRequest(`/api/classes/${classId}/results/${runId}`);
+export const getClassResult = (classId, runId) =>
+	apiRequest(`/api/classes/${classId}/results/${runId}`).then(mapRunAudit);

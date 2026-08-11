@@ -15,6 +15,12 @@ scenario definition
   -> pure simulation engine (app/simulation)
 ```
 
+`app/authored_content` is a separate package boundary for definition loading, triggers,
+dependencies, answer normalization, presentation effects, digests, and replay. It may consume
+persisted authored facts and plain projection values, but it does not import simulation randomness,
+`SimulationState`, or `process_week`, and it never mutates a run. `app/simulations/service.py` is
+the integration owner that coordinates both packages.
+
 The modules in `app/simulation` must not import FastAPI, SQLAlchemy, or database models. This
 keeps a simulation deterministic and makes the same engine usable by persisted HTTP runs and
 the in-memory batch runner.
@@ -62,6 +68,32 @@ Important persisted concepts are:
 - **Simulation turn**: append-only decision, deterministic turn seed, resulting state, events,
   and idempotency key.
 - **Audit log**: append-only administrative action and non-secret metadata.
+- **Authored delivery/response/effect**: append-only facts based on an immutable definition
+  snapshot. Existing historical runs are left empty rather than backfilled with synthetic facts.
+
+The delivery stores the definition snapshot and its digest at resolution time. Responses are
+versioned immutable facts, and applied effects store their payload plus before/after projection
+digests. Replay verifies those facts against the run's pinned immutable scenario revision; it does
+not rewrite facts or run state.
+
+### Transactions and checkpoints
+
+The simulations application service owns the transaction. Routes and the pure authored-content
+package do not commit. A run version update, delivery/response/effect facts, simulation turn, and
+relevant audit information either commit together or roll back together.
+
+Canonical checkpoint order is `run_started`, `before_week:N`, the pure weekly turn,
+`after_week:N`, and finally `run_finished`. Required incomplete `before_week:N` content blocks the
+turn structurally. The persisted turn is created before resolving `after_week:N`, allowing those
+deliveries and effects to reference that turn; other checkpoints do not acquire a synthetic turn
+association.
+
+Questions use an answer-once policy. The first valid answer completes the delivery and subsequent
+answers are rejected, except an exact idempotent retry. Fragments and events complete through
+acknowledgement. A canonical request representation normalizes command kind, delivery identity,
+expected version, and schema-specific answer values before calculating the request digest. Thus
+semantically identical retries replay, while reuse of an idempotency key for different content,
+version, command, or answer conflicts.
 
 ## Scenario lifecycle
 

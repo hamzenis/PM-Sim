@@ -35,7 +35,8 @@ def test_non_choice_questions_reject_options(answer_schema: str) -> None:
 def test_choice_question_requires_two_unique_options_and_valid_feedback() -> None:
     definition = example()
     definition["authored_content"]["questions"][0]["options"] = [
-        {"id": "same", "label": "First"}, {"id": "same", "label": "Second"}
+        {"id": "same", "label": "First"},
+        {"id": "same", "label": "Second"},
     ]
     assert_invalid(definition, "option IDs must be unique")
 
@@ -96,7 +97,8 @@ def test_invalid_trigger_unknown_effect_and_state_payload_are_rejected() -> None
     assert_invalid(definition, "union_tag_invalid")
     definition = example()
     definition["authored_content"]["events"][0]["effects"][0] = {
-        "type": "change_budget", "payload": {"budget": 10}
+        "type": "change_budget",
+        "payload": {"budget": 10},
     }
     assert_invalid(definition, "union_tag_invalid")
     definition = example()
@@ -106,7 +108,7 @@ def test_invalid_trigger_unknown_effect_and_state_payload_are_rejected() -> None
 
 def test_effect_payload_is_bounded() -> None:
     definition = example()
-    definition["authored_content"]["events"][0]["effects"][0]["payload"]["text"] = (
-        "x" * (EFFECT_PAYLOAD_MAX_BYTES + 1)
+    definition["authored_content"]["events"][0]["effects"][0]["payload"]["text"] = "x" * (
+        EFFECT_PAYLOAD_MAX_BYTES + 1
     )
     assert_invalid(definition, "string_too_long")

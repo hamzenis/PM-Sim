@@ -485,15 +485,11 @@ def test_professor_can_compare_final_results_and_inspect_full_audit(client: Test
             {
                 "id": "private_note",
                 "professor_only": True,
-                "effects": [
-                    {"type": "show_message", "payload": {"text": "Private teaching note"}}
-                ],
+                "effects": [{"type": "show_message", "payload": {"text": "Private teaching note"}}],
             },
             {
                 "id": "week_note",
-                "effects": [
-                    {"type": "show_message", "payload": {"text": "Week completed"}}
-                ],
+                "effects": [{"type": "show_message", "payload": {"text": "Week completed"}}],
             },
         ],
         "sequence": [
@@ -560,9 +556,7 @@ def test_professor_can_compare_final_results_and_inspect_full_audit(client: Test
         headers={"Idempotency-Key": "audit-week"},
     )
     assert turn_response.status_code == 200, turn_response.json()
-    submitted = client.post(
-        f"/api/simulations/{run['id']}/submit", json={"expected_version": 3}
-    )
+    submitted = client.post(f"/api/simulations/{run['id']}/submit", json={"expected_version": 3})
     assert submitted.status_code == 200, submitted.json()
 
     client.post("/api/auth/logout")
