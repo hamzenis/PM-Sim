@@ -181,6 +181,7 @@ def _run_to_dict(run: SimulationBatchRun) -> dict[str, object]:
         "accepted_tasks": run.result.accepted_tasks,
         "rejected_tasks": run.result.rejected_tasks,
         "elapsed_working_days": run.result.elapsed_working_days,
+        "scheduled_working_days": run.result.scheduled_working_days,
         "total_cost": run.result.total_cost,
         "remaining_budget": run.result.remaining_budget,
         "score": run.result.score.total,

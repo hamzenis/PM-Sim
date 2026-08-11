@@ -41,6 +41,7 @@ class SimulationResult:
     accepted_tasks: int
     rejected_tasks: int
     elapsed_working_days: int
+    scheduled_working_days: int
     total_cost: float
     remaining_budget: float
     score: SimulationScore
@@ -84,6 +85,7 @@ def build_simulation_result(
         accepted_tasks=accepted,
         rejected_tasks=rejected,
         elapsed_working_days=state.elapsed_working_days,
+        scheduled_working_days=scheduled_days,
         total_cost=total_cost,
         remaining_budget=state.remaining_budget,
         score=score,
