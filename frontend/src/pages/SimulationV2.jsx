@@ -38,6 +38,8 @@ import BudgetTrendChart from '../components/SimulationV2/Dashboard/BudgetTrendCh
 import EmployeeStatusChart from '../components/SimulationV2/Dashboard/EmployeeStatusChart';
 import HelpContent from '../components/HelpContent';
 import { taskPoolTotal } from '../components/SimulationV2/Dashboard/taskPool';
+import ContentPanel from '../components/SimulationV2/AuthoredContent/ContentPanel';
+import { selectContentState } from '../components/SimulationV2/AuthoredContent/selectors';
 
 const SUBMISSION_READINESS_BENCHMARK = 80;
 
@@ -128,8 +130,23 @@ const SimulationV2 = () => {
 	}, [runId]);
 
 	const isDecisionValid = useMemo(() => decisionIsValid(decision), [decision]);
+	const contentState = useMemo(() => selectContentState(run?.deliveries), [run?.deliveries]);
+
+	useEffect(() => {
+		if (!contentState.earliestActionableRequiredEntry) return;
+		const element = document.getElementById(`content-entry-${contentState.earliestActionableRequiredEntry.sequence_entry_id}`);
+		element?.focus();
+		element?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+	}, [contentState.earliestActionableRequiredEntry]);
 
 	const completeWeek = async () => {
+		if (contentState.isBlocking) {
+			setError('Complete the required scenario content before completing this week.');
+			const element = document.getElementById(`content-entry-${contentState.earliestActionableRequiredEntry.sequence_entry_id}`);
+			element?.focus();
+			element?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+			return;
+		}
 		if (!isDecisionValid) {
 			setError('Check that activity percentages total 100 and that all values are valid.');
 			return;
@@ -223,6 +240,13 @@ const SimulationV2 = () => {
 			<BudgetTrendChart state={state} turns={turns} isComplete={run.status !== 'active'} />
 			<EmployeeStatusChart state={state} turns={turns} />
 			<TaskProgressDashboard state={state} turns={turns} />
+			<ContentPanel
+				runId={runId}
+				version={run.version}
+				deliveries={run.deliveries}
+				onRunChange={setRun}
+				onConflict={load}
+			/>
 
 			{run.status === 'active' ? (
 				<Box bg="white" borderRadius="2xl" p={7}>
@@ -234,14 +258,17 @@ const SimulationV2 = () => {
 						decision={decision}
 						employees={state.employees || []}
 						employeeTypes={run.employee_types || []}
-						isDisabled={Boolean(pendingSubmission)}
+						isDisabled={Boolean(pendingSubmission) || contentState.isBlocking}
 						onChange={setDecision}
 					/>
 					<Stack direction={{ base: 'column', md: 'row' }} mt={7}>
+						{contentState.isBlocking && (
+							<Alert status="warning"><AlertIcon />Complete the required scenario content above before completing the week.</Alert>
+						)}
 						<Button
 							colorScheme="blue"
 							isLoading={isSaving}
-							isDisabled={!isDecisionValid}
+							isDisabled={!isDecisionValid || contentState.isBlocking}
 							onClick={completeWeek}
 						>
 							{pendingSubmission ? 'Retry week' : 'Complete week'}
