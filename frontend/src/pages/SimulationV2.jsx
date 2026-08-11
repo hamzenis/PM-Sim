@@ -5,12 +5,8 @@ import {
 	Button,
 	Container,
 	Heading,
-	SimpleGrid,
 	Spinner,
 	Stack,
-	Stat,
-	StatLabel,
-	StatNumber,
 } from '@chakra-ui/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -20,6 +16,7 @@ import FinalResult from '../components/SimulationV2/FinalResult';
 import TurnHistory from '../components/SimulationV2/TurnHistory';
 import WeeklyDecisionForm, { decisionIsValid } from '../components/SimulationV2/WeeklyDecisionForm';
 import ConfirmDialog from '../components/ClassManagement/ConfirmDialog';
+import DashboardStats from '../components/SimulationV2/Dashboard/DashboardStats';
 
 const DEFAULT_ALLOCATION = {
 	development: 50,
@@ -151,12 +148,7 @@ const SimulationV2 = () => {
 					{error}
 				</Alert>
 			)}
-			<SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={8}>
-				<StatCard label="Budget remaining" value={state.remaining_budget} />
-				<StatCard label="Working days remaining" value={state.remaining_working_days} />
-				<StatCard label="Employees" value={state.employees?.length || 0} />
-				<StatCard label="Run status" value={run.status} />
-			</SimpleGrid>
+			<DashboardStats state={state} turns={turns} />
 
 			{run.status === 'active' ? (
 				<Box bg="white" borderRadius="2xl" p={7}>
@@ -206,14 +198,5 @@ const SimulationV2 = () => {
 		</Container>
 	);
 };
-
-const StatCard = ({ label, value }) => (
-	<Box bg="white" borderRadius="xl" p={5}>
-		<Stat>
-			<StatLabel>{label}</StatLabel>
-			<StatNumber>{String(value ?? '—')}</StatNumber>
-		</Stat>
-	</Box>
-);
 
 export default SimulationV2;

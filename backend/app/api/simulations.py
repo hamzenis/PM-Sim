@@ -106,6 +106,7 @@ class TurnHistoryResponse(BaseModel):
     week_number: int
     decision: dict[str, object]
     events: list[dict[str, object]]
+    resulting_state: dict[str, object]
     submitted_at: datetime
 
 
@@ -246,5 +247,6 @@ def _turn_history_response(turn: SimulationTurnRecord) -> TurnHistoryResponse:
         week_number=turn.week_number,
         decision=turn.decision,
         events=_student_events(turn.events),
+        resulting_state=_student_state(turn.resulting_state),
         submitted_at=turn.submitted_at,
     )
