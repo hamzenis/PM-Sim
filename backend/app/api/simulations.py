@@ -3,14 +3,23 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.auth import CurrentUser
-from app.db.models import ScenarioRevisionRecord, SimulationRunRecord, SimulationTurnRecord
+from app.db.models import (
+    ContentDeliveryRecord,
+    ContentResponseRecord,
+    ScenarioRevisionRecord,
+    SimulationRunRecord,
+    SimulationTurnRecord,
+)
 from app.db.session import get_session
 from app.simulation.models import ActivityAllocation, HireRequest, WeeklyDecision
 from app.simulations.service import (
     ConcurrentTurnError,
+    ContentBlockingError,
+    IdempotencyConflictError,
     SimulationRunError,
     complete_simulation_turn,
     get_simulation_run,
@@ -88,6 +97,52 @@ class RunResponse(RunSummaryResponse):
     state: dict[str, object]
     employee_types: list[dict[str, object]]
     final_result: dict[str, object] | None
+    deliveries: list["StudentDeliveryResponse"]
+    presentation: "StudentPresentationResponse"
+
+
+class QuestionOptionResponse(BaseModel):
+    id: str
+    label: str
+
+
+class QuestionSchemaResponse(BaseModel):
+    answer_schema: str
+    options: list[QuestionOptionResponse] = Field(default_factory=list)
+    short_text_max_length: int | None = None
+
+
+class LatestContentResponse(BaseModel):
+    command_kind: str
+    response_version: int
+    value: dict[str, object]
+    answered_at: datetime
+
+
+class StudentDeliveryResponse(BaseModel):
+    id: str
+    sequence_entry_id: str
+    sequence_ordinal: int
+    kind: str
+    status: str
+    checkpoint: str
+    title: str | None = None
+    body: str | None = None
+    prompt: str | None = None
+    question: QuestionSchemaResponse | None = None
+    required: bool
+    latest_response: LatestContentResponse | None = None
+    feedback: str | None = None
+    visible: bool = True
+    label: str | None = None
+
+
+class StudentPresentationResponse(BaseModel):
+    messages: list[str] = Field(default_factory=list)
+    visible_fragment_ids: list[str] = Field(default_factory=list)
+    visible_question_ids: list[str] = Field(default_factory=list)
+    flags: dict[str, object] = Field(default_factory=dict)
+    theme: str | None = None
 
 
 class TurnResponse(BaseModel):
@@ -109,6 +164,7 @@ class TurnHistoryResponse(BaseModel):
     events: list[dict[str, object]]
     resulting_state: dict[str, object]
     submitted_at: datetime
+    deliveries: list[StudentDeliveryResponse]
 
 
 @router.post("", response_model=RunResponse, status_code=status.HTTP_201_CREATED)
@@ -173,12 +229,33 @@ def complete_turn(
             expected_version=request.expected_version,
             idempotency_key=idempotency_key,
         )
-    except ConcurrentTurnError as error:
+    except (ConcurrentTurnError, IdempotencyConflictError) as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
+    except ContentBlockingError as error:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "content_blocked",
+                "message": str(error),
+                "blocking_entry": _delivery_response(session, error.delivery).model_dump(
+                    mode="json"
+                ),
+            },
+        ) from error
     except (SimulationRunError, ValueError) as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
+    run_response = _run_response(session, completed.run)
+    if completed.replayed:
+        # Content-only commands may have advanced the live run since this turn.
+        run_response = run_response.model_copy(
+            update={
+                "version": completed.projection_version,
+                "current_week": completed.turn.week_number,
+                "state": _student_state(completed.turn.resulting_state),
+            }
+        )
     return TurnResponse(
-        run=_run_response(session, completed.run),
+        run=run_response,
         week_number=completed.turn.week_number,
         events=_student_events(completed.turn.events),
         replayed=completed.replayed,
@@ -231,6 +308,8 @@ def _run_response(session: Session, run: SimulationRunRecord) -> RunResponse:
         state=_student_state(run.current_state),
         employee_types=employee_types,
         final_result=run.final_result,
+        deliveries=_student_deliveries(session, run.id),
+        presentation=_presentation_response(session, run.id),
     )
 
 
@@ -246,10 +325,81 @@ def _student_events(events: list[dict[str, object]]) -> list[dict[str, object]]:
 
 
 def _turn_history_response(turn: SimulationTurnRecord) -> TurnHistoryResponse:
+    session = Session.object_session(turn)
     return TurnHistoryResponse(
         week_number=turn.week_number,
         decision=turn.decision,
         events=_student_events(turn.events),
         resulting_state=_student_state(turn.resulting_state),
         submitted_at=turn.submitted_at,
+        deliveries=[]
+        if session is None
+        else [
+            _delivery_response(session, row)
+            for row in turn.content_deliveries
+            if not row.definition_snapshot.get("professor_only")
+        ],
     )
+
+
+def _delivery_response(session: Session, row: ContentDeliveryRecord) -> StudentDeliveryResponse:
+    snapshot = row.definition_snapshot
+    response = session.scalar(
+        select(ContentResponseRecord)
+        .where(
+            ContentResponseRecord.run_id == row.run_id,
+            ContentResponseRecord.sequence_entry_id == row.sequence_entry_id,
+        )
+        .order_by(ContentResponseRecord.response_version.desc())
+    )
+    question = None
+    if snapshot.get("kind") == "question":
+        question = QuestionSchemaResponse(
+            answer_schema=str(snapshot["answer_schema"]),
+            options=snapshot.get("options", []),
+            short_text_max_length=snapshot.get("short_text_max_length"),
+        )
+    latest = (
+        None
+        if response is None
+        else LatestContentResponse(
+            command_kind=response.command_kind,
+            response_version=response.response_version,
+            value=response.normalized_answer,
+            answered_at=response.answered_at,
+        )
+    )
+    return StudentDeliveryResponse(
+        id=row.id,
+        sequence_entry_id=row.sequence_entry_id,
+        sequence_ordinal=row.sequence_ordinal,
+        kind=str(snapshot.get("kind", "event")),
+        status=row.status,
+        checkpoint=row.canonical_checkpoint,
+        title=snapshot.get("title"),
+        body=snapshot.get("body"),
+        prompt=snapshot.get("prompt"),
+        question=question,
+        required=bool(snapshot.get("required", False)),
+        latest_response=latest,
+        label=snapshot.get("title") or snapshot.get("prompt"),
+    )
+
+
+def _student_deliveries(session: Session, run_id: str) -> list[StudentDeliveryResponse]:
+    rows = session.scalars(
+        select(ContentDeliveryRecord)
+        .where(ContentDeliveryRecord.run_id == run_id)
+        .order_by(ContentDeliveryRecord.sequence_ordinal)
+    ).all()
+    return [
+        _delivery_response(session, row)
+        for row in rows
+        if not row.definition_snapshot.get("professor_only")
+    ]
+
+
+def _presentation_response(session: Session, run_id: str) -> StudentPresentationResponse:
+    from app.simulations.service import _presentation
+
+    return StudentPresentationResponse.model_validate(_presentation(session, run_id))

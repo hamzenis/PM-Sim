@@ -10,6 +10,7 @@ from app.api.auth import router as auth_router
 from app.api.classes import router as class_router
 from app.api.results import router as result_router
 from app.api.scenarios import router as scenario_router
+from app.api.simulation_content import router as simulation_content_router
 from app.api.simulations import router as simulation_router
 from app.db.session import get_session
 
@@ -20,6 +21,7 @@ app.include_router(class_router, prefix="/api")
 app.include_router(scenario_router, prefix="/api")
 app.include_router(result_router, prefix="/api")
 app.include_router(simulation_router, prefix="/api")
+app.include_router(simulation_content_router, prefix="/api")
 
 
 @app.get("/health", tags=["system"])

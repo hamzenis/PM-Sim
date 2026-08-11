@@ -181,12 +181,12 @@ class SimulationTurnRecord(Base):
     events: Mapped[list[dict[str, object]]] = mapped_column(JSON)
     # NULL identifies turns written before canonical request digests were persisted.
     request_digest: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Exact run projection version returned by this committed command.
+    resulting_run_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
     run: Mapped[SimulationRunRecord] = relationship(back_populates="turns")
-    content_deliveries: Mapped[list["ContentDeliveryRecord"]] = relationship(
-        back_populates="turn"
-    )
+    content_deliveries: Mapped[list["ContentDeliveryRecord"]] = relationship(back_populates="turn")
     applied_presentation_effects: Mapped[list["AppliedPresentationEffectRecord"]] = relationship(
         back_populates="turn"
     )
