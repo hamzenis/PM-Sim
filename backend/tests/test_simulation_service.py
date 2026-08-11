@@ -43,6 +43,7 @@ def scenario_definition() -> ScenarioDefinition:
         {
             "schema_version": 1,
             "name": "Service Test",
+            "authored_content": {"fragments": [], "questions": [], "events": [], "sequence": []},
             "project": {"budget": 10_000, "working_days": 5},
             "tasks": {"total": 40},
             "employee_types": [

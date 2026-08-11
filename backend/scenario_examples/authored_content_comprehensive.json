@@ -1,0 +1,219 @@
+{
+    "schema_version": 1,
+    "name": "Authored Content Showcase",
+    "description": "A validation example; authored answers do not affect this simulation.",
+    "authored_content": {
+        "fragments": [
+            {
+                "id": "briefing",
+                "title": "Briefing",
+                "body": "Review the project brief.",
+                "required": true
+            },
+            {
+                "id": "hint",
+                "body": "Consider how you will communicate trade-offs.",
+                "required": false
+            }
+        ],
+        "questions": [
+            {
+                "id": "priority",
+                "prompt": "Choose the main priority.",
+                "answer_schema": "single_choice",
+                "options": [
+                    {
+                        "id": "quality",
+                        "label": "Quality"
+                    },
+                    {
+                        "id": "speed",
+                        "label": "Speed"
+                    }
+                ],
+                "feedback_by_option": {
+                    "quality": "Explain the quality trade-off."
+                }
+            },
+            {
+                "id": "risks",
+                "prompt": "Choose relevant risks.",
+                "answer_schema": "multiple_choice",
+                "options": [
+                    {
+                        "id": "scope",
+                        "label": "Scope"
+                    },
+                    {
+                        "id": "staffing",
+                        "label": "Staffing"
+                    }
+                ]
+            },
+            {
+                "id": "ready",
+                "prompt": "Is the plan ready?",
+                "answer_schema": "boolean"
+            },
+            {
+                "id": "reflection",
+                "prompt": "Summarize your approach.",
+                "answer_schema": "short_text",
+                "short_text_max_length": 300
+            }
+        ],
+        "events": [
+            {
+                "id": "week_notice",
+                "effects": [
+                    {
+                        "type": "show_message",
+                        "payload": {
+                            "text": "Week one is complete."
+                        }
+                    }
+                ]
+            },
+            {
+                "id": "final_note",
+                "effects": [
+                    {
+                        "type": "set_presentation_flag",
+                        "payload": {
+                            "flag": "reflection_visible",
+                            "value": true
+                        }
+                    }
+                ]
+            },
+            {
+                "id": "professor_note",
+                "professor_only": true,
+                "effects": [
+                    {
+                        "type": "set_presentation_theme",
+                        "payload": {
+                            "theme": "review"
+                        }
+                    }
+                ]
+            }
+        ],
+        "sequence": [
+            {
+                "id": "s_briefing",
+                "trigger": {
+                    "type": "run_started"
+                },
+                "fragment_id": "briefing"
+            },
+            {
+                "id": "s_priority",
+                "trigger": {
+                    "type": "run_started"
+                },
+                "question_id": "priority",
+                "depends_on": [
+                    "s_briefing"
+                ]
+            },
+            {
+                "id": "s_hint",
+                "trigger": {
+                    "type": "before_week",
+                    "week": 1
+                },
+                "fragment_id": "hint",
+                "depends_on": [
+                    "s_priority"
+                ]
+            },
+            {
+                "id": "s_risks",
+                "trigger": {
+                    "type": "before_week",
+                    "week": 1
+                },
+                "question_id": "risks",
+                "depends_on": [
+                    "s_hint"
+                ]
+            },
+            {
+                "id": "s_week_notice",
+                "trigger": {
+                    "type": "after_week",
+                    "week": 1
+                },
+                "event_id": "week_notice",
+                "depends_on": [
+                    "s_risks"
+                ]
+            },
+            {
+                "id": "s_ready",
+                "trigger": {
+                    "type": "after_week",
+                    "week": 1
+                },
+                "question_id": "ready",
+                "depends_on": [
+                    "s_week_notice"
+                ]
+            },
+            {
+                "id": "s_reflection",
+                "trigger": {
+                    "type": "run_finished"
+                },
+                "question_id": "reflection",
+                "depends_on": [
+                    "s_ready"
+                ]
+            },
+            {
+                "id": "s_final",
+                "trigger": {
+                    "type": "run_finished"
+                },
+                "event_id": "final_note",
+                "depends_on": [
+                    "s_reflection"
+                ]
+            },
+            {
+                "id": "s_professor",
+                "trigger": {
+                    "type": "run_finished"
+                },
+                "event_id": "professor_note",
+                "depends_on": [
+                    "s_final"
+                ]
+            }
+        ]
+    },
+    "project": {
+        "budget": 250000,
+        "working_days": 60
+    },
+    "tasks": {
+        "total": 400
+    },
+    "employee_types": [
+        {
+            "code": "developer",
+            "name": "Developer",
+            "cost_per_day": 200,
+            "throughput": {
+                "easy": 6,
+                "medium": 3,
+                "hard": 1
+            },
+            "error_rate": 0.04
+        }
+    ],
+    "rules": {
+        "randomness": "none"
+    }
+}

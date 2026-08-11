@@ -43,6 +43,8 @@ SQLite deployment, migration, backup, and restore procedures are documented in
 
 ## Documentation
 
+- [`docs/adr/0001-authored-scenario-content.md`](docs/adr/0001-authored-scenario-content.md)
+  records the approved presentation-only authored-content boundary.
 - [`docs/architecture.md`](docs/architecture.md) explains the application layers, data model,
   transaction boundaries, and simulation lifecycle.
 - [`docs/api.md`](docs/api.md) documents authentication, roles, HTTP endpoints, concurrency,

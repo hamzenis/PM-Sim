@@ -18,6 +18,7 @@ def scenario() -> ScenarioDefinition:
         {
             "schema_version": 1,
             "name": "Batch",
+            "authored_content": {"fragments": [], "questions": [], "events": [], "sequence": []},
             "project": {"budget": 20_000, "working_days": 20},
             "tasks": {"total": 40},
             "employee_types": [

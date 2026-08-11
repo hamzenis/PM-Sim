@@ -67,6 +67,7 @@ def scenario_payload() -> dict[str, object]:
         "schema_version": 1,
         "name": "Example",
         "description": "Deliver the project within the agreed budget and schedule.",
+        "authored_content": {"fragments": [], "questions": [], "events": [], "sequence": []},
         "project": {"budget": 1000, "working_days": 10},
         "tasks": {"total": 20},
         "employee_types": [

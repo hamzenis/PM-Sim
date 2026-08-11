@@ -23,7 +23,11 @@ test('maps student and professor scenario lists', async () => {
 
 test('maps the professor scenario lifecycle', async () => {
 	apiRequest.mockResolvedValue({});
-	const definition = { schema_version: 1, name: 'Example' };
+	const definition = {
+		schema_version: 1,
+		name: 'Example',
+		authored_content: { fragments: [], questions: [], events: [], sequence: [] },
+	};
 	await validateScenario(definition);
 	await createScenario(definition);
 	await publishScenarioRevision('scenario-1', 2);

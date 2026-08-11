@@ -65,6 +65,9 @@ Important persisted concepts are:
 
 ## Scenario lifecycle
 
+Presentation-only authored scenario content and its approval boundary are specified in
+[`ADR 0001`](adr/0001-authored-scenario-content.md).
+
 1. A professor validates a scenario definition.
 2. Uploading creates a scenario and draft revision 1.
 3. Further edits create new draft revisions; published revisions are never edited in place.

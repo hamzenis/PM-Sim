@@ -117,6 +117,9 @@ def publish_revision(
     if revision is None:
         raise ScenarioRevisionNotFoundError(f"{scenario_id}:{revision_number}")
     if revision.status == RevisionStatus.DRAFT:
+        # Stored JSON is a persistence boundary: defensively apply today's complete schema
+        # immediately before publication, even if the draft predates the running process.
+        ScenarioDefinition.model_validate(revision.definition)
         revision.status = RevisionStatus.PUBLISHED
         revision.published_at = datetime.now(UTC)
         record_audit(
