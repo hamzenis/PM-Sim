@@ -21,6 +21,68 @@ class AuditResponse(BaseModel):
     created_at: datetime
 
 
+class ContentDeliveryAuditResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    sequence_entry_id: str
+    sequence_ordinal: int
+    checkpoint: str
+    visibility: str
+    hidden_from_students: bool
+    definition_digest: str
+    definition_snapshot: dict[str, object]
+    status: str
+    delivered_at: datetime
+    completed_at: datetime | None
+    turn_id: str | None
+    turn_week_number: int | None
+
+
+class ContentResponseAuditResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    sequence_entry_id: str
+    response_version: int
+    command_kind: str
+    normalized_answer: dict[str, object]
+    answered_at: datetime
+    request_digest: str
+    idempotency_key_digest: str
+
+
+class AppliedEffectAuditResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    sequence_entry_id: str
+    effect_index: int
+    effect_payload: dict[str, object]
+    before_projection_digest: str
+    after_projection_digest: str
+    applied_at: datetime
+    turn_id: str | None
+    turn_week_number: int | None
+
+
+class ReplayDivergenceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    category: str
+    record: str
+    expected: object
+    actual: object
+
+
+class ProfessorContentAuditResponse(BaseModel):
+    deliveries: list[ContentDeliveryAuditResponse]
+    responses: list[ContentResponseAuditResponse]
+    effects: list[AppliedEffectAuditResponse]
+    digest_status: str
+    divergences: list[ReplayDivergenceResponse]
+
+
 @router.get("", response_model=list[AuditResponse])
 def get_audit_history(
     session: DatabaseSession,

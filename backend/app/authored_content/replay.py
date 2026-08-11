@@ -63,7 +63,18 @@ def verify_replay(
         if missing:
             differences.append(Divergence("dependencies", entry_id, "completed", missing))
         kind, definition = referenced_definition(definitions, entry)
-        expected_digest = definition_digest(student_safe_snapshot(kind, definition))
+        digest_snapshot = student_safe_snapshot(kind, definition)
+        # Delivery persistence includes immutable sequence/visibility metadata in the
+        # historical snapshot.  Replay must use that same canonical digest contract.
+        digest_snapshot.update(
+            {
+                "kind": kind,
+                "required": bool(entry.get("required", definition.get("required", False))),
+                "visibility": entry.get("visibility", "default"),
+                "professor_only": bool(definition.get("professor_only", False)),
+            }
+        )
+        expected_digest = definition_digest(digest_snapshot)
         if record.get("definition_digest") != expected_digest:
             differences.append(
                 Divergence(
@@ -80,18 +91,19 @@ def verify_replay(
             continue
         _, entry = sequence[entry_id]
         kind, question = referenced_definition(definitions, entry)
+        recorded_answer = response.get("normalized_answer")
         try:
             normalized = (
-                normalize_answer(question, response.get("normalized_answer"))
+                normalize_answer(question, recorded_answer)
                 if kind == "question"
-                else None
+                else {"acknowledged": True}
             )
         except (AnswerError, KeyError) as exc:
             differences.append(
                 Divergence("normalized_response", entry_id, "valid normalized answer", str(exc))
             )
             continue
-        if normalized != response.get("normalized_answer"):
+        if normalized != recorded_answer:
             differences.append(
                 Divergence(
                     "normalized_response", entry_id, normalized, response.get("normalized_answer")

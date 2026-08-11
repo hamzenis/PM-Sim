@@ -7,7 +7,7 @@ row, uses ``flush`` only when generated identifiers are needed, and commits once
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Any
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid5
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -230,7 +230,10 @@ def _resolve_content(
                             run_id=run.id,
                             sequence_entry_id=entry.id,
                             effect_index=index,
-                            effect_payload=dict(effect),
+                            effect_payload={
+                                "type": effect["type"],
+                                "payload": dict(effect["payload"]),
+                            },
                             before_projection_digest=audit.before_digest,
                             after_projection_digest=audit.after_digest,
                             applied_at=datetime.now(UTC),
@@ -372,13 +375,19 @@ def complete_simulation_turn(
         session.commit()
         raise ContentBlockingError(blocker)
     turn_seed = run.seed + run.current_week
+    employee_sequence = iter(range(sum(hire.count for hire in decision.hires)))
     result = process_week(
         state_from_dict(run.current_state),
         decision=decision,
         employee_types=employee_types_from_scenario(scenario),
         rules=turn_rules_from_scenario(scenario),
         random=SeededRandomSource(turn_seed),
-        new_employee_id=lambda: str(uuid4()),
+        # Employee identity is part of simulation state, so derive it from simulation
+        # inputs rather than process entropy.  Authored-content-only revisions can then
+        # be proven bit-for-bit neutral to the simulation track.
+        new_employee_id=lambda: str(
+            uuid5(NAMESPACE_URL, f"pm-sim:{turn_seed}:{next(employee_sequence)}")
+        ),
     )
     outcome, now, state_data = (
         evaluate_outcome(result.state),

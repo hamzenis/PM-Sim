@@ -34,7 +34,7 @@ def apply_effect(projection: Mapping[str, Any], effect: Mapping[str, Any]) -> Ef
     if effect_type not in APPROVED_EFFECTS:
         raise ValueError(f"unapproved presentation effect: {effect_type}")
     payload = effect.get("payload")
-    if not isinstance(payload, dict):
+    if not isinstance(payload, Mapping):
         raise ValueError("effect payload must be an object")
     if effect_type == "show_message":
         after.setdefault("messages", []).append(payload["text"])

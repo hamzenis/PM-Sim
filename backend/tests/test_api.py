@@ -471,7 +471,51 @@ def test_student_can_submit_a_run_and_cannot_take_more_turns(client: TestClient)
 
 
 def test_professor_can_compare_final_results_and_inspect_full_audit(client: TestClient) -> None:
-    revision = client.post("/api/scenarios", json=scenario_payload()).json()
+    payload = scenario_payload()
+    payload["authored_content"] = {
+        "fragments": [],
+        "questions": [
+            {
+                "id": "plan",
+                "prompt": "Is the plan ready?",
+                "answer_schema": "boolean",
+            }
+        ],
+        "events": [
+            {
+                "id": "private_note",
+                "professor_only": True,
+                "effects": [
+                    {"type": "show_message", "payload": {"text": "Private teaching note"}}
+                ],
+            },
+            {
+                "id": "week_note",
+                "effects": [
+                    {"type": "show_message", "payload": {"text": "Week completed"}}
+                ],
+            },
+        ],
+        "sequence": [
+            {
+                "id": "private_delivery",
+                "trigger": {"type": "run_started"},
+                "event_id": "private_note",
+            },
+            {
+                "id": "plan_delivery",
+                "trigger": {"type": "run_started"},
+                "question_id": "plan",
+            },
+            {
+                "id": "week_delivery",
+                "trigger": {"type": "after_week", "week": 1},
+                "event_id": "week_note",
+                "depends_on": ["plan_delivery"],
+            },
+        ],
+    }
+    revision = client.post("/api/scenarios", json=payload).json()
     scenario_id = client.get("/api/scenarios").json()[0]["id"]
     client.post(f"/api/scenarios/{scenario_id}/revisions/1/publish")
     course_class = client.post("/api/classes", json={"name": "Results"}).json()
@@ -493,8 +537,15 @@ def test_professor_can_compare_final_results_and_inspect_full_audit(client: Test
             "seed": 11,
         },
     ).json()
+    assert [item["sequence_entry_id"] for item in run["deliveries"]] == ["plan_delivery"]
+    answered = client.post(
+        f"/api/simulations/{run['id']}/content/plan_delivery/answer",
+        json={"expected_version": 1, "answer": True},
+        headers={"Idempotency-Key": "plan-answer"},
+    )
+    assert answered.status_code == 200
     decision = {
-        "expected_version": 1,
+        "expected_version": 2,
         "allocation": {
             "development": 100,
             "unit_testing": 0,
@@ -503,12 +554,16 @@ def test_professor_can_compare_final_results_and_inspect_full_audit(client: Test
         },
         "hires": [{"employee_type_code": "junior", "count": 1}],
     }
-    client.post(
+    turn_response = client.post(
         f"/api/simulations/{run['id']}/turns",
         json=decision,
         headers={"Idempotency-Key": "audit-week"},
     )
-    client.post(f"/api/simulations/{run['id']}/submit", json={"expected_version": 2})
+    assert turn_response.status_code == 200, turn_response.json()
+    submitted = client.post(
+        f"/api/simulations/{run['id']}/submit", json={"expected_version": 3}
+    )
+    assert submitted.status_code == 200, submitted.json()
 
     client.post("/api/auth/logout")
     client.post(
@@ -525,4 +580,27 @@ def test_professor_can_compare_final_results_and_inspect_full_audit(client: Test
     assert audit.json()["seed"] == 11
     assert audit.json()["turns"][0]["turn_seed"] == 11
     assert "undiscovered_bugs" in audit.json()["current_state"]
+    content = audit.json()["content_audit"]
+    assert [item["sequence_entry_id"] for item in content["deliveries"]] == [
+        "private_delivery",
+        "plan_delivery",
+        "week_delivery",
+    ]
+    assert content["deliveries"][0]["hidden_from_students"] is True
+    assert content["deliveries"][1]["definition_snapshot"]["prompt"] == "Is the plan ready?"
+    assert content["deliveries"][2]["turn_week_number"] == 1
+    assert content["responses"][0]["response_version"] == 1
+    assert content["responses"][0]["normalized_answer"] == {"answer": True}
+    assert content["responses"][0]["idempotency_key_digest"] != "plan-answer"
+    assert content["effects"][0]["effect_index"] == 0
+    assert content["effects"][0]["turn_week_number"] == 1
+    assert content["digest_status"] == "verified"
+    assert content["divergences"] == []
     assert client.get(f"/api/classes/missing/results/{run['id']}").status_code == 404
+
+    client.post("/api/auth/logout")
+    client.post(
+        "/api/auth/login",
+        json={"username": "other-professor", "password": "other-professor-password"},
+    )
+    assert client.get(f"/api/classes/{course_class['id']}/results/{run['id']}").status_code == 404

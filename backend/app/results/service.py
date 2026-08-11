@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.audit.service import ProfessorContentAudit, load_professor_content_audit
 from app.db.models import (
     ClassRecord,
     SimulationRunRecord,
@@ -20,6 +21,13 @@ class ProfessorResultError(ValueError):
 class ProfessorRunResult:
     run: SimulationRunRecord
     student: UserRecord
+
+
+@dataclass(frozen=True, slots=True)
+class ProfessorRunAudit:
+    result: ProfessorRunResult
+    turns: tuple[SimulationTurnRecord, ...]
+    content: ProfessorContentAudit
 
 
 def list_class_results(
@@ -49,7 +57,7 @@ def get_class_run_audit(
     class_id: str,
     run_id: str,
     professor_id: str,
-) -> tuple[ProfessorRunResult, list[SimulationTurnRecord]]:
+) -> ProfessorRunAudit:
     _owned_class(session, class_id=class_id, professor_id=professor_id)
     row = session.execute(
         select(SimulationRunRecord, UserRecord)
@@ -69,7 +77,11 @@ def get_class_run_audit(
             .order_by(SimulationTurnRecord.week_number)
         )
     )
-    return ProfessorRunResult(run=run, student=student), turns
+    # Authored facts are loaded only after the scoped professor/class/run query succeeds.
+    content = load_professor_content_audit(session, run=run)
+    return ProfessorRunAudit(
+        result=ProfessorRunResult(run=run, student=student), turns=tuple(turns), content=content
+    )
 
 
 def _owned_class(session: Session, *, class_id: str, professor_id: str) -> ClassRecord:

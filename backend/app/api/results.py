@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.api.audit import ProfessorContentAuditResponse
 from app.api.auth import ProfessorUser
 from app.api.classes import DatabaseSession
 from app.db.models import SimulationRunRecord
@@ -36,6 +37,7 @@ class RunAuditResponse(ClassResultResponse):
     engine_version: str
     current_state: dict[str, object]
     turns: list[AuditTurnResponse]
+    content_audit: ProfessorContentAuditResponse
 
 
 @router.get("/{class_id}/results", response_model=list[ClassResultResponse])
@@ -62,7 +64,7 @@ def run_audit(
     professor: ProfessorUser,
 ) -> RunAuditResponse:
     try:
-        result, turns = get_class_run_audit(
+        audit = get_class_run_audit(
             session,
             class_id=class_id,
             run_id=run_id,
@@ -70,12 +72,22 @@ def run_audit(
         )
     except ProfessorResultError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    result, turns = audit.result, audit.turns
     summary = _result_response(result.run, result.student.id, result.student.username)
     return RunAuditResponse(
         **summary.model_dump(),
         seed=result.run.seed,
         engine_version=result.run.engine_version,
         current_state=result.run.current_state,
+        content_audit=ProfessorContentAuditResponse.model_validate(
+            {
+                "deliveries": audit.content.deliveries,
+                "responses": audit.content.responses,
+                "effects": audit.content.effects,
+                "digest_status": audit.content.digest_status,
+                "divergences": audit.content.divergences,
+            }
+        ),
         turns=[
             AuditTurnResponse(
                 week_number=turn.week_number,

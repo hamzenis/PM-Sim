@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
@@ -113,6 +113,95 @@ def development_decision() -> WeeklyDecision:
         allocation=ActivityAllocation(100, 0, 0, 0),
         hires=(HireRequest("developer", 1),),
     )
+
+
+def test_authored_content_is_simulation_and_randomness_neutral(session: Session) -> None:
+    """The content track must not perturb the deterministic simulation track."""
+    user, plain_revision = persisted_inputs(session)
+    now = datetime.now(UTC)
+    authored_definition = plain_revision.definition | {
+        "authored_content": {
+            "fragments": [],
+            "questions": [],
+            "events": [
+                {
+                    "id": "professor_observation",
+                    "professor_only": True,
+                    "effects": [
+                        {
+                            "type": "show_message",
+                            "payload": {"text": "Professor-only observation"},
+                        }
+                    ],
+                }
+            ],
+            "sequence": [
+                {
+                    "id": "observation_delivery",
+                    "trigger": {"type": "run_started"},
+                    "event_id": "professor_observation",
+                }
+            ],
+        }
+    }
+    authored_revision = ScenarioRevisionRecord(
+        scenario=plain_revision.scenario,
+        revision_number=2,
+        schema_version=1,
+        status=RevisionStatus.PUBLISHED,
+        definition=authored_definition,
+        created_at=now,
+        published_at=now,
+    )
+    session.add(authored_revision)
+    session.flush()
+    session.add(
+        ScenarioAvailabilityRecord(
+            class_id=session.scalar(select(ScenarioAvailabilityRecord.class_id)),
+            scenario_revision_id=authored_revision.id,
+            created_at=now,
+        )
+    )
+    session.commit()
+
+    plain = start_simulation_run(
+        session, user_id=user.id, scenario_revision_id=plain_revision.id, seed=87
+    )
+    authored = start_simulation_run(
+        session, user_id=user.id, scenario_revision_id=authored_revision.id, seed=87
+    )
+    assert plain.current_state == authored.current_state
+    assert plain.seed == authored.seed
+
+    plain_turn = complete_simulation_turn(
+        session,
+        run_id=plain.id,
+        user_id=user.id,
+        decision=development_decision(),
+        expected_version=1,
+        idempotency_key="plain-week-1",
+    ).turn
+    authored_turn = complete_simulation_turn(
+        session,
+        run_id=authored.id,
+        user_id=user.id,
+        decision=development_decision(),
+        expected_version=1,
+        idempotency_key="authored-week-1",
+    ).turn
+    assert plain_turn.turn_seed == authored_turn.turn_seed
+    assert plain_turn.events == authored_turn.events  # includes the recorded random calls
+    assert plain_turn.resulting_state == authored_turn.resulting_state
+
+    plain_final = submit_simulation_run(
+        session, run_id=plain.id, user_id=user.id, expected_version=2
+    )
+    authored_final = submit_simulation_run(
+        session, run_id=authored.id, user_id=user.id, expected_version=2
+    )
+    assert plain_final.current_state == authored_final.current_state
+    assert plain_final.status == authored_final.status
+    assert plain_final.final_result == authored_final.final_result
 
 
 def test_run_requires_a_published_scenario_revision(session: Session) -> None:
