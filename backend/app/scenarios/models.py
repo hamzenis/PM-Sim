@@ -52,9 +52,24 @@ class _EffectPayload(StrictModel):
         if len(encoded) > EFFECT_PAYLOAD_MAX_BYTES:
             raise ValueError(f"effect payload exceeds {EFFECT_PAYLOAD_MAX_BYTES} bytes")
         forbidden = {
-            "budget", "day", "week", "tasks", "employees", "quality", "score",
-            "state", "simulation_state", "randomness", "outcome", "path", "command",
-            "expression", "script", "code", "value_path", "target",
+            "budget",
+            "day",
+            "week",
+            "tasks",
+            "employees",
+            "quality",
+            "score",
+            "state",
+            "simulation_state",
+            "randomness",
+            "outcome",
+            "path",
+            "command",
+            "expression",
+            "script",
+            "code",
+            "value_path",
+            "target",
         }
         if forbidden.intersection(self.model_fields_set):
             raise ValueError("effect payload contains state or executable semantics")
@@ -108,7 +123,10 @@ class SetPresentationThemeEffect(StrictModel):
 
 
 PresentationEffect = Annotated[
-    ShowMessageEffect | ShowFragmentEffect | ShowQuestionEffect | SetPresentationFlagEffect
+    ShowMessageEffect
+    | ShowFragmentEffect
+    | ShowQuestionEffect
+    | SetPresentationFlagEffect
     | SetPresentationThemeEffect,
     Field(discriminator="type"),
 ]
@@ -167,6 +185,9 @@ class SequenceEntryDefinition(StrictModel):
     question_id: AuthoredId | None = None
     event_id: AuthoredId | None = None
     depends_on: list[AuthoredId] = Field(default_factory=list)
+    priority: int = 0
+    visibility: Literal["default", "after_acknowledgement", "run_finished"] = "default"
+    visibility_associated_entry_id: AuthoredId | None = None
 
     @model_validator(mode="after")
     def exactly_one_reference(self) -> "SequenceEntryDefinition":
@@ -176,6 +197,12 @@ class SequenceEntryDefinition(StrictModel):
             raise ValueError("entry dependencies must be unique")
         if self.id in self.depends_on:
             raise ValueError("an entry cannot depend on itself")
+        if (self.visibility == "after_acknowledgement") != (
+            self.visibility_associated_entry_id is not None
+        ):
+            raise ValueError(
+                "after_acknowledgement visibility requires exactly one explicit association"
+            )
         return self
 
 
@@ -204,8 +231,21 @@ class AuthoredContentDefinition(StrictModel):
             for dependency in entry.depends_on:
                 if _checkpoint(entry_by_id[dependency].trigger) > _checkpoint(entry.trigger):
                     raise ValueError("dependency trigger occurs after dependent trigger")
+            associated_id = entry.visibility_associated_entry_id
+            if associated_id is not None:
+                associated = entry_by_id.get(associated_id)
+                if associated is None:
+                    raise ValueError("visibility association references an unknown entry")
+                if associated.fragment_id is None:
+                    raise ValueError("visibility association must reference required content")
+                fragment = next(
+                    item for item in self.fragments if item.id == associated.fragment_id
+                )
+                if not fragment.required:
+                    raise ValueError("visibility association must reference required content")
         visiting: set[str] = set()
         visited: set[str] = set()
+
         def visit(entry_id: str) -> None:
             if entry_id in visiting:
                 raise ValueError("entry dependencies must be acyclic")
@@ -216,6 +256,7 @@ class AuthoredContentDefinition(StrictModel):
                 visit(dependency)
             visiting.remove(entry_id)
             visited.add(entry_id)
+
         for entry_id in entry_by_id:
             visit(entry_id)
         return self
