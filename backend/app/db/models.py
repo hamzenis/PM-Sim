@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import uuid4
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -151,6 +151,15 @@ class SimulationRunRecord(Base):
         cascade="all, delete-orphan",
         order_by="SimulationTurnRecord.week_number",
     )
+    content_deliveries: Mapped[list["ContentDeliveryRecord"]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
+    content_responses: Mapped[list["ContentResponseRecord"]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
+    applied_presentation_effects: Mapped[list["AppliedPresentationEffectRecord"]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
 
 
 class SimulationTurnRecord(Base):
@@ -170,6 +179,88 @@ class SimulationTurnRecord(Base):
     decision: Mapped[dict[str, object]] = mapped_column(JSON)
     resulting_state: Mapped[dict[str, object]] = mapped_column(JSON)
     events: Mapped[list[dict[str, object]]] = mapped_column(JSON)
+    # NULL identifies turns written before canonical request digests were persisted.
+    request_digest: Mapped[str | None] = mapped_column(String(64), nullable=True)
     submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
     run: Mapped[SimulationRunRecord] = relationship(back_populates="turns")
+    content_deliveries: Mapped[list["ContentDeliveryRecord"]] = relationship(
+        back_populates="turn"
+    )
+    applied_presentation_effects: Mapped[list["AppliedPresentationEffectRecord"]] = relationship(
+        back_populates="turn"
+    )
+
+
+class ContentDeliveryRecord(Base):
+    __tablename__ = "content_delivery_records"
+    __table_args__ = (
+        UniqueConstraint("run_id", "sequence_entry_id", name="uq_content_delivery_entry"),
+        Index("ix_content_delivery_run_checkpoint", "run_id", "canonical_checkpoint"),
+        Index("ix_content_delivery_run_status", "run_id", "status"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    run_id: Mapped[str] = mapped_column(ForeignKey("simulation_runs.id", ondelete="CASCADE"))
+    sequence_entry_id: Mapped[str] = mapped_column(String(100))
+    canonical_checkpoint: Mapped[str] = mapped_column(String(100))
+    sequence_ordinal: Mapped[int] = mapped_column(Integer)
+    definition_snapshot: Mapped[dict[str, object]] = mapped_column(JSON)
+    definition_digest: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(30))
+    delivered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    turn_id: Mapped[str | None] = mapped_column(
+        ForeignKey("simulation_turns.id", ondelete="SET NULL"), index=True, nullable=True
+    )
+
+    run: Mapped[SimulationRunRecord] = relationship(back_populates="content_deliveries")
+    turn: Mapped[SimulationTurnRecord | None] = relationship(back_populates="content_deliveries")
+
+
+class ContentResponseRecord(Base):
+    __tablename__ = "content_response_records"
+    __table_args__ = (
+        UniqueConstraint(
+            "run_id", "sequence_entry_id", "response_version", name="uq_content_response_version"
+        ),
+        UniqueConstraint("run_id", "idempotency_key", name="uq_content_response_idempotency"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    run_id: Mapped[str] = mapped_column(ForeignKey("simulation_runs.id", ondelete="CASCADE"))
+    sequence_entry_id: Mapped[str] = mapped_column(String(100))
+    response_version: Mapped[int] = mapped_column(Integer)
+    normalized_answer: Mapped[dict[str, object]] = mapped_column(JSON)
+    command_kind: Mapped[str] = mapped_column(String(30))
+    request_digest: Mapped[str] = mapped_column(String(64))
+    idempotency_key: Mapped[str] = mapped_column(String(100))
+    answered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    run: Mapped[SimulationRunRecord] = relationship(back_populates="content_responses")
+
+
+class AppliedPresentationEffectRecord(Base):
+    __tablename__ = "applied_presentation_effect_records"
+    __table_args__ = (
+        UniqueConstraint(
+            "run_id", "sequence_entry_id", "effect_index", name="uq_applied_effect_index"
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    run_id: Mapped[str] = mapped_column(ForeignKey("simulation_runs.id", ondelete="CASCADE"))
+    sequence_entry_id: Mapped[str] = mapped_column(String(100))
+    effect_index: Mapped[int] = mapped_column(Integer)
+    effect_payload: Mapped[dict[str, object]] = mapped_column(JSON)
+    before_projection_digest: Mapped[str] = mapped_column(String(64))
+    after_projection_digest: Mapped[str] = mapped_column(String(64))
+    applied_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    turn_id: Mapped[str | None] = mapped_column(
+        ForeignKey("simulation_turns.id", ondelete="SET NULL"), index=True, nullable=True
+    )
+
+    run: Mapped[SimulationRunRecord] = relationship(back_populates="applied_presentation_effects")
+    turn: Mapped[SimulationTurnRecord | None] = relationship(
+        back_populates="applied_presentation_effects"
+    )
