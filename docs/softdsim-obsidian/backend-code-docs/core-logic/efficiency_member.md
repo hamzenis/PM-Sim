@@ -1,3 +1,0 @@
-[[motivation]]
-[[familiarity]]
-[[stress]]

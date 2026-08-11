@@ -1,5 +1,12 @@
 import { apiRequest } from './client';
-import { listAvailableScenarios, listOwnedScenarios } from './scenarios';
+import {
+	archiveScenario,
+	createScenario,
+	listAvailableScenarios,
+	listOwnedScenarios,
+	publishScenarioRevision,
+	validateScenario,
+} from './scenarios';
 
 jest.mock('./client', () => ({ apiRequest: jest.fn() }));
 
@@ -12,4 +19,19 @@ test('maps student and professor scenario lists', async () => {
 	await listOwnedScenarios();
 
 	expect(apiRequest.mock.calls).toEqual([['/api/classes/available-scenarios'], ['/api/scenarios']]);
+});
+
+test('maps the professor scenario lifecycle', async () => {
+	apiRequest.mockResolvedValue({});
+	const definition = { schema_version: 1, name: 'Example' };
+	await validateScenario(definition);
+	await createScenario(definition);
+	await publishScenarioRevision('scenario-1', 2);
+	await archiveScenario('scenario-1');
+	expect(apiRequest.mock.calls).toEqual([
+		['/api/scenarios/validate', { method: 'POST', body: JSON.stringify(definition) }],
+		['/api/scenarios', { method: 'POST', body: JSON.stringify(definition) }],
+		['/api/scenarios/scenario-1/revisions/2/publish', { method: 'POST' }],
+		['/api/scenarios/scenario-1/archive', { method: 'POST' }],
+	]);
 });
