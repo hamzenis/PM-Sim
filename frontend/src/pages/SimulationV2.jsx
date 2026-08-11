@@ -19,6 +19,7 @@ import ConfirmDialog from '../components/ClassManagement/ConfirmDialog';
 import DashboardStats from '../components/SimulationV2/Dashboard/DashboardStats';
 import TaskProgressDashboard from '../components/SimulationV2/Dashboard/TaskProgressDashboard';
 import BudgetTrendChart from '../components/SimulationV2/Dashboard/BudgetTrendChart';
+import EmployeeStatusChart from '../components/SimulationV2/Dashboard/EmployeeStatusChart';
 
 const DEFAULT_ALLOCATION = {
 	development: 50,
@@ -152,6 +153,7 @@ const SimulationV2 = () => {
 			)}
 			<DashboardStats state={state} turns={turns} />
 			<BudgetTrendChart state={state} turns={turns} isComplete={run.status !== 'active'} />
+			<EmployeeStatusChart state={state} turns={turns} />
 			<TaskProgressDashboard state={state} turns={turns} />
 
 			{run.status === 'active' ? (
