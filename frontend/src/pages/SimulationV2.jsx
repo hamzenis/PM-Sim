@@ -4,23 +4,22 @@ import {
 	Box,
 	Button,
 	Container,
-	FormControl,
-	FormLabel,
-	Grid,
 	Heading,
-	Input,
 	SimpleGrid,
 	Spinner,
 	Stack,
 	Stat,
 	StatLabel,
 	StatNumber,
-	Text,
 } from '@chakra-ui/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
-import { completeSimulationTurn, getSimulationRun, submitSimulationRun } from '../api/simulations';
+import { completeSimulationTurn, getSimulationRun, listSimulationTurns, submitSimulationRun } from '../api/simulations';
+import FinalResult from '../components/SimulationV2/FinalResult';
+import TurnHistory from '../components/SimulationV2/TurnHistory';
+import WeeklyDecisionForm, { decisionIsValid } from '../components/SimulationV2/WeeklyDecisionForm';
+import ConfirmDialog from '../components/ClassManagement/ConfirmDialog';
 
 const DEFAULT_ALLOCATION = {
 	development: 50,
@@ -29,21 +28,34 @@ const DEFAULT_ALLOCATION = {
 	integration_testing: 10,
 };
 
+const newDecision = () => ({
+	allocation: { ...DEFAULT_ALLOCATION },
+	hires: [],
+	dismiss_employee_ids: [],
+	overtime_hours_per_employee: 0,
+	meeting_hours_per_employee: 0,
+	training_hours_per_employee: 0,
+});
+
 const SimulationV2 = () => {
 	const { run_id: runId } = useParams();
 	const navigate = useNavigate();
 	const [run, setRun] = useState(null);
-	const [allocation, setAllocation] = useState(DEFAULT_ALLOCATION);
+	const [decision, setDecision] = useState(newDecision);
 	const [isLoading, setIsLoading] = useState(true);
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState(null);
-	const [events, setEvents] = useState([]);
+	const [turns, setTurns] = useState([]);
+	const [pendingSubmission, setPendingSubmission] = useState(null);
+	const [isSubmitOpen, setIsSubmitOpen] = useState(false);
 
 	const load = async () => {
 		setIsLoading(true);
 		setError(null);
 		try {
-			setRun(await getSimulationRun(runId));
+			const [loadedRun, loadedTurns] = await Promise.all([getSimulationRun(runId), listSimulationTurns(runId)]);
+			setRun(loadedRun);
+			setTurns(loadedTurns);
 		} catch (requestError) {
 			setError(requestError.message || 'Could not load the simulation');
 		} finally {
@@ -57,41 +69,41 @@ const SimulationV2 = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [runId]);
 
-	const allocationTotal = useMemo(
-		() => Object.values(allocation).reduce((total, value) => total + Number(value), 0),
-		[allocation]
-	);
-
-	const updateAllocation = (name, value) => {
-		setAllocation((current) => ({ ...current, [name]: Number(value) }));
-	};
+	const isDecisionValid = useMemo(() => decisionIsValid(decision), [decision]);
 
 	const completeWeek = async () => {
-		if (allocationTotal !== 100) {
-			setError('Activity percentages must add up to 100.');
+		if (!isDecisionValid) {
+			setError('Check that activity percentages total 100 and that all values are valid.');
 			return;
 		}
 		setIsSaving(true);
 		setError(null);
+		const submission = pendingSubmission || {
+			key: window.crypto.randomUUID(),
+			decision,
+		};
+		setPendingSubmission(submission);
 		try {
 			const response = await completeSimulationTurn(
 				runId,
 				{
 					expected_version: run.version,
-					allocation,
-					hires: [],
-					dismiss_employee_ids: [],
-					overtime_hours_per_employee: 0,
-					meeting_hours_per_employee: 0,
-					training_hours_per_employee: 0,
+					...submission.decision,
 				},
-				window.crypto.randomUUID()
+				submission.key
 			);
 			setRun(response.run);
-			setEvents(response.events);
+			setDecision(newDecision());
+			setPendingSubmission(null);
+			setTurns(await listSimulationTurns(runId));
 		} catch (requestError) {
-			if (requestError instanceof ApiError && requestError.status === 409) await load();
-			setError(requestError.message || 'Could not complete the week');
+			if (requestError instanceof ApiError && requestError.status === 409) {
+				setPendingSubmission(null);
+				await load();
+				setError('This run changed in another browser tab. Review the updated state before trying again.');
+			} else {
+				setError(`${requestError.message || 'Could not complete the week'} You can retry the same request.`);
+			}
 		} finally {
 			setIsSaving(false);
 		}
@@ -102,6 +114,7 @@ const SimulationV2 = () => {
 		setError(null);
 		try {
 			setRun(await submitSimulationRun(runId, run.version));
+			setIsSubmitOpen(false);
 		} catch (requestError) {
 			setError(requestError.message || 'Could not submit the simulation');
 		} finally {
@@ -147,57 +160,49 @@ const SimulationV2 = () => {
 
 			{run.status === 'active' ? (
 				<Box bg="white" borderRadius="2xl" p={7}>
-					<Heading size="md" mb={2}>
-						Weekly activity allocation
+					<Heading size="md" mb={5}>
+						Weekly decision
 					</Heading>
-					<Text color={allocationTotal === 100 ? 'green.600' : 'red.600'} mb={5}>
-						Allocated: {allocationTotal}% of team capacity
-					</Text>
-					<Grid templateColumns={{ base: '1fr', md: 'repeat(4, 1fr)' }} gap={5}>
-						{Object.entries(allocation).map(([name, value]) => (
-							<FormControl key={name}>
-								<FormLabel>{name.replaceAll('_', ' ')}</FormLabel>
-								<Input
-									type="number"
-									min={0}
-									max={100}
-									value={value}
-									onChange={(event) => updateAllocation(name, event.target.value)}
-								/>
-							</FormControl>
-						))}
-					</Grid>
+					<WeeklyDecisionForm
+						decision={decision}
+						employees={state.employees || []}
+						employeeTypes={run.employee_types || []}
+						isDisabled={Boolean(pendingSubmission)}
+						onChange={setDecision}
+					/>
 					<Stack direction={{ base: 'column', md: 'row' }} mt={7}>
 						<Button
 							colorScheme="blue"
 							isLoading={isSaving}
-							isDisabled={allocationTotal !== 100}
+							isDisabled={!isDecisionValid}
 							onClick={completeWeek}
 						>
-							Complete week
+							{pendingSubmission ? 'Retry week' : 'Complete week'}
 						</Button>
-						<Button variant="outline" isLoading={isSaving} onClick={submit}>
+						{pendingSubmission && (
+							<Button variant="ghost" onClick={() => setPendingSubmission(null)}>
+								Discard retry
+							</Button>
+						)}
+						<Button variant="outline" isLoading={isSaving} onClick={() => setIsSubmitOpen(true)}>
 							Submit project
 						</Button>
 					</Stack>
 				</Box>
 			) : (
-				<Box bg="white" borderRadius="2xl" p={7}>
-					<Heading size="md">Final result</Heading>
-					<pre>{JSON.stringify(run.final_result, null, 2)}</pre>
-				</Box>
+				<FinalResult result={run.final_result} />
 			)}
 
-			{events.length > 0 && (
-				<Box bg="white" borderRadius="2xl" p={7} mt={6}>
-					<Heading size="sm" mb={3}>
-						Latest events
-					</Heading>
-					{events.map((event, index) => (
-						<Text key={`${event.kind}-${index}`}>{event.kind}</Text>
-					))}
-				</Box>
-			)}
+			<TurnHistory turns={turns} />
+			<ConfirmDialog
+				isOpen={isSubmitOpen}
+				title="Submit project"
+				message="Submit the project now? You will not be able to complete another week."
+				confirmLabel="Submit project"
+				isBusy={isSaving}
+				onCancel={() => setIsSubmitOpen(false)}
+				onConfirm={submit}
+			/>
 		</Container>
 	);
 };

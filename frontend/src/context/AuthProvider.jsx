@@ -24,6 +24,12 @@ export function AuthProvider({ children }) {
 		};
 	}, []);
 
+	useEffect(() => {
+		const clearExpiredSession = () => setCurrentUser(null);
+		window.addEventListener('pm-sim-session-expired', clearExpiredSession);
+		return () => window.removeEventListener('pm-sim-session-expired', clearExpiredSession);
+	}, []);
+
 	const login = useCallback(async (username, password) => {
 		const user = await loginRequest(username, password);
 		setCurrentUser(user);

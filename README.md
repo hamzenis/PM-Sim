@@ -1,54 +1,58 @@
-# softDsim
+# PM-Sim
 
-IT Project Management Simulation Web Application
+PM-Sim is a classroom project-management simulation for Frankfurt University of Applied
+Sciences. Professors manage scenarios, classes, students, assignments, and results. Students
+make weekly staffing and activity decisions while balancing scope, time, quality, and budget.
 
-[Dokumentation](https://softdsim-docs.readthedocs.io)
+The repository contains two applications:
 
-## Abstract
+- `backend/`: Python 3.13, FastAPI, SQLAlchemy, Alembic, and the simulation engine.
+- `frontend/`: React 18 and Chakra UI.
 
-Die SoftDSim ist eine Django-basierte Web-Anwendung zur Simulation von Projektmanagement-Szenarios für den Einsatz im Modul Project Management an der [Frankfurt University of Applied Sciences](https://www.frankfurt-university.de/). Dozenten können innerhalb der Web-Anwendung Szenarios mit belieben Inhalten definieren, welche dann von Studierenden simuliert werden. Die Studierenden nehmen dabei die Rolle eines Projektmanagers ein und müssen verschiedene Entscheidungen treffen. Beispielhaft genannte Entscheidungen sind _Projektmanagementmethode_, _Anzahl und Erfahrungsniveau der Teammitglieder_ oder _Anzahl der Meetings_. Alle Simulationen werden in einer gemeinsamen Datenbank gespeichert. Diese kann vom Dozenten eingesehen werden, sodass die Leistungen der Studierenden evaluiert werden kann.
+## Quick start
 
-## Schnellstart
-
-Das Projekt besteht aus mehreren Komponenten (Frontend, Backend und Datenbank), die separat gestartet werden müssen.
-
-### Voraussetzungen
-
-- Docker
-- Python 3.10+
-- Node.js und npm
-
-### Starten der Anwendung
-
-In diesem Abschnitt wird beschrieben, wie die Anwendung lokal gestartet werden kann. Es wird davon ausgegangen, dass die Voraussetzungen erfüllt sind und die Intialisierungsschritte durchgeführt wurden. Für mehr Informationen siehe dazu die Dokumentation.
-
-Starten der **Datenbank**:
-
-```bash
-docker compose -f docker/docker-compose.yml up -d
-```
-
-Starten des **Backends**:
+### Backend
 
 ```bash
 cd backend
-python manage.py runserver
+uv sync
+uv run python main.py create-demo
+uv run python main.py --reload
 ```
 
-Starten des **Frontends**:
+The demo command creates these local-development accounts:
 
-```bash
-cd frontend
-npm start
-```
+- professor: `professor` / `professor-password`
+- student: `student` / `student-password`
 
-
-## Weitere Informationen
-
-### Backend & Datenbank
-
-Siehe dazu die [README-Datei](backend/README.md) im Ordner `backend/`.
+The API is available at <http://127.0.0.1:8000>; OpenAPI documentation is at
+<http://127.0.0.1:8000/docs>.
 
 ### Frontend
 
-Siehe dazu die [README-Datei](frontend/README.md) im Ordner `frontend/`.
+In another terminal:
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+Open <http://127.0.0.1:3000>. The development server proxies API requests to the backend.
+
+## Checks
+
+```bash
+cd backend
+uv run ruff format --check .
+uv run ruff check .
+uv run pytest
+
+cd ../frontend
+CI=true npm test -- --runInBand
+npm run build
+```
+
+See [`backend/README.md`](backend/README.md),
+[`backend/docs/architecture.md`](backend/docs/architecture.md), and
+[`frontend/README.md`](frontend/README.md) for more detail.
