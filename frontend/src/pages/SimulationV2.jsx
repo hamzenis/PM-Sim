@@ -4,9 +4,24 @@ import {
 	Box,
 	Button,
 	Container,
+	Drawer,
+	DrawerBody,
+	DrawerCloseButton,
+	DrawerContent,
+	DrawerHeader,
+	DrawerOverlay,
+	Flex,
 	Heading,
+	Modal,
+	ModalBody,
+	ModalCloseButton,
+	ModalContent,
+	ModalFooter,
+	ModalHeader,
+	ModalOverlay,
 	Spinner,
 	Stack,
+	Text,
 } from '@chakra-ui/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -20,6 +35,7 @@ import DashboardStats from '../components/SimulationV2/Dashboard/DashboardStats'
 import TaskProgressDashboard from '../components/SimulationV2/Dashboard/TaskProgressDashboard';
 import BudgetTrendChart from '../components/SimulationV2/Dashboard/BudgetTrendChart';
 import EmployeeStatusChart from '../components/SimulationV2/Dashboard/EmployeeStatusChart';
+import HelpContent from '../components/HelpContent';
 
 const DEFAULT_ALLOCATION = {
 	development: 50,
@@ -48,6 +64,8 @@ const SimulationV2 = () => {
 	const [turns, setTurns] = useState([]);
 	const [pendingSubmission, setPendingSubmission] = useState(null);
 	const [isSubmitOpen, setIsSubmitOpen] = useState(false);
+	const [isBriefingOpen, setIsBriefingOpen] = useState(true);
+	const [drawer, setDrawer] = useState(null);
 
 	const load = async () => {
 		setIsLoading(true);
@@ -141,9 +159,17 @@ const SimulationV2 = () => {
 	const state = run.state;
 	return (
 		<Container maxW="6xl" py={8}>
-			<Button variant="link" mb={4} onClick={() => navigate('/scenarios')}>
-				← Scenarios
-			</Button>
+			<Flex mb={4} gap={3} align="center" wrap="wrap">
+				<Button variant="link" mr="auto" onClick={() => navigate('/scenarios')}>
+					← Scenarios
+				</Button>
+				<Button size="sm" variant="outline" onClick={() => setDrawer('briefing')}>
+					Scenario briefing
+				</Button>
+				<Button size="sm" variant="outline" onClick={() => setDrawer('help')}>
+					Help
+				</Button>
+			</Flex>
 			<Heading mb={6}>Simulation week {run.current_week + 1}</Heading>
 			{error && (
 				<Alert status="error" mb={5}>
@@ -201,8 +227,43 @@ const SimulationV2 = () => {
 				onCancel={() => setIsSubmitOpen(false)}
 				onConfirm={submit}
 			/>
+			<Modal isOpen={isBriefingOpen} onClose={() => setIsBriefingOpen(false)} size="xl" isCentered>
+				<ModalOverlay />
+				<ModalContent>
+					<ModalHeader>Scenario briefing</ModalHeader>
+					<ModalCloseButton />
+					<ModalBody>
+						<BriefingText briefing={run.scenario_briefing} />
+					</ModalBody>
+					<ModalFooter>
+						<Button colorScheme="blue" onClick={() => setIsBriefingOpen(false)}>
+							Start simulation
+						</Button>
+					</ModalFooter>
+				</ModalContent>
+			</Modal>
+			<Drawer isOpen={Boolean(drawer)} placement="right" size="lg" onClose={() => setDrawer(null)}>
+				<DrawerOverlay />
+				<DrawerContent>
+					<DrawerCloseButton />
+					<DrawerHeader>{drawer === 'help' ? 'Help' : 'Scenario briefing'}</DrawerHeader>
+					<DrawerBody pb={8}>
+						{drawer === 'help' ? (
+							<HelpContent showIntroduction={false} />
+						) : (
+							<BriefingText briefing={run.scenario_briefing} />
+						)}
+					</DrawerBody>
+				</DrawerContent>
+			</Drawer>
 		</Container>
 	);
 };
+
+const BriefingText = ({ briefing }) => (
+	<Text whiteSpace="pre-wrap" color={briefing ? 'gray.700' : 'gray.500'}>
+		{briefing || 'No scenario briefing was provided.'}
+	</Text>
+);
 
 export default SimulationV2;

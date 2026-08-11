@@ -75,7 +75,13 @@ class ScoringDefinition(StrictModel):
 class ScenarioDefinition(StrictModel):
     schema_version: Literal[1]
     name: str = Field(min_length=1)
-    description: str = ""
+    description: str = Field(
+        default="",
+        description=(
+            "Presentation-only scenario briefing shown to players before and during a run. "
+            "It does not affect simulation behavior."
+        ),
+    )
     project: ProjectDefinition
     tasks: TaskDefinition
     employee_types: list[EmployeeTypeDefinition] = Field(min_length=1)
