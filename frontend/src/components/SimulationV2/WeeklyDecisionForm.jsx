@@ -1,4 +1,4 @@
-import { Box, Checkbox, FormControl, FormLabel, Grid, Heading, Input, SimpleGrid, Stack, Text } from '@chakra-ui/react';
+import { Box, Checkbox, FormControl, FormLabel, Grid, Heading, Input, Progress, SimpleGrid, Stack, Text } from '@chakra-ui/react';
 import React from 'react';
 
 const ACTIVITY_LABELS = {
@@ -6,6 +6,88 @@ const ACTIVITY_LABELS = {
 	unit_testing: 'Unit testing',
 	bug_fixing: 'Bug fixing',
 	integration_testing: 'Integration testing',
+};
+
+const percentage = (value) => `${(Number(value || 0) * 100).toFixed(0)}%`;
+const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const humanizeCode = (code) => String(code).replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
+
+const Detail = ({ label, children }) => (
+	<Box>
+		<Text as="dt" color="gray.600" fontSize="sm">{label}</Text>
+		<Text as="dd" fontWeight="semibold">{children}</Text>
+	</Box>
+);
+
+export const EmployeeTypeCard = ({ employeeType, hireCount, isDisabled, onHireCountChange }) => (
+	<Box borderWidth="1px" borderRadius="md" p={4}>
+		<FormControl>
+			<FormLabel fontWeight="bold">{employeeType.name}</FormLabel>
+			<Input
+				aria-label={`Hire ${employeeType.name}`}
+				isDisabled={isDisabled}
+				type="number"
+				min={0}
+				step={1}
+				value={hireCount}
+				onChange={(event) => onHireCountChange(employeeType.code, event.target.value)}
+			/>
+		</FormControl>
+		<SimpleGrid as="dl" columns={{ base: 2, sm: 3 }} spacing={3} mt={4}>
+			<Detail label="Cost per day">{currency.format(employeeType.cost_per_day)}</Detail>
+			<Detail label="Easy throughput">{employeeType.throughput.easy}</Detail>
+			<Detail label="Medium throughput">{employeeType.throughput.medium}</Detail>
+			<Detail label="Hard throughput">{employeeType.throughput.hard}</Detail>
+			<Detail label="Error rate">{percentage(employeeType.error_rate)}</Detail>
+			<Detail label="Management skill">{percentage(employeeType.management_skill)}</Detail>
+		</SimpleGrid>
+	</Box>
+);
+
+const StatusIndicator = ({ label, value }) => {
+	const percent = Number(value || 0) * 100;
+	return (
+		<Box>
+			<Text fontSize="sm">{label}: {percent.toFixed(0)}%</Text>
+			<Progress
+				aria-label={`${label}: ${percent.toFixed(0)}%`}
+				value={percent}
+				min={0}
+				max={100}
+				size="sm"
+			/>
+		</Box>
+	);
+};
+
+export const TeamRoster = ({ employees, employeeTypes, dismissalIds, isDisabled, onToggleDismissal }) => {
+	const namesByCode = Object.fromEntries(employeeTypes.map(({ code, name }) => [code, name]));
+
+	if (employees.length === 0) return <Text>No current employees.</Text>;
+
+	return (
+		<SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+			{employees.map((employee) => (
+				<Box key={employee.id} borderWidth="1px" borderRadius="md" p={4}>
+					<Text fontWeight="bold">{namesByCode[employee.employee_type_code] || humanizeCode(employee.employee_type_code)}</Text>
+					<Text color="gray.600" fontSize="sm" mb={3}>{employee.id}</Text>
+					<Stack spacing={3} mb={4}>
+						<StatusIndicator label="Experience" value={employee.experience} />
+						<StatusIndicator label="Motivation" value={employee.motivation} />
+						<StatusIndicator label="Stress" value={employee.stress} />
+						<StatusIndicator label="Familiarity" value={employee.familiarity} />
+					</Stack>
+					<Checkbox
+						isDisabled={isDisabled}
+						isChecked={dismissalIds.includes(employee.id)}
+						onChange={() => onToggleDismissal(employee.id)}
+					>
+						Dismiss {employee.id}
+					</Checkbox>
+				</Box>
+			))}
+		</SimpleGrid>
+	);
 };
 
 const WeeklyDecisionForm = ({ decision, employees, employeeTypes, isDisabled = false, onChange }) => {
@@ -95,28 +177,23 @@ const WeeklyDecisionForm = ({ decision, employees, employeeTypes, isDisabled = f
 				<Heading size="sm" mb={4}>
 					Hire employees
 				</Heading>
+				<Text color="gray.600" fontSize="sm" mb={4}>
+					Throughput is the number of tasks completed per eight productive hours.
+				</Text>
 				{employeeTypes.length === 0 ? (
 					<Text>No employee types are available.</Text>
 				) : (
-					<SimpleGrid columns={{ base: 1, md: 3 }} spacing={5}>
+					<SimpleGrid columns={{ base: 1, lg: 2 }} spacing={5}>
 						{employeeTypes.map((employeeType) => {
 							const hire = decision.hires.find((item) => item.employee_type_code === employeeType.code);
 							return (
-								<FormControl key={employeeType.code}>
-									<FormLabel>{employeeType.name}</FormLabel>
-									<Input
-										aria-label={`Hire ${employeeType.name}`}
-										isDisabled={isDisabled}
-										type="number"
-										min={0}
-										step={1}
-										value={hire?.count || 0}
-										onChange={(event) => setHireCount(employeeType.code, event.target.value)}
-									/>
-									<Text fontSize="sm" color="gray.600">
-										{employeeType.cost_per_day} per day
-									</Text>
-								</FormControl>
+								<EmployeeTypeCard
+									key={employeeType.code}
+									employeeType={employeeType}
+									hireCount={hire?.count || 0}
+									isDisabled={isDisabled}
+									onHireCountChange={setHireCount}
+								/>
 							);
 						})}
 					</SimpleGrid>
@@ -125,24 +202,18 @@ const WeeklyDecisionForm = ({ decision, employees, employeeTypes, isDisabled = f
 
 			<Box>
 				<Heading size="sm" mb={4}>
-					Dismiss employees
+					Team roster
 				</Heading>
-				{employees.length === 0 ? (
-					<Text>No current employees.</Text>
-				) : (
-					<Stack>
-						{employees.map((employee) => (
-							<Checkbox
-								key={employee.id}
-								isDisabled={isDisabled}
-								isChecked={decision.dismiss_employee_ids.includes(employee.id)}
-								onChange={() => toggleDismissal(employee.id)}
-							>
-								{employee.id} ({employee.employee_type_code})
-							</Checkbox>
-						))}
-					</Stack>
-				)}
+				<Text color="gray.600" fontSize="sm" mb={4}>
+					These displayed status values affect employee efficiency.
+				</Text>
+				<TeamRoster
+					employees={employees}
+					employeeTypes={employeeTypes}
+					dismissalIds={decision.dismiss_employee_ids}
+					isDisabled={isDisabled}
+					onToggleDismissal={toggleDismissal}
+				/>
 			</Box>
 		</Stack>
 	);
