@@ -64,4 +64,24 @@ development, but the production web server or static host must rewrite unknown n
 `index.html`. Without this SPA deep-link fallback, refreshing a route such as
 `/simulations/example` returns a 404.
 
+## CI checks
+
+Frontend changes are checked in CI with Node.js 20. Run the same commands locally before opening
+a pull request:
+
+```bash
+npm ci
+npm ls --depth=0
+npm run lint
+npm test
+npm run build
+```
+
+The `npm test` script uses `vitest run`, so the test suite runs once and exits rather than starting
+Vitest in watch mode.
+
+The Vite configuration uses SPA mode, so its production preview falls back to `index.html` for
+unknown paths such as `/simulations/example`. Configure the production static host with the same
+fallback; `BrowserRouter` routes cannot be refreshed directly otherwise.
+
 Place API mapping tests beside modules in `src/api` and component tests beside the component.
