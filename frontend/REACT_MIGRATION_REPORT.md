@@ -1,99 +1,138 @@
-# React migration verification report
+# React 19 final migration report
 
-## Baseline (before implementation)
+## Sign-off and scope
 
-The baseline was re-checked from commit `113b362`, the documentation-only rollback point immediately before dependency or source changes. Node was `v20.20.2` and npm was `11.4.2`.
+Final technical sign-off was performed independently on 2026-08-12 from the current branch, using Node.js `20.20.2`, npm `11.4.2`, Python `3.13.13`, and uv `0.7.22`. The audit covered every tracked file under the active `frontend/`, the Vite and CI configuration, frontend-facing FastAPI authentication/API/configuration code, backend tests, and the deployment documentation. Direct browser checks used Chromium 140 through Playwright against the real Vite proxy and a fresh FastAPI demo database.
 
-* `npm ci` failed before installing because the old manifest and lockfile were out of sync (`@types/react@17.0.93` and `csstype@3.2.3` were missing). npm also reported inherited React 17-only peer ranges in Chakra 1's focus-lock, remove-scroll, and Reach packages. No forced or legacy peer resolution was used.
-* `npm run lint` was not configured. The CRA test and build commands could not run after the failed clean install because `react-scripts` was unavailable.
-* No type-check script or TypeScript configuration existed.
+The deprecated `frontend_depracated/` and `backend_deprecated/` applications are historical, non-deployed trees and are not part of the React 19 runtime. Their legacy dependencies and APIs must not be interpreted as active-application findings.
 
-These are baseline failures, not application changes. The final clean install, lint, test, and build results below demonstrate that the migration removes them rather than hiding them.
+## Original environment
 
-## Scope and registry snapshot
+Commit `113b362` is the implementation baseline. Its manifest declared React and React DOM `^18.0.0`, Create React App / `react-scripts` `5.0.1`, Chakra UI `^1.8.8`, Emotion React `^11.9.0`, Emotion Styled `^11.8.1`, Framer Motion `^6.3.2`, React Router DOM `^6.3.0`, React Testing Library `^13.1.1`, user-event `^13.5.0`, and TypeScript `4.5.4` with React 18 typings. It had no standalone Vite, Vitest, jsdom, or ESLint version.
 
-This verification was performed from `frontend/` on 2026-08-11 immediately
-before any implementation. The npm registry was queried with `npm view`; the
-stable `latest` distribution tag was selected in every case. Prerelease,
-`beta`, `next`, `canary`, `experimental`, and release-candidate tags were not
-eligible. A `backport` tag was also not treated as the current stable release.
+The baseline clean install was already broken: `npm ci` rejected the out-of-sync manifest/lockfile and exposed React 17-only transitive peer ranges. Because installation failed, CRA tests/build could not run; there was no lint script. These are baseline limitations, not final migration failures.
 
-| Package | Selected stable tag | Exact version | Registry release date (UTC) | Declared Node.js requirement | Declared peer dependencies |
-| --- | --- | --- | --- | --- | --- |
-| `react` | `latest` | `19.2.8` | `2026-07-21T15:41:28.716Z` | `>=0.10.0` | None |
-| `react-dom` | `latest` | `19.2.8` | `2026-07-21T15:41:41.267Z` | None declared | `react: ^19.2.8` |
-| `@types/react` | `latest` | `19.2.18` | `2026-07-30T21:54:03.456Z` | None declared | None |
-| `@types/react-dom` | `latest` | `19.2.4` | `2026-07-30T21:53:05.684Z` | None declared | `@types/react: ^19.2.0` |
+## Final environment (exact resolved versions)
 
-The individual registry reads completed between `2026-08-11T23:31:27.983Z`
-and `2026-08-11T23:31:39.154Z`. React and React DOM are intentionally pinned
-to exactly the same selected version, `19.2.8`; implementation must preserve
-that equality rather than use independent ranges.
+Versions below are the installed results after a successful `npm ci`, not merely manifest ranges.
 
-## Build and test compatibility
-
-The verification environment uses Node.js `20.20.2`.
-
-| Tool | Version checked | Node.js requirement | Relevant peer dependencies | Result with selected React |
-| --- | --- | --- | --- | --- |
-| `react-scripts` | `5.0.1` (current and registry `latest`) | `>=14.0.0` | `react: >=16`; `typescript: ^3.2.1 || ^4` | Declared Node and React constraints pass. |
-| `@testing-library/react` | `13.1.1` (current) | `>=12` | `react: ^18.0.0`; `react-dom: ^18.0.0` | **Fails**: its React peers exclude React 19. |
-| `@testing-library/react` | `16.3.2` (registry `latest` checked for the migration) | `>=18` | `react` and `react-dom`: `^18.0.0 || ^19.0.0`; optional type peers of the same majors; `@testing-library/dom: ^10.0.0` | Passes on Node 20 and React 19, provided `@testing-library/dom` is installed/resolved at `^10`. |
-| `typescript` | `4.5.4` (current) | `>=4.2.0` | None | Passes Node, and satisfies CRA 5, but the registry routes TypeScript 4.5 consumers to React 18-era typings rather than the selected `latest` React 19 typings. |
-
-The selected React runtime therefore must not be installed while retaining
-`@testing-library/react@13.1.1`. The implementation should upgrade the React
-Testing Library to `16.3.2` together with its declared DOM peer, then validate
-the CRA build and Jest suite. CRA 5's published constraints permit the selected
-runtime, but that metadata is not a substitute for the build and test run.
-
-## Typings cleanup decision
-
-This is a JavaScript application: the source inventory contains JavaScript and
-JSX but no TypeScript or TSX, there is no `tsconfig.json`, and the React type
-packages and TypeScript are referenced only by `package.json`. CRA does not
-require them for JavaScript builds. Consequently, implementation should remove
-`@types/react`, `@types/react-dom`, and `typescript` as a separately reviewed
-dependency cleanup instead of installing the registry's React 19 typings.
-Editor inference for JavaScript remains available from the runtime packages;
-if the project later adopts checked TypeScript, typings compatible with that
-chosen compiler should be reintroduced then.
-
-This removal also avoids a tooling mismatch: CRA 5 declares only TypeScript 3
-and 4 support, while the current `latest` React type tags target newer compiler
-tracks (the registry's TypeScript-specific tag for 4.5 remains on React 18).
-
-## Verification boundary and rollback
-
-No application source, package declaration, or lockfile was changed during
-this verification. Implementation is intentionally deferred. The rollback
-position is the current `frontend/package.json` and
-`frontend/package-lock.json`: retain both unchanged if the migration is not
-implemented or if its build/test validation fails.
-
-## Selected compatibility set
-
-Registry metadata was checked again on 2026-08-12. Compatible majors are retained where a later major would require an unrelated component or routing rewrite.
-
-| Selected package | Resolved version | Relevant declared peers |
+| Requested component | Final package | Exact version |
 | --- | --- | --- |
-| `@chakra-ui/react` | `2.8.2` | React and React DOM `>=18`; Emotion React and Styled `^11.0.0`; Framer Motion `>=4.0.0` |
-| `@emotion/react` | `11.14.0` | React `>=16.8.0` |
-| `@emotion/styled` | `11.14.1` | React `>=16.8.0`; Emotion React `^11.0.0-rc.0` |
-| `framer-motion` | `11.18.2` | React and React DOM `^18.0.0 || ^19.0.0` |
-| `react-router-dom` | `6.3.0` | React and React DOM `>=16.8` |
-| `@testing-library/react` | `16.3.2` | React and React DOM `^18.0.0 || ^19.0.0`; Testing Library DOM `^10.0.0`; optional React type peers on majors 18 or 19 |
-| `@testing-library/jest-dom` | `6.9.1` | no required peers; Node `>=14` |
-| `@testing-library/user-event` | `14.6.4` | Testing Library DOM `>=7.21.4` |
-| Vite / React plugin | `8.2.1` / `6.0.5` | plugin requires Vite `^8.0.0`; both require Node `^20.19.0 || >=22.12.0` |
-| Vitest | `4.1.10` | Vite `^6 || ^7 || ^8`; Node `^20 || ^22 || >=24` |
+| React | `react` | `19.2.8` |
+| React DOM | `react-dom` | `19.2.8` |
+| Vite | `vite` | `8.2.1` |
+| React plugin | `@vitejs/plugin-react` | `6.0.5` |
+| Chakra UI | `@chakra-ui/react` | `2.8.2` |
+| Emotion | `@emotion/react` / `@emotion/styled` | `11.14.0` / `11.14.1` |
+| Framer Motion | `framer-motion` | `11.18.2` |
+| React Router | `react-router-dom` (and `react-router`) | `6.3.0` |
+| React Testing Library | `@testing-library/react` | `16.3.2` |
+| user-event | `@testing-library/user-event` | `14.6.4` |
+| Vitest | `vitest` | `4.1.10` |
+| jsdom | `jsdom` | `26.1.0` |
+| ESLint | `eslint` | `10.8.1` |
 
-React and React DOM resolve exactly to stable `19.2.8`, and `npm ls --depth=0` reports no invalid or unmet peers. Chakra 3, Router 7, and Framer Motion 13 were unnecessary for React 19 support, so they were excluded to avoid application-level breaking changes.
+Related resolved tools are Testing Library DOM `10.4.1`, jest-dom `6.9.1`, ESLint JS `10.0.1`, and React Hooks ESLint plugin `7.1.1`.
 
-## Final integration verification
+## Files changed by the migration
 
-The final tree installs with ordinary `npm ci` resolution. ESLint passes, all 58 Vitest tests pass in non-watch mode, and Vite produces the production bundle. There is no configured type check because this remains a JavaScript project. The build has one advisory for the 675.62 kB main chunk; code splitting was left out because it is unrelated to React compatibility.
+Relative to `113b362`, the migration:
 
-A Chromium smoke run used the real Vite development server and FastAPI demo backend. It verified login, authenticated initial render, cookie-backed session restoration after refresh, scenario API reads, logout, and return to `/login`. The session cookie was HTTP-only with `SameSite=Lax`, `Path=/`, and `Secure` disabled in local HTTP configuration. Before login, Chromium logs its normal failed-resource message for the expected `/api/auth/me` 401; the application does not log an additional error. During logout Chromium may mark the completed 204 proxy request as aborted while React navigates, although FastAPI records the 204 and the UI reaches `/login`. No unexpected console errors or failed application requests occurred while authenticated.
+* changed the frontend manifest and lockfile; environment template, manifest metadata, frontend documentation, this report, and root documentation;
+* replaced CRA's `public/index.html` with root `index.html`, added `.nvmrc`, `vite.config.js`, and flat `eslint.config.js`;
+* added the unified application-test workflow and removed the superseded migration-only workflow;
+* changed API client/session-expiry integration and its API mapping tests;
+* adjusted Navbar and Simulation V2 behavior and tests, added focused Navbar/confirmation-dialog tests, and updated component tests for current Testing Library/user-event behavior;
+* removed unused `UserContext` and `customHooks` modules; and
+* in final sign-off, changed `Routing.jsx` to render nothing during session restoration instead of mounting an empty `<Routes>`. This removes React Router's repeated `No routes matched location` console warning without changing the existing loading UI.
 
-The API unit suite separately covers `credentials: "include"`, JSON payloads, 401 session-expiry dispatch, 204 responses without JSON parsing, validation error mapping, and idempotency headers. Backend contracts were not changed.
+No backend API contract or database schema was changed for the React migration.
+
+## React compatibility, dependency decisions, and reasons
+
+* The entry point uses React 19's supported `createRoot` client API. No legacy render or hydration API remains.
+* Create React App was replaced by Vite because CRA is obsolete and retained a stale dependency graph. Environment access moved from `process.env.REACT_APP_*` to `import.meta.env.VITE_API_BASE_URL`; Vite proxies `/api` in development and builds an SPA bundle.
+* Chakra UI 2 was selected because it supports React `>=18` while preserving the existing component API. Chakra 3 would require an unrelated UI rewrite.
+* Framer Motion 11 explicitly accepts React 18 or 19. Emotion 11 remains Chakra-compatible.
+* React Testing Library 16 accepts React 19 and requires Testing Library DOM 10. user-event 14 tests use its asynchronous setup/API.
+* Vitest/jsdom replace CRA/Jest test orchestration; ESLint's flat configuration replaces CRA's embedded lint setup.
+* The unused TypeScript compiler and React type packages were removed because this is JavaScript/JSX with no `tsconfig`; keeping React 18 typings would be misleading.
+* Router 6 is deliberately retained to avoid a Router 7 application rewrite. See the security finding below.
+
+## Breaking changes addressed and source audit
+
+The active frontend uses `createRoot`, modern context, and object/function refs. Searches of active source, configuration, and documentation found no runtime use of `react-scripts`, `ReactDOM.render`, `ReactDOM.hydrate`, `hydrateRoot`, `findDOMNode`, string refs, `contextTypes`/`childContextTypes`, `UNSAFE_*` lifecycle APIs, `process.env.REACT_APP_*`, or migration-added `eslint-disable` comments.
+
+References to `react-scripts` and React 18 in this report are intentional baseline history, not active instructions. The deprecated application tree still contains legacy code by design and is outside deployment scope. No stale React 18 claim remains in active README documentation.
+
+The final browser audit initially found a Router warning while authentication restoration temporarily supplied no routes. The narrow `isAuthenticating` return in `Routing.jsx` fixes that genuine runtime regression. After the fix, authenticated navigation and refresh produced no unexpected React/Router console warning or page error. The expected anonymous `/api/auth/me` response is HTTP 401 and appears as a browser failed-resource console entry; it is the designed session probe, not a React error.
+
+## Dependency-tree and lockfile validation
+
+After `npm ci`, `npm ls --depth=0` listed every manifest dependency exactly once and reported no `invalid`, `extraneous`, missing, or unmet direct dependency. A lockfile inspection found exactly one package node for React (`19.2.8`) and one for React DOM (`19.2.8`); the full `npm ls react react-dom --all` tree deduplicated all consumers to those versions.
+
+`npm audit` did **not** pass cleanly: it reports two moderate advisories in `react-router@6.3.0` through `react-router-dom@6.3.0` concerning untrusted-path external redirects/backslash bypasses. This version was already declared in the React 18 baseline, so it is a remaining pre-existing dependency issue rather than a React 19 regression. It must nevertheless be resolved or explicitly risk-accepted before production approval.
+
+## Validation results
+
+| Check | Result |
+| --- | --- |
+| Clean install | Passed: 407 packages installed; audit still reports the two Router advisories. |
+| Direct dependency tree | Passed: no invalid/extraneous direct dependencies. |
+| Lint | Passed. |
+| Frontend automated tests | Passed: 22 files, 58 tests. Coverage includes API credential/JSON/error behavior, forms, dialogs, menus/Navbar behavior, loading/error state, professor components, and simulation state/decision updates. |
+| Production build | Passed: 1,115 modules transformed. Vite emitted a non-fatal 675.62 kB main-chunk advisory. |
+| Backend format/lint | Passed: 109 files formatted and all Ruff checks passed. |
+| Backend automated tests | Passed: 144 tests, with one pre-existing Starlette TestClient deprecation warning. |
+| Browser startup and initial render | Passed in real Chromium against Vite/FastAPI. |
+| Public routes | Passed for landing/login and `/gdpr`; anonymous protected paths redirect to login. |
+| Authentication/session | Passed for professor and student login, cookie-backed session restoration after refresh, and logout. |
+| Authorization | Passed: professor `/classes` renders with API data, role-gated navigation is present, and a student cannot access the professor class UI. |
+| API calls and states | Passed through browser reads plus unit/integration suites; expected anonymous session probe returns 401. |
+| Forms, dialogs, and menus | Passed through focused component tests and browser login/Navbar interaction. |
+| Simulation updates | Passed through Simulation V2 frontend tests and backend turn/content/concurrency integration tests. |
+| Browser console | Passed after the sign-off fix: no unexpected React/Router warnings, uncaught page errors, or authenticated failed requests. |
+| Deep-link/deployment behavior | Vite development and production preview SPA fallback passed for direct route requests. Production infrastructure still must supply the documented rewrite to `index.html`; this repository does not define a concrete production web server. |
+
+## Remaining issues
+
+### Pre-existing issues
+
+1. **Production blocker unless remediated or formally accepted:** two moderate React Router security advisories from retained Router 6.3.0.
+2. The backend suite emits a Starlette TestClient deprecation warning recommending `httpx2`; it does not fail tests and is unrelated to React.
+3. The old baseline could not clean-install and therefore has no trustworthy passing baseline test/build record.
+
+### Migration-related issues
+
+No known functional React 19 migration regression remains after suppressing the authentication-time empty-route warning. The migration toolchain, clean dependency graph, automated suites, build, API integration, and browser flows pass.
+
+### Optional future improvements
+
+* Split the 675.62 kB main JavaScript chunk for load performance.
+* Add a committed Playwright/Cypress end-to-end suite so browser checks run continuously rather than only at sign-off.
+* Add a production-server integration test once the actual hosting platform is selected.
+
+## Recommendations and student handover
+
+### Recommended
+
+* Upgrade React Router within a reviewed compatible path that fixes both audit advisories, rerun the complete validation matrix, and only then issue unconditional production approval. If upgrade is deferred, record a security-owner risk acceptance and ensure application navigation targets cannot be influenced by untrusted paths.
+* Keep React and React DOM pinned to the same exact version and update them together.
+* Deploy `dist/` behind HTTPS, route `/api` consistently, set secure cookie/CORS policy for the chosen origins, and configure every unknown non-asset request to return `index.html`.
+* Use the CI-equivalent commands (`npm ci`, dependency tree, lint, tests, build, backend Ruff/pytest) before merging.
+
+### Optional
+
+* Introduce route-level lazy loading/code splitting.
+* Automate the professor/student browser smoke and console assertions.
+* Add an explicit loading indicator during session restoration; final sign-off preserves the prior blank-loading behavior to avoid unrelated UI change.
+
+### Advanced / not currently necessary
+
+* Chakra UI 3, React Router 7, Server Components, SSR/hydration, TypeScript adoption, and React Compiler adoption are not required for React 19 compatibility. Each would be a separate project with its own design and validation plan.
+
+For handover, students should use Node versions allowed by `package.json`, run `npm ci` rather than `npm install`, start FastAPI first and Vite second, use the Vite `VITE_API_BASE_URL` variable only for a separate API origin, and never restore CRA variables or `react-scripts`. Authentication is an HTTP-only session cookie; do not add tokens to local storage. New UI/API work should include Vitest/Testing Library coverage and preserve browser console cleanliness.
+
+## Final conclusion
+
+**The React 19 migration itself is technically complete and compatible, but the repository is not unconditionally ready for production sign-off.** The sole code/dependency condition preventing an unconditional production conclusion is the unresolved pair of moderate React Router audit advisories, unless the responsible security owner explicitly accepts that risk. A deployment must also implement and verify the documented SPA deep-link rewrite, HTTPS/API routing, and secure-cookie configuration in the real hosting environment; those infrastructure-specific checks cannot be proven by this source repository alone. No remaining React 19 runtime regression was found.

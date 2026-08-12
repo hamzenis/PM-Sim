@@ -16,6 +16,7 @@ import ClassResultDetail from './pages/ClassResultDetail';
 
 const Routing = () => {
 	const { currentUser, isAuthenticating } = useContext(AuthContext);
+	if (isAuthenticating) return null;
 
 	return (
 		<Routes>
