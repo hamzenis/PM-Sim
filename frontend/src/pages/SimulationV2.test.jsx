@@ -109,6 +109,8 @@ test('completes one turn and applies its run version update once', async () => {
 
 	await renderSimulation();
 	await screen.findByText('Run version 1');
+	fireEvent.click(screen.getByRole('button', { name: 'Start simulation' }));
+	await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Scenario briefing' })).not.toBeInTheDocument());
 	listSimulationTurns.mockClear();
 
 	fireEvent.click(screen.getByRole('button', { name: 'Complete week' }));

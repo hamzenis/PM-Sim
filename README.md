@@ -7,7 +7,7 @@ make weekly staffing and activity decisions while balancing scope, time, quality
 The repository contains two applications:
 
 - `backend/`: Python 3.13, FastAPI, SQLAlchemy, Alembic, and the simulation engine.
-- `frontend/`: React 18 and Chakra UI.
+- `frontend/`: React 19, Chakra UI, and Vite.
 
 ## Quick start
 

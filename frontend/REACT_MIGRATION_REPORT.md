@@ -1,5 +1,15 @@
 # React migration verification report
 
+## Baseline (before implementation)
+
+The baseline was re-checked from commit `113b362`, the documentation-only rollback point immediately before dependency or source changes. Node was `v20.20.2` and npm was `11.4.2`.
+
+* `npm ci` failed before installing because the old manifest and lockfile were out of sync (`@types/react@17.0.93` and `csstype@3.2.3` were missing). npm also reported inherited React 17-only peer ranges in Chakra 1's focus-lock, remove-scroll, and Reach packages. No forced or legacy peer resolution was used.
+* `npm run lint` was not configured. The CRA test and build commands could not run after the failed clean install because `react-scripts` was unavailable.
+* No type-check script or TypeScript configuration existed.
+
+These are baseline failures, not application changes. The final clean install, lint, test, and build results below demonstrate that the migration removes them rather than hiding them.
+
 ## Scope and registry snapshot
 
 This verification was performed from `frontend/` on 2026-08-11 immediately
@@ -60,3 +70,30 @@ this verification. Implementation is intentionally deferred. The rollback
 position is the current `frontend/package.json` and
 `frontend/package-lock.json`: retain both unchanged if the migration is not
 implemented or if its build/test validation fails.
+
+## Selected compatibility set
+
+Registry metadata was checked again on 2026-08-12. Compatible majors are retained where a later major would require an unrelated component or routing rewrite.
+
+| Selected package | Resolved version | Relevant declared peers |
+| --- | --- | --- |
+| `@chakra-ui/react` | `2.8.2` | React and React DOM `>=18`; Emotion React and Styled `^11.0.0`; Framer Motion `>=4.0.0` |
+| `@emotion/react` | `11.14.0` | React `>=16.8.0` |
+| `@emotion/styled` | `11.14.1` | React `>=16.8.0`; Emotion React `^11.0.0-rc.0` |
+| `framer-motion` | `11.18.2` | React and React DOM `^18.0.0 || ^19.0.0` |
+| `react-router-dom` | `6.3.0` | React and React DOM `>=16.8` |
+| `@testing-library/react` | `16.3.2` | React and React DOM `^18.0.0 || ^19.0.0`; Testing Library DOM `^10.0.0`; optional React type peers on majors 18 or 19 |
+| `@testing-library/jest-dom` | `6.9.1` | no required peers; Node `>=14` |
+| `@testing-library/user-event` | `14.6.4` | Testing Library DOM `>=7.21.4` |
+| Vite / React plugin | `8.2.1` / `6.0.5` | plugin requires Vite `^8.0.0`; both require Node `^20.19.0 || >=22.12.0` |
+| Vitest | `4.1.10` | Vite `^6 || ^7 || ^8`; Node `^20 || ^22 || >=24` |
+
+React and React DOM resolve exactly to stable `19.2.8`, and `npm ls --depth=0` reports no invalid or unmet peers. Chakra 3, Router 7, and Framer Motion 13 were unnecessary for React 19 support, so they were excluded to avoid application-level breaking changes.
+
+## Final integration verification
+
+The final tree installs with ordinary `npm ci` resolution. ESLint passes, all 58 Vitest tests pass in non-watch mode, and Vite produces the production bundle. There is no configured type check because this remains a JavaScript project. The build has one advisory for the 675.62 kB main chunk; code splitting was left out because it is unrelated to React compatibility.
+
+A Chromium smoke run used the real Vite development server and FastAPI demo backend. It verified login, authenticated initial render, cookie-backed session restoration after refresh, scenario API reads, logout, and return to `/login`. The session cookie was HTTP-only with `SameSite=Lax`, `Path=/`, and `Secure` disabled in local HTTP configuration. Before login, Chromium logs its normal failed-resource message for the expected `/api/auth/me` 401; the application does not log an additional error. During logout Chromium may mark the completed 204 proxy request as aborted while React navigates, although FastAPI records the 204 and the UI reaches `/login`. No unexpected console errors or failed application requests occurred while authenticated.
+
+The API unit suite separately covers `credentials: "include"`, JSON payloads, 401 session-expiry dispatch, 204 responses without JSON parsing, validation error mapping, and idempotency headers. Backend contracts were not changed.
