@@ -1,4 +1,4 @@
-import { Box, Checkbox, FormControl, FormLabel, Grid, Heading, Input, Progress, SimpleGrid, Stack, Text } from '@chakra-ui/react';
+import { Badge, Box, Checkbox, FormControl, FormLabel, Grid, Heading, Input, Progress, SimpleGrid, Stack, Text } from '@chakra-ui/react';
 import React from 'react';
 
 const ACTIVITY_LABELS = {
@@ -10,7 +10,15 @@ const ACTIVITY_LABELS = {
 
 const percentage = (value) => `${(Number(value || 0) * 100).toFixed(0)}%`;
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-const humanizeCode = (code) => String(code).replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
+
+export const deriveEmployeeDisplayModels = (employees, employeeTypes) => {
+	const namesByCode = Object.fromEntries(employeeTypes.map(({ code, name }) => [code, name]));
+	return employees.map((employee, index) => ({
+		employee,
+		label: `Employee ${index + 1}`,
+		typeLabel: namesByCode[employee.employee_type_code] || employee.employee_type_code,
+	}));
+};
 
 const Detail = ({ label, children }) => (
 	<Box>
@@ -61,16 +69,18 @@ const StatusIndicator = ({ label, value }) => {
 };
 
 export const TeamRoster = ({ employees, employeeTypes, dismissalIds, isDisabled, onToggleDismissal }) => {
-	const namesByCode = Object.fromEntries(employeeTypes.map(({ code, name }) => [code, name]));
+	const displayEmployees = deriveEmployeeDisplayModels(employees, employeeTypes);
 
 	if (employees.length === 0) return <Text>No current employees.</Text>;
 
 	return (
 		<SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-			{employees.map((employee) => (
-				<Box key={employee.id} borderWidth="1px" borderRadius="md" p={4}>
-					<Text fontWeight="bold">{namesByCode[employee.employee_type_code] || humanizeCode(employee.employee_type_code)}</Text>
-					<Text color="gray.600" fontSize="sm" mb={3}>{employee.id}</Text>
+			{displayEmployees.map(({ employee, label, typeLabel }) => {
+				const isSelected = dismissalIds.includes(employee.id);
+				return (
+				<Box key={employee.id} borderWidth="1px" borderRadius="lg" p={5} bg={isSelected ? 'orange.50' : 'white'}>
+					<Heading as="h4" size="sm">{label}</Heading>
+					<Text color="gray.600" fontSize="sm" mb={4}>Employee type: {typeLabel}</Text>
 					<Stack spacing={3} mb={4}>
 						<StatusIndicator label="Experience" value={employee.experience} />
 						<StatusIndicator label="Motivation" value={employee.motivation} />
@@ -82,16 +92,22 @@ export const TeamRoster = ({ employees, employeeTypes, dismissalIds, isDisabled,
 						isChecked={dismissalIds.includes(employee.id)}
 						onChange={() => onToggleDismissal(employee.id)}
 					>
-						Dismiss {employee.id}
+						{isSelected ? 'Keep employee' : 'Select for dismissal'}
 					</Checkbox>
 				</Box>
-			))}
+				);
+			})}
 		</SimpleGrid>
 	);
 };
 
 const WeeklyDecisionForm = ({ decision, employees, employeeTypes, isDisabled = false, onChange }) => {
 	const allocationTotal = Object.values(decision.allocation).reduce((total, value) => total + Number(value), 0);
+	const employeeDisplays = deriveEmployeeDisplayModels(employees, employeeTypes);
+	const selectedEmployeeLabels = employeeDisplays
+		.filter(({ employee }) => decision.dismiss_employee_ids.includes(employee.id))
+		.map(({ label }) => label);
+	const typeNamesByCode = Object.fromEntries(employeeTypes.map(({ code, name }) => [code, name]));
 
 	const setAllocation = (name, value) => {
 		onChange({ ...decision, allocation: { ...decision.allocation, [name]: Number(value) } });
@@ -119,8 +135,9 @@ const WeeklyDecisionForm = ({ decision, employees, employeeTypes, isDisabled = f
 	};
 
 	return (
-		<Stack spacing={6}>
-			<Box>
+		<Stack spacing={8}>
+			<Box as="section">
+				<Heading size="md" mb={5}>Work plan</Heading>
 				<Heading size="sm" mb={2}>
 					Activity allocation
 				</Heading>
@@ -130,7 +147,7 @@ const WeeklyDecisionForm = ({ decision, employees, employeeTypes, isDisabled = f
 				<Grid templateColumns={{ base: '1fr', md: 'repeat(4, 1fr)' }} gap={5}>
 					{Object.entries(decision.allocation).map(([name, value]) => (
 						<FormControl key={name}>
-							<FormLabel>{ACTIVITY_LABELS[name]}</FormLabel>
+							<FormLabel>{ACTIVITY_LABELS[name]} (%)</FormLabel>
 							<Input
 								isDisabled={isDisabled}
 								type="number"
@@ -144,28 +161,28 @@ const WeeklyDecisionForm = ({ decision, employees, employeeTypes, isDisabled = f
 				</Grid>
 			</Box>
 
-			<Box>
+			<Box as="section">
 				<Heading size="sm" mb={4}>
 					Team activities per employee
 				</Heading>
 				<SimpleGrid columns={{ base: 1, md: 3 }} spacing={5}>
 					<HoursInput
 						isDisabled={isDisabled}
-						label="Overtime hours"
+						label="Overtime"
 						name="overtime_hours_per_employee"
 						value={decision.overtime_hours_per_employee}
 						onChange={setHours}
 					/>
 					<HoursInput
 						isDisabled={isDisabled}
-						label="Meeting hours"
+						label="Meetings"
 						name="meeting_hours_per_employee"
 						value={decision.meeting_hours_per_employee}
 						onChange={setHours}
 					/>
 					<HoursInput
 						isDisabled={isDisabled}
-						label="Training hours"
+						label="Training"
 						name="training_hours_per_employee"
 						value={decision.training_hours_per_employee}
 						onChange={setHours}
@@ -173,12 +190,12 @@ const WeeklyDecisionForm = ({ decision, employees, employeeTypes, isDisabled = f
 				</SimpleGrid>
 			</Box>
 
-			<Box>
-				<Heading size="sm" mb={4}>
-					Hire employees
+			<Box as="section" borderTopWidth="1px" pt={7}>
+				<Heading size="md" mb={2}>
+					Hiring
 				</Heading>
 				<Text color="gray.600" fontSize="sm" mb={4}>
-					Throughput is the number of tasks completed per eight productive hours.
+					Choose how many employees to add. Costs are shown in US dollars per employee per day. Throughput is the number of tasks completed per eight productive hours.
 				</Text>
 				{employeeTypes.length === 0 ? (
 					<Text>No employee types are available.</Text>
@@ -200,12 +217,12 @@ const WeeklyDecisionForm = ({ decision, employees, employeeTypes, isDisabled = f
 				)}
 			</Box>
 
-			<Box>
-				<Heading size="sm" mb={4}>
-					Team roster
+			<Box as="section" borderTopWidth="1px" pt={7}>
+				<Heading size="md" mb={2}>
+					Team decisions
 				</Heading>
 				<Text color="gray.600" fontSize="sm" mb={4}>
-					These displayed status values affect employee efficiency.
+					Review each employee’s status. Dismissal selections only apply when you submit the week.
 				</Text>
 				<TeamRoster
 					employees={employees}
@@ -215,13 +232,36 @@ const WeeklyDecisionForm = ({ decision, employees, employeeTypes, isDisabled = f
 					onToggleDismissal={toggleDismissal}
 				/>
 			</Box>
+
+			<Box as="section" borderWidth="1px" borderRadius="lg" p={5} bg="gray.50">
+				<Heading size="md" mb={4}>Decision summary</Heading>
+				<SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+					<Box>
+						<Text fontWeight="semibold">Work allocation</Text>
+						<Text>{allocationTotal}% allocated</Text>
+					</Box>
+					<Box>
+						<Text fontWeight="semibold">Hours per employee</Text>
+						<Text>Overtime: {decision.overtime_hours_per_employee} hours · Meetings: {decision.meeting_hours_per_employee} hours · Training: {decision.training_hours_per_employee} hours</Text>
+					</Box>
+					<Box>
+						<Text fontWeight="semibold">Hiring</Text>
+						<Text>{decision.hires.length === 0 ? 'No new hires' : decision.hires.map((hire) => `${hire.count} ${typeNamesByCode[hire.employee_type_code] || hire.employee_type_code}`).join(', ')}</Text>
+					</Box>
+					<Box>
+						<Text fontWeight="semibold">Dismissals</Text>
+						<Text>{selectedEmployeeLabels.length === 0 ? 'No employees selected' : selectedEmployeeLabels.join(', ')}</Text>
+					</Box>
+				</SimpleGrid>
+				<Badge mt={4} colorScheme={allocationTotal === 100 ? 'green' : 'red'}>{allocationTotal === 100 ? 'Ready to submit' : 'Needs attention'}</Badge>
+			</Box>
 		</Stack>
 	);
 };
 
 const HoursInput = ({ label, name, value, isDisabled, onChange }) => (
 	<FormControl>
-		<FormLabel>{label}</FormLabel>
+		<FormLabel>{label} (hours)</FormLabel>
 		<Input
 			isDisabled={isDisabled}
 			type="number"
