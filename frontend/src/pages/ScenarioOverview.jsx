@@ -6,7 +6,9 @@ import {
 	Button,
 	Container,
 	Flex,
+	Grid,
 	Heading,
+	Progress,
 	Spinner,
 	Table,
 	TableContainer,
@@ -17,7 +19,7 @@ import {
 	Thead,
 	Tr,
 } from '@chakra-ui/react';
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import {
@@ -34,6 +36,74 @@ import ScenarioImportDialog from '../components/ScenarioImportDialog';
 
 export const scenarioAssignmentKey = (classId, revisionId) => `${classId}:${revisionId}`;
 
+const studentRunPresentation = (run) => {
+	if (!run) return { label: 'Ready to start', action: 'Start', colorScheme: 'blue' };
+	if (run.status === 'active') return { label: 'In progress', action: 'Continue', colorScheme: 'blue' };
+	return { label: 'Completed', action: 'View result', colorScheme: 'green' };
+};
+
+const StudentScenarioCard = ({ scenario, run, isStarting, onStart, onOpen }) => {
+	const presentation = studentRunPresentation(run);
+	const description = scenario.definition?.description?.trim();
+	const currentWeek = run?.current_week ?? 0;
+
+	return (
+		<Box as="article" borderWidth="1px" borderColor="gray.200" borderRadius="xl" p={{ base: 5, md: 6 }} boxShadow="sm">
+			<Flex justify="space-between" align="flex-start" gap={3} mb={3}>
+				<Box>
+					<Heading as="h2" size="md" mb={1}>{scenario.definition?.name}</Heading>
+					<Text color="gray.600" fontWeight="medium">{scenario.class_name}</Text>
+				</Box>
+				<Badge colorScheme={run?.status === 'active' ? 'blue' : run ? 'green' : 'gray'} px={2} py={1} borderRadius="md">
+					{presentation.label}
+				</Badge>
+			</Flex>
+			{description && <Text color="gray.700" mb={5}>{description}</Text>}
+			{run && (
+				<Box mb={5}>
+					<Flex justify="space-between" mb={2}>
+						<Text fontSize="sm" fontWeight="semibold">
+							{run.status === 'active' ? `Week ${currentWeek} completed` : `Finished after week ${currentWeek}`}
+						</Text>
+						<Text fontSize="sm" color="gray.500">Revision {scenario.revision_number}</Text>
+					</Flex>
+					<Progress value={run.status === 'active' ? undefined : 100} isIndeterminate={run.status === 'active'} colorScheme={run.status === 'active' ? 'blue' : 'green'} borderRadius="full" aria-label={run.status === 'active' ? `In progress through week ${currentWeek}` : 'Scenario completed'} />
+				</Box>
+			)}
+			{!run && <Text fontSize="sm" color="gray.500" mb={5}>Revision {scenario.revision_number}</Text>}
+			<Button
+				w={{ base: 'full', sm: 'auto' }}
+				colorScheme={presentation.colorScheme}
+				isLoading={isStarting}
+				loadingText="Starting"
+				onClick={() => (run ? onOpen(run) : onStart(scenario))}
+			>
+				{presentation.action}
+			</Button>
+		</Box>
+	);
+};
+
+const StudentScenarioSection = ({ scenarios, runsByAssignment, startingId, onStart, onOpen }) => {
+	if (scenarios.length === 0) {
+		return (
+			<Box textAlign="center" py={{ base: 12, md: 20 }}>
+				<Heading as="h2" size="md" mb={3}>No scenarios assigned yet</Heading>
+				<Text color="gray.600">Your assigned scenarios will appear here when your professor makes them available.</Text>
+			</Box>
+		);
+	}
+
+	return (
+		<Grid templateColumns={{ base: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }} gap={5}>
+			{scenarios.map((scenario) => {
+				const assignmentKey = scenarioAssignmentKey(scenario.class_id, scenario.id);
+				return <StudentScenarioCard key={assignmentKey} scenario={scenario} run={runsByAssignment.get(assignmentKey)} isStarting={startingId === assignmentKey} onStart={onStart} onOpen={onOpen} />;
+			})}
+		</Grid>
+	);
+};
+
 const ScenarioOverview = () => {
 	const { currentUser } = useContext(AuthContext);
 	const navigate = useNavigate();
@@ -43,6 +113,7 @@ const ScenarioOverview = () => {
 	const [startingId, setStartingId] = useState(null);
 	const [error, setError] = useState(null);
 	const [isImportOpen, setIsImportOpen] = useState(false);
+	const startingAssignments = useRef(new Set());
 	const isProfessor = currentUser?.role === 'professor';
 
 	const refreshProfessorScenarios = async () => setScenarios(await listOwnedScenarios());
@@ -105,6 +176,8 @@ const ScenarioOverview = () => {
 
 	const start = async (scenario) => {
 		const assignmentKey = scenarioAssignmentKey(scenario.class_id, scenario.id);
+		if (startingAssignments.current.has(assignmentKey)) return;
+		startingAssignments.current.add(assignmentKey);
 		setStartingId(assignmentKey);
 		setError(null);
 		try {
@@ -117,14 +190,18 @@ const ScenarioOverview = () => {
 		} catch (requestError) {
 			setError(requestError instanceof ApiError ? requestError.message : 'Could not start the simulation');
 		} finally {
+			startingAssignments.current.delete(assignmentKey);
 			setStartingId(null);
 		}
 	};
 
 	return (
-		<Flex px={10} pt={2} flexDir="column" flexGrow={1}>
+		<Flex px={{ base: 4, md: 10 }} pt={2} flexDir="column" flexGrow={1}>
 			<Flex justify="space-between" align="center" mb={5}>
-				<Heading>Scenarios</Heading>
+				<Box>
+					<Heading>{isProfessor ? 'Scenarios' : 'My scenarios'}</Heading>
+					{!isProfessor && <Text color="gray.600" mt={1}>See what is assigned and pick up where you left off.</Text>}
+				</Box>
 				{isProfessor && (
 					<Button colorScheme="blue" onClick={() => setIsImportOpen(true)}>
 						Import scenario JSON
@@ -147,9 +224,12 @@ const ScenarioOverview = () => {
 						</Alert>
 					)}
 					{isLoading ? (
-						<Flex justifyContent="center">
+						<Flex justifyContent="center" align="center" direction="column" py={16} gap={4} role="status">
 							<Spinner size="xl" />
+							<Text color="gray.600">Loading scenarios…</Text>
 						</Flex>
+					) : !isProfessor ? (
+						<StudentScenarioSection scenarios={scenarios} runsByAssignment={runsByAssignment} startingId={startingId} onStart={start} onOpen={(run) => navigate(`/simulations/${run.id}`)} />
 					) : scenarios.length === 0 ? (
 						<Text>No scenarios are available.</Text>
 					) : (
