@@ -13,14 +13,12 @@ import {
 } from '@chakra-ui/react';
 import Logo from '../images/logo-simplify.png';
 import { HiKey, HiMenu, HiOutlineLogout, HiUserCircle } from 'react-icons/hi';
-import { useContext, useEffect, useRef } from 'react';
+import { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthProvider';
 
 const Navbar = () => {
 	const { currentUser, logout } = useContext(AuthContext);
-
-	const menuButton = useRef();
 
 	const handleClick = () => {
 		if (window.value >= 20) {
@@ -30,11 +28,6 @@ const Navbar = () => {
 			}
 		}
 	};
-
-	// Workaround to center text in avatar
-	useEffect(() => {
-		menuButton.current.firstElementChild.style.width = '100%';
-	}, []);
 
 	async function handleLogout() {
 		try {
@@ -81,8 +74,17 @@ const Navbar = () => {
 			<HStack justifyContent="flex-end">
 				<HStack borderRadius="full" backgroundColor="white" p={3} boxShadow="xl">
 					<Menu>
-						<MenuButton ref={menuButton} size="sm" cursor="pointer">
-							<HiMenu />
+						<MenuButton
+							size="sm"
+							cursor="pointer"
+							display="flex"
+							alignItems="center"
+							justifyContent="center"
+							aria-label="Account menu"
+						>
+							<Box as="span" display="flex" alignItems="center" justifyContent="center" w="full">
+								<HiMenu />
+							</Box>
 						</MenuButton>
 						<MenuList mt={2}>
 							<MenuGroup>
