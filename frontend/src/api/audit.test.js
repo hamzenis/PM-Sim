@@ -1,7 +1,7 @@
 import { apiRequest } from './client';
 import { listAuditEntries, mapProfessorContentAudit } from './audit';
 
-jest.mock('./client', () => ({ apiRequest: jest.fn() }));
+vi.mock('./client', () => ({ apiRequest: vi.fn() }));
 
 test('maps audit pagination to query parameters', async () => {
 	apiRequest.mockResolvedValue([]);

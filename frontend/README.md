@@ -15,15 +15,16 @@ workflow.
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev
 ```
 
-Open <http://127.0.0.1:3000>. Create React App proxies relative API requests to the backend.
+Open the URL printed by Vite (normally <http://localhost:5173>). The development server proxies
+relative `/api` requests to the backend.
 
 For a separate API origin, copy `.env.template` to `.env` and set:
 
 ```bash
-REACT_APP_API_BASE_URL=https://api.example.test
+VITE_API_BASE_URL=https://api.example.test
 ```
 
 The backend must explicitly allow the frontend origin when the applications are not served from
@@ -45,8 +46,13 @@ frontend must not store session tokens or passwords.
 ## Checks
 
 ```bash
-CI=true npm test -- --runInBand
+npm test
+npm run lint
 npm run build
 ```
+
+The Vite configuration uses SPA mode, so its production preview falls back to `index.html` for
+unknown paths such as `/simulations/example`. Configure the production static host with the same
+fallback; `BrowserRouter` routes cannot be refreshed directly otherwise.
 
 Place API mapping tests beside modules in `src/api` and component tests beside the component.

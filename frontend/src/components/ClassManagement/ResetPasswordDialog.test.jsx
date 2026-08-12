@@ -3,13 +3,13 @@ import React from 'react';
 import ResetPasswordDialog from './ResetPasswordDialog';
 
 test('requires a matching password with at least ten characters', () => {
-	const onSave = jest.fn();
+	const onSave = vi.fn();
 	render(
 		<ResetPasswordDialog
 			student={{ username: 'student' }}
 			isOpen
 			isBusy={false}
-			onCancel={jest.fn()}
+			onCancel={vi.fn()}
 			onSave={onSave}
 		/>
 	);

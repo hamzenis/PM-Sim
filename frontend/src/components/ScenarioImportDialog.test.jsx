@@ -3,8 +3,8 @@ import React from 'react';
 import ScenarioImportDialog from './ScenarioImportDialog';
 
 test('parses a JSON definition before importing it', () => {
-	const onImport = jest.fn();
-	render(<ScenarioImportDialog isOpen isBusy={false} onCancel={jest.fn()} onImport={onImport} />);
+	const onImport = vi.fn();
+	render(<ScenarioImportDialog isOpen isBusy={false} onCancel={vi.fn()} onImport={onImport} />);
 	fireEvent.change(screen.getByLabelText('Scenario definition'), {
 		target: { value: '{"schema_version":1,"name":"Example","authored_content":{"fragments":[],"questions":[],"events":[],"sequence":[]}}' },
 	});

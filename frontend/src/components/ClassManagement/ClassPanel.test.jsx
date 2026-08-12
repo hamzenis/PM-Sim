@@ -3,17 +3,17 @@ import React from 'react';
 import ClassPanel from './ClassPanel';
 
 test('renames the selected class', () => {
-	const onRename = jest.fn();
+	const onRename = vi.fn();
 	render(
 		<ClassPanel
 			classes={[{ id: 'class-1', name: 'Old name' }]}
 			selectedId="class-1"
 			selectedClass={{ id: 'class-1', name: 'Old name' }}
 			isBusy={false}
-			onSelect={jest.fn()}
-			onCreate={jest.fn()}
+			onSelect={vi.fn()}
+			onCreate={vi.fn()}
 			onRename={onRename}
-			onArchive={jest.fn()}
+			onArchive={vi.fn()}
 		/>
 	);
 

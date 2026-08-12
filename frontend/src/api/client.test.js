@@ -1,11 +1,11 @@
 import { ApiError, apiRequest } from './client';
 
 afterEach(() => {
-	jest.restoreAllMocks();
+	vi.restoreAllMocks();
 });
 
 test('sends browser credentials and parses JSON', async () => {
-	jest.spyOn(global, 'fetch').mockResolvedValue({
+	vi.spyOn(global, 'fetch').mockResolvedValue({
 		ok: true,
 		status: 200,
 		json: async () => ({ id: 'user-1' }),
@@ -16,13 +16,13 @@ test('sends browser credentials and parses JSON', async () => {
 });
 
 test('returns undefined for an empty response', async () => {
-	jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, status: 204 });
+	vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true, status: 204 });
 
 	await expect(apiRequest('/api/auth/logout', { method: 'POST' })).resolves.toBeUndefined();
 });
 
 test('exposes status and backend details for failed requests', async () => {
-	jest.spyOn(global, 'fetch').mockResolvedValue({
+	vi.spyOn(global, 'fetch').mockResolvedValue({
 		ok: false,
 		status: 401,
 		json: async () => ({ detail: 'invalid credentials' }),
@@ -34,7 +34,7 @@ test('exposes status and backend details for failed requests', async () => {
 });
 
 test('preserves field errors from FastAPI validation responses', async () => {
-	jest.spyOn(global, 'fetch').mockResolvedValue({
+	vi.spyOn(global, 'fetch').mockResolvedValue({
 		ok: false,
 		status: 422,
 		json: async () => ({

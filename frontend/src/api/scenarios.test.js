@@ -8,7 +8,7 @@ import {
 	validateScenario,
 } from './scenarios';
 
-jest.mock('./client', () => ({ apiRequest: jest.fn() }));
+vi.mock('./client', () => ({ apiRequest: vi.fn() }));
 
 beforeEach(() => apiRequest.mockReset());
 

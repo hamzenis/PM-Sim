@@ -21,7 +21,7 @@ const decision = {
 };
 
 test('adds a selected employee type to the weekly hires', () => {
-	const onChange = jest.fn();
+	const onChange = vi.fn();
 	render(
 		<WeeklyDecisionForm
 			decision={decision}
@@ -45,7 +45,7 @@ test('shows responsive employee type details using the v2 metrics', () => {
 			decision={decision}
 			employees={[]}
 			employeeTypes={[employeeType]}
-			onChange={jest.fn()}
+			onChange={vi.fn()}
 		/>
 	);
 
@@ -61,7 +61,7 @@ test('shows responsive employee type details using the v2 metrics', () => {
 
 test.each([320, 1280])('shows the roster and accessible status indicators at a %ipx viewport', (width) => {
 	window.innerWidth = width;
-	const onChange = jest.fn();
+	const onChange = vi.fn();
 	render(
 		<WeeklyDecisionForm
 			decision={decision}

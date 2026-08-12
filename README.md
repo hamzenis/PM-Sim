@@ -35,10 +35,11 @@ In another terminal:
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev
 ```
 
-Open <http://127.0.0.1:3000>. The development server proxies API requests to the backend.
+Open the URL printed by Vite (normally <http://localhost:5173>). The development server proxies API
+requests to the backend.
 
 ## Checks
 
@@ -49,7 +50,8 @@ uv run ruff check .
 uv run pytest
 
 cd ../frontend
-CI=true npm test -- --runInBand
+npm test
+npm run lint
 npm run build
 ```
 

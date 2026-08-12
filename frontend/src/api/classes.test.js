@@ -1,7 +1,7 @@
 import { apiRequest } from './client';
 import { assignScenario, createClass, importStudents, listClasses, removeStudent } from './classes';
 
-jest.mock('./client', () => ({ apiRequest: jest.fn() }));
+vi.mock('./client', () => ({ apiRequest: vi.fn() }));
 
 beforeEach(() => apiRequest.mockReset());
 
