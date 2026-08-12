@@ -24,7 +24,7 @@ import {
 	Stack,
 	Text,
 } from '@chakra-ui/react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { completeSimulationTurn, getSimulationRun, listSimulationTurns, submitSimulationRun } from '../api/simulations';
@@ -109,7 +109,9 @@ const SimulationV2 = () => {
 	const [isBriefingOpen, setIsBriefingOpen] = useState(true);
 	const [drawer, setDrawer] = useState(null);
 
-	const load = async () => {
+	// Loading reads only the route's runId. It must be recreated when that identity changes so
+	// the effect below loads the newly selected run; stable React state setters need no dependency.
+	const load = useCallback(async () => {
 		setIsLoading(true);
 		setError(null);
 		try {
@@ -121,13 +123,11 @@ const SimulationV2 = () => {
 		} finally {
 			setIsLoading(false);
 		}
-	};
+	}, [runId]);
 
 	useEffect(() => {
 		load();
-		// The run ID is the identity of this screen; load is intentionally local to the component.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [runId]);
+	}, [load]);
 
 	const isDecisionValid = useMemo(() => decisionIsValid(decision), [decision]);
 	const contentState = useMemo(() => selectContentState(run?.deliveries), [run?.deliveries]);
