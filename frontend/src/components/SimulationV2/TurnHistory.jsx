@@ -50,8 +50,9 @@ export const eventCopy = ({ kind = '', values = {} }) => {
 const TurnHistory = ({ turns }) => {
 	if (turns.length === 0) return null;
 	return (
-		<Box bg="white" borderRadius="2xl" p={7} mt={6}>
-			<Heading size="md" mb={4}>Turn history</Heading>
+		<Box as="details" bg="white" borderWidth="1px" borderRadius="xl" p={{ base: 5, md: 6 }} mt={6}>
+			<Heading as="summary" size="sm" cursor="pointer">Past weeks ({turns.length})</Heading>
+			<Text color="gray.600" fontSize="sm" mt={2} mb={4}>Review earlier decisions and outcomes.</Text>
 			<Stack spacing={4}>
 				{turns.map(({ week_number: weekNumber, decision, events = [], resulting_state: resultingState }) => {
 					const visibleEvents = events.filter((event) => !hiddenEventKinds.has(event.kind));

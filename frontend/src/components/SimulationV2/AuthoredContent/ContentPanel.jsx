@@ -1,4 +1,4 @@
-import { Alert, AlertIcon, Badge, Box, Heading, Stack } from '@chakra-ui/react';
+import { Alert, AlertIcon, Badge, Box, Heading, Stack, Text } from '@chakra-ui/react';
 import React, { useState } from 'react';
 import { ApiError } from '../../../api/client';
 import { acknowledgeContentEntry, answerContentEntry } from '../../../api/simulations';
@@ -37,13 +37,16 @@ const ContentPanel = ({ runId, version, deliveries = [], onRunChange, onConflict
 	};
 
 	return (
-		<Box bg="white" borderRadius="2xl" p={7} mb={6} aria-labelledby="authored-content-heading">
-			<Heading id="authored-content-heading" size="md" mb={2}>Scenario content</Heading>
+		<Box bg="blue.50" borderWidth="1px" borderColor="blue.200" borderRadius="2xl" p={{ base: 5, md: 7 }} mb={6} aria-labelledby="authored-content-heading">
+			<Badge colorScheme="blue" mb={2}>Scenario update</Badge>
+			<Heading id="authored-content-heading" size="md" mb={2}>Read and respond</Heading>
+			<Text color="gray.700" mb={1}>These learning activities are separate from your weekly project plan.</Text>
 			<ContentProgress entries={entries} />
 			{error && <Alert status="error" mt={4}><AlertIcon />{error}</Alert>}
 			<Stack spacing={4} mt={5}>
 				{entries.map((entry) => (
-					<Box key={entry.sequence_entry_id} id={`content-entry-${entry.sequence_entry_id}`} tabIndex={-1} borderWidth="1px" borderRadius="lg" p={5}>
+					<Box key={entry.sequence_entry_id} id={`content-entry-${entry.sequence_entry_id}`} tabIndex={-1} bg="white" borderWidth={entry.required && entry.status === 'actionable' ? '2px' : '1px'} borderColor={entry.required && entry.status === 'actionable' ? 'blue.400' : 'gray.200'} borderRadius="lg" p={5}>
+						{entry.required && entry.status === 'actionable' && <Badge colorScheme="blue" mb={3}>Required before continuing</Badge>}
 						{!entry.required && <Badge mb={3}>Optional</Badge>}
 						{entry.kind === 'fragment' && <NarrativeFragment entry={entry} isSubmitting={pending?.entryId === entry.sequence_entry_id} onAcknowledge={() => submit(entry)} />}
 						{entry.kind === 'question' && <AuthoredQuestion entry={entry} isSubmitting={pending?.entryId === entry.sequence_entry_id} onAnswer={(answer) => submit(entry, answer)} />}

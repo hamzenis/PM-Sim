@@ -1,6 +1,7 @@
 import {
 	Alert,
 	AlertIcon,
+	Badge,
 	Box,
 	Button,
 	Container,
@@ -199,8 +200,10 @@ const SimulationV2 = () => {
 
 	if (isLoading)
 		return (
-			<Container py={16}>
-				<Spinner size="xl" />
+			<Container py={24} textAlign="center" aria-live="polite">
+				<Spinner size="xl" color="blue.500" mb={5} />
+				<Heading size="md">Loading your simulation</Heading>
+				<Text color="gray.600" mt={2}>Getting the latest project state and week history…</Text>
 			</Container>
 		);
 	if (!run)
@@ -208,7 +211,7 @@ const SimulationV2 = () => {
 			<Container py={16}>
 				<Alert status="error">
 					<AlertIcon />
-					{error}
+					<Box><Text fontWeight="bold">We couldn’t load this simulation.</Text><Text>{error || 'Check your connection and try again.'}</Text></Box>
 				</Alert>
 			</Container>
 		);
@@ -216,6 +219,9 @@ const SimulationV2 = () => {
 	const state = run.state;
 	const readiness = submissionReadiness(state);
 	const isBelowReadinessBenchmark = readiness.percentage < SUBMISSION_READINESS_BENCHMARK;
+	const totalScheduleDays = Number(state.elapsed_working_days || 0) + Number(state.remaining_working_days || 0);
+	const scheduleProgress = totalScheduleDays ? (Number(state.elapsed_working_days || 0) / totalScheduleDays) * 100 : 0;
+	const statusLabel = run.status === 'active' ? 'In progress' : 'Completed';
 	return (
 		<Container maxW="6xl" py={8}>
 			<Flex mb={4} gap={3} align="center" wrap="wrap">
@@ -229,17 +235,33 @@ const SimulationV2 = () => {
 					Help
 				</Button>
 			</Flex>
-			<Heading mb={6}>Simulation week {run.current_week + 1}</Heading>
+			<Box as="header" bg="white" borderRadius="2xl" p={{ base: 5, md: 7 }} mb={6}>
+				<Flex justify="space-between" align={{ base: 'flex-start', md: 'center' }} gap={4} direction={{ base: 'column', md: 'row' }}>
+					<Box>
+						<Text color="blue.600" fontWeight="bold" fontSize="sm" textTransform="uppercase" letterSpacing="wide">Student simulation</Text>
+						<Heading as="h1" size="xl" mt={1}>{run.scenario_title || 'Project management simulation'}</Heading>
+						<Text color="gray.600" mt={2}>Week {run.current_week + 1} · Make decisions for the next project week</Text>
+					</Box>
+					<Badge colorScheme={run.status === 'active' ? 'blue' : 'green'} fontSize="sm" px={3} py={1} borderRadius="full">{statusLabel}</Badge>
+				</Flex>
+				<Box mt={6}>
+					<Flex justify="space-between" mb={2}><Text fontWeight="semibold">Schedule progress</Text><Text color="gray.600" fontSize="sm">{Number(state.elapsed_working_days || 0).toLocaleString()} of {totalScheduleDays.toLocaleString()} working days used</Text></Flex>
+					<Progress value={scheduleProgress} colorScheme="blue" borderRadius="full" aria-label={`Schedule progress: ${Math.round(scheduleProgress)}%`} />
+				</Box>
+			</Box>
 			{error && (
 				<Alert status="error" mb={5}>
 					<AlertIcon />
 					{error}
 				</Alert>
 			)}
-			<DashboardStats state={state} turns={turns} />
-			<BudgetTrendChart state={state} turns={turns} isComplete={run.status !== 'active'} />
-			<EmployeeStatusChart state={state} turns={turns} />
-			<TaskProgressDashboard state={state} turns={turns} />
+			<Box as="section" aria-labelledby="project-health-heading">
+				<Heading id="project-health-heading" size="md" mb={4}>Project health</Heading>
+				<DashboardStats state={state} turns={turns} />
+				<BudgetTrendChart state={state} turns={turns} isComplete={run.status !== 'active'} />
+				<EmployeeStatusChart state={state} turns={turns} />
+				<TaskProgressDashboard state={state} turns={turns} />
+			</Box>
 			<ContentPanel
 				runId={runId}
 				version={run.version}
@@ -249,11 +271,13 @@ const SimulationV2 = () => {
 			/>
 
 			{run.status === 'active' ? (
-				<Box bg="white" borderRadius="2xl" p={7}>
+				<Box bg="white" borderWidth="1px" borderColor="blue.200" borderRadius="2xl" p={{ base: 5, md: 7 }} aria-labelledby="current-action-heading">
+					<Text color="blue.600" fontWeight="bold" fontSize="sm" textTransform="uppercase" letterSpacing="wide">Current required action</Text>
 					<SubmissionReadiness state={state} />
-					<Heading size="md" mb={5}>
-						Weekly decision
+					<Heading id="current-action-heading" size="lg" mb={2}>
+						Plan week {run.current_week + 1}
 					</Heading>
+					<Text color="gray.600" mb={6}>Allocate team capacity, set team activities, and review staffing before completing the week.</Text>
 					<WeeklyDecisionForm
 						decision={decision}
 						employees={state.employees || []}
@@ -263,7 +287,7 @@ const SimulationV2 = () => {
 					/>
 					<Stack direction={{ base: 'column', md: 'row' }} mt={7}>
 						{contentState.isBlocking && (
-							<Alert status="warning"><AlertIcon />Complete the required scenario content above before completing the week.</Alert>
+							<Alert status="info" variant="left-accent"><AlertIcon /><Box><Text fontWeight="bold">Scenario response required</Text><Text>Complete the highlighted learning activity above to unlock this week’s decision.</Text></Box></Alert>
 						)}
 						<Button
 							colorScheme="blue"

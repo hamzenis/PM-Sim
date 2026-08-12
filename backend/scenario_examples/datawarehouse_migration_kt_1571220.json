@@ -1,0 +1,313 @@
+{
+    "schema_version": 1,
+    "name": "Datawarehouse Migration KT 1571220",
+    "description": "Monday Natural Products GmbH & Co. KG is a long-established producer and distributor of high-quality dietary supplements, recognized for innovative products and strong industry partnerships. The company is investing in a new Data Warehouse System to accelerate data processing, automate data preparation, improve reporting, and support strategic decision-making. The delivered platform must provide a maintainable, high-quality foundation for the client's future IT landscape and must include sufficient testing. Budget compliance is the client's highest priority because it demonstrates financial reliability and supports a long-term partnership. The implementation is also time-sensitive: connected systems cannot move forward until the Data Warehouse is available, although current business operations remain supported by the existing solution during the project.",
+    "authored_content": {
+        "fragments": [
+            {
+                "id": "project_briefing",
+                "title": "Project Briefing",
+                "body": "Build and migrate to a maintainable Data Warehouse for Monday Natural Products. The platform must automate data preparation, improve processing and reporting, and support management decisions without compromising the client's currently stable operations.",
+                "required": true
+            },
+            {
+                "id": "delivery_constraints",
+                "title": "Delivery Constraints",
+                "body": "Budget compliance has the highest client priority. Delivery speed matters because downstream IT work depends on the new platform, while sufficient unit and integration testing is required for a dependable handover.",
+                "required": true
+            },
+            {
+                "id": "handover_briefing",
+                "title": "Handover Review",
+                "body": "Review the accepted workload, remaining defects, elapsed time, and total cost. Consider whether the delivered platform gives the client a reliable basis for operating and extending its IT landscape.",
+                "required": true
+            }
+        ],
+        "questions": [
+            {
+                "id": "initial_strategy",
+                "prompt": "Which principle will guide your initial delivery strategy?",
+                "answer_schema": "single_choice",
+                "options": [
+                    {
+                        "id": "balanced_control",
+                        "label": "Balance budget, progress, and continuous testing"
+                    },
+                    {
+                        "id": "budget_first",
+                        "label": "Minimize staffing cost before optimizing delivery"
+                    },
+                    {
+                        "id": "speed_first",
+                        "label": "Maximize early development throughput"
+                    },
+                    {
+                        "id": "quality_first",
+                        "label": "Prioritize testing and defect prevention"
+                    }
+                ],
+                "feedback_by_option": {
+                    "balanced_control": "Track all three constraints weekly and adjust before a gap becomes expensive.",
+                    "budget_first": "A small team protects budget but may create deadline pressure and late testing risk.",
+                    "speed_first": "Fast development only creates value when completed work also passes testing and integration.",
+                    "quality_first": "Strong quality controls support handover, but the team must still maintain delivery flow."
+                }
+            },
+            {
+                "id": "migration_risks",
+                "prompt": "Which risks need active control during the migration?",
+                "answer_schema": "multiple_choice",
+                "options": [
+                    {
+                        "id": "data_quality",
+                        "label": "Source-data quality and transformation defects"
+                    },
+                    {
+                        "id": "source_changes",
+                        "label": "Changes to connected source systems"
+                    },
+                    {
+                        "id": "performance",
+                        "label": "Reporting and processing performance"
+                    },
+                    {
+                        "id": "knowledge_transfer",
+                        "label": "Maintainability and client knowledge transfer"
+                    }
+                ]
+            },
+            {
+                "id": "test_readiness",
+                "prompt": "Is the remaining plan sufficient to complete integration testing within the budget and deadline?",
+                "answer_schema": "boolean"
+            },
+            {
+                "id": "final_retrospective",
+                "prompt": "Summarize the most important trade-off you made and how it affected the migration outcome.",
+                "answer_schema": "short_text",
+                "short_text_max_length": 500
+            }
+        ],
+        "events": [
+            {
+                "id": "budget_review",
+                "effects": [
+                    {
+                        "type": "show_message",
+                        "payload": {
+                            "text": "Budget review: compare the current burn rate with the remaining migration and testing workload."
+                        }
+                    }
+                ]
+            },
+            {
+                "id": "quality_gate",
+                "effects": [
+                    {
+                        "type": "show_message",
+                        "payload": {
+                            "text": "Quality gate: completed development is not delivered value until it has passed unit and integration testing."
+                        }
+                    }
+                ]
+            },
+            {
+                "id": "handover_ready",
+                "effects": [
+                    {
+                        "type": "set_presentation_flag",
+                        "payload": {
+                            "flag": "handover_review_ready",
+                            "value": true
+                        }
+                    }
+                ]
+            }
+        ],
+        "sequence": [
+            {
+                "id": "s_project_briefing",
+                "trigger": {
+                    "type": "run_started"
+                },
+                "fragment_id": "project_briefing"
+            },
+            {
+                "id": "s_delivery_constraints",
+                "trigger": {
+                    "type": "run_started"
+                },
+                "fragment_id": "delivery_constraints",
+                "depends_on": [
+                    "s_project_briefing"
+                ]
+            },
+            {
+                "id": "s_initial_strategy",
+                "trigger": {
+                    "type": "run_started"
+                },
+                "question_id": "initial_strategy",
+                "depends_on": [
+                    "s_delivery_constraints"
+                ]
+            },
+            {
+                "id": "s_budget_review",
+                "trigger": {
+                    "type": "after_week",
+                    "week": 4
+                },
+                "event_id": "budget_review",
+                "depends_on": [
+                    "s_initial_strategy"
+                ]
+            },
+            {
+                "id": "s_migration_risks",
+                "trigger": {
+                    "type": "before_week",
+                    "week": 5
+                },
+                "question_id": "migration_risks",
+                "depends_on": [
+                    "s_budget_review"
+                ]
+            },
+            {
+                "id": "s_quality_gate",
+                "trigger": {
+                    "type": "after_week",
+                    "week": 8
+                },
+                "event_id": "quality_gate",
+                "depends_on": [
+                    "s_migration_risks"
+                ]
+            },
+            {
+                "id": "s_test_readiness",
+                "trigger": {
+                    "type": "before_week",
+                    "week": 9
+                },
+                "question_id": "test_readiness",
+                "depends_on": [
+                    "s_quality_gate"
+                ]
+            },
+            {
+                "id": "s_handover_briefing",
+                "trigger": {
+                    "type": "run_finished"
+                },
+                "fragment_id": "handover_briefing",
+                "depends_on": [
+                    "s_test_readiness"
+                ]
+            },
+            {
+                "id": "s_final_retrospective",
+                "trigger": {
+                    "type": "run_finished"
+                },
+                "question_id": "final_retrospective",
+                "depends_on": [
+                    "s_handover_briefing"
+                ]
+            },
+            {
+                "id": "s_handover_ready",
+                "trigger": {
+                    "type": "run_finished"
+                },
+                "event_id": "handover_ready",
+                "depends_on": [
+                    "s_final_retrospective"
+                ]
+            }
+        ]
+    },
+    "project": {
+        "budget": 230000,
+        "working_days": 70,
+        "hours_per_day": 8,
+        "working_days_per_week": 5
+    },
+    "tasks": {
+        "total": 110,
+        "difficulty_distribution": {
+            "easy": 0.2,
+            "medium": 0.5,
+            "hard": 0.3
+        }
+    },
+    "employee_types": [
+        {
+            "code": "associate_data_engineer",
+            "name": "Associate Data Engineer",
+            "cost_per_day": 420,
+            "throughput": {
+                "easy": 5,
+                "medium": 2.5,
+                "hard": 0.8
+            },
+            "error_rate": 0.075,
+            "management_skill": 0.3
+        },
+        {
+            "code": "data_engineer",
+            "name": "Data Engineer",
+            "cost_per_day": 600,
+            "throughput": {
+                "easy": 6,
+                "medium": 3.4,
+                "hard": 1.5
+            },
+            "error_rate": 0.045,
+            "management_skill": 0.55
+        },
+        {
+            "code": "senior_data_engineer",
+            "name": "Senior Data Engineer",
+            "cost_per_day": 820,
+            "throughput": {
+                "easy": 6.8,
+                "medium": 4,
+                "hard": 2.2
+            },
+            "error_rate": 0.025,
+            "management_skill": 0.75
+        },
+        {
+            "code": "data_warehouse_lead",
+            "name": "Data Warehouse Lead",
+            "cost_per_day": 1050,
+            "throughput": {
+                "easy": 6,
+                "medium": 3.8,
+                "hard": 2.5
+            },
+            "error_rate": 0.02,
+            "management_skill": 0.92
+        }
+    ],
+    "rules": {
+        "randomness": "semi",
+        "stress_overtime_increase": 0.06,
+        "stress_weekend_reduction": 0.18,
+        "overtime_motivation_decrease": 0.025,
+        "solo_stress_increase": 0.06,
+        "meeting_familiarity_increase": 0.06,
+        "training_skill_increase_rate": 0.08,
+        "training_motivation_boost": 0.08
+    },
+    "scoring": {
+        "quality_limit": 35,
+        "time_limit": 20,
+        "budget_limit": 45,
+        "quality_exponent": 1.5,
+        "time_exponent": 1,
+        "budget_exponent": 1.25
+    }
+}

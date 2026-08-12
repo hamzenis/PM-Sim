@@ -21,16 +21,18 @@ const DashboardStats = ({ state, turns = [], showBudget = true }) => {
 
 	return (
 		<SimpleGrid columns={{ base: 1, sm: 2, lg: showBudget ? 4 : 3 }} spacing={4} mb={8}>
-			<StatCard label="Working days remaining" value={state.remaining_working_days} />
+			<StatCard label="Schedule remaining" value={`${Number(state.remaining_working_days || 0).toLocaleString()} days`} helper="Working days available to finish the project" />
 			<StatCard
 				label="Cumulative expenses"
 				value={formatCurrency(expenses)}
+				helper="Total project spending to date"
 				delta={expenseDelta === null ? null : signed(expenseDelta, formatCurrency)}
 				deltaIsFavorable={expenseDelta <= 0}
 			/>
 			<StatCard
 				label="Remaining tasks"
 				value={remainingTasks}
+				helper="Tasks still waiting for development"
 				delta={taskDelta === null ? null : signed(taskDelta)}
 				deltaIsFavorable={taskDelta <= 0}
 			/>
@@ -38,6 +40,7 @@ const DashboardStats = ({ state, turns = [], showBudget = true }) => {
 				<StatCard
 					label="Budget remaining"
 					value={formatCurrency(state.remaining_budget)}
+					helper="Funds available for future work"
 					isUnfavorable={Number(state.remaining_budget) < 0}
 				/>
 			)}

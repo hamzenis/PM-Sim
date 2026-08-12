@@ -93,6 +93,7 @@ class RunSummaryResponse(BaseModel):
 
 class RunResponse(RunSummaryResponse):
     engine_version: str
+    scenario_title: str
     scenario_briefing: str
     state: dict[str, object]
     employee_types: list[dict[str, object]]
@@ -301,9 +302,11 @@ def _run_response(session: Session, run: SimulationRunRecord) -> RunResponse:
     revision = session.get(ScenarioRevisionRecord, run.scenario_revision_id)
     employee_types = [] if revision is None else revision.definition.get("employee_types", [])
     scenario_briefing = "" if revision is None else str(revision.definition.get("description", ""))
+    scenario_title = "Project management simulation" if revision is None else revision.scenario.name
     return RunResponse(
         **summary.model_dump(),
         engine_version=run.engine_version,
+        scenario_title=scenario_title,
         scenario_briefing=scenario_briefing,
         state=_student_state(run.current_state),
         employee_types=employee_types,
