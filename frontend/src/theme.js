@@ -1,27 +1,50 @@
-// theme.js
-export default {
-    colors: {
-        transparent: 'transparent',
-        black: '#000',
-        white: '#fff',
-        gray: {
-            100: '#EDF2F7',
-            200: '#E2E8F0',
-            400: '#A0AEC0',
-            500: '#718096',
-            600: '#4A5568',
-        },
-        blue: {
-            50: '#EBF8FF',
-            100: '#BEE3F8',
-            200: '#90CDF4',
-            300: '#63B3ED',
-            400: '#4299E1',
-            500: '#3182CE',
-            600: '#2B6CB0',
-            700: '#2C5282',
-            800: '#2A4365',
-            900: '#171923',
-        },
-    },
-}
+import { extendTheme } from '@chakra-ui/react';
+
+const theme = extendTheme({
+	colors: {
+		brand: {
+			50: '#eef6ff',
+			100: '#d9eaff',
+			500: '#2563a8',
+			600: '#1d4f88',
+			700: '#173f6d',
+			900: '#102a43',
+		},
+	},
+	semanticTokens: {
+		colors: {
+			'page.bg': 'gray.50',
+			'surface.bg': 'white',
+			'text.default': 'gray.800',
+			'text.muted': 'gray.600',
+			'border.default': 'gray.200',
+			'focus.ring': 'brand.500',
+		},
+	},
+	fonts: {
+		heading: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+		body: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+	},
+	radii: { card: '12px' },
+	shadows: {
+		card: '0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04)',
+		header: '0 1px 2px rgba(15, 23, 42, 0.06)',
+	},
+	styles: {
+		global: {
+			'html, body, #root': { minHeight: '100%' },
+			body: { bg: 'page.bg', color: 'text.default' },
+			'a, button, input, select, textarea': {
+				_focusVisible: { outline: '3px solid', outlineColor: 'focus.ring', outlineOffset: '2px' },
+			},
+		},
+	},
+	components: {
+		Button: {
+			defaultProps: { colorScheme: 'brand' },
+			baseStyle: { borderRadius: 'md', fontWeight: 'semibold' },
+		},
+	},
+});
+
+export default theme;
