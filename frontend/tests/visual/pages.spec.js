@@ -32,7 +32,7 @@ const result = {
 	finished_at: '2026-10-16T15:30:00Z', engine_version: '2.1', seed: 20261016,
 	final_result: { outcome: 'success', score: { total: 91, quality: 92, time: 88, budget: 94 }, accepted_tasks: 31, rejected_tasks: 3 },
 	current_state: activeRun.state,
-	turns: [{ week_number: 1, submitted_at: '2026-09-18T14:00:00Z', decision: { allocation: { development: 60, unit_testing: 25, integration_testing: 15 } }, events: [{ kind: 'tasks_completed', easy: 6, medium: 2 }] }],
+	turns: [{ ...activeTurns[0], submitted_at: '2026-09-18T14:00:00Z' }],
 	content_audit: { digest_status: 'verified', divergences: [], deliveries: [], effects: [] },
 };
 
@@ -78,3 +78,8 @@ test('active student weekly decision', async ({ page }) => stableScreenshot(page
 }));
 test('professor class management', async ({ page }) => stableScreenshot(page, '/classes', 'professor-class-management', 'professor', (p) => expect(p.getByRole('heading', { name: 'Professor workspace' })).toBeVisible()));
 test('professor result summary', async ({ page }) => stableScreenshot(page, '/classes/class-1/results/run-1', 'professor-result-summary', 'professor', (p) => expect(p.getByRole('heading', { name: 'Result for alex.student' })).toBeVisible()));
+test('professor result summary tablet', async ({ page }, testInfo) => {
+	test.skip(testInfo.project.name !== 'desktop', 'The dedicated tablet capture only needs one browser project.');
+	await page.setViewportSize({ width: 820, height: 1180 });
+	await stableScreenshot(page, '/classes/class-1/results/run-1', 'professor-result-summary-tablet', 'professor', (p) => expect(p.getByRole('heading', { name: 'Progress at a glance' })).toBeVisible());
+});

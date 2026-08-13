@@ -604,6 +604,8 @@ def test_professor_can_compare_final_results_and_inspect_full_audit(client: Test
     assert audit.json()["class_name"] == "Results"
     assert audit.json()["scenario_name"] == "Example"
     assert audit.json()["turns"][0]["turn_seed"] == 11
+    assert audit.json()["turns"][0]["resulting_state"]["week"] == 1
+    assert audit.json()["current_state"]["week"] == 1
     assert "undiscovered_bugs" in audit.json()["current_state"]
     content = audit.json()["content_audit"]
     assert [item["sequence_entry_id"] for item in content["deliveries"]] == [

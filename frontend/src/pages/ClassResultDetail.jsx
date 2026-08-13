@@ -3,6 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getClassResult } from '../api/classes';
 import FinalResult from '../components/SimulationV2/FinalResult';
+import BudgetTrendChart from '../components/SimulationV2/Dashboard/BudgetTrendChart';
+import DashboardStats from '../components/SimulationV2/Dashboard/DashboardStats';
+import EmployeeStatusChart from '../components/SimulationV2/Dashboard/EmployeeStatusChart';
+import TaskProgressDashboard from '../components/SimulationV2/Dashboard/TaskProgressDashboard';
 import ProfessorAuthoredTimeline from '../components/ProfessorAuthoredTimeline';
 import {
 	formatDateTime,
@@ -25,6 +29,36 @@ export const TeachingFields = ({ values }) => (
 		))}
 	</VStack>
 );
+
+const hasProgressState = (state) =>
+	state &&
+	typeof state === 'object' &&
+	Number(state.week) > 0 &&
+	['initial_budget', 'remaining_budget', 'tasks_todo', 'tasks_completed', 'employees'].every((key) =>
+		Object.hasOwn(state, key)
+	);
+
+export const ProgressAtAGlance = ({ result }) => {
+	const turns = Array.isArray(result.turns) ? result.turns : [];
+	if (turns.length === 0 || !hasProgressState(result.current_state)) return null;
+
+	const state = result.current_state;
+	const isComplete = result.status !== 'active';
+	return (
+		<Box as="section" aria-labelledby="progress-at-a-glance" mt={8}>
+			<Heading id="progress-at-a-glance" size="lg" mb={2}>
+				Progress at a glance
+			</Heading>
+			<Text color="gray.600" mb={5}>
+				Review the same public project-health measures available on the student dashboard.
+			</Text>
+			<DashboardStats state={state} turns={turns} />
+			<BudgetTrendChart state={state} turns={turns} isComplete={isComplete} />
+			<TaskProgressDashboard state={state} turns={turns} />
+			<EmployeeStatusChart state={state} turns={turns} />
+		</Box>
+	);
+};
 
 const ClassResultDetail = () => {
 	const { class_id: classId, run_id: runId } = useParams();
@@ -80,6 +114,7 @@ const ClassResultDetail = () => {
 				</Box>
 			</SimpleGrid>
 			<FinalResult result={result.final_result} />
+			<ProgressAtAGlance result={result} />
 			<ProfessorAuthoredTimeline audit={result.contentAudit} />
 			<Heading size="md" mt={8} mb={4}>
 				Weekly decisions and outcomes
