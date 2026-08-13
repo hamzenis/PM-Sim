@@ -9,7 +9,8 @@ simulation engine. Begin with the [backend orientation and quick start](../READM
 | Architecture | [Backend architecture](architecture.md) | Backend developers |
 | API | [HTTP API](api.md) | API consumers and frontend developers |
 | Simulation engine | [Simulation engine](simulation-engine.md) | Backend developers and scenario authors |
-| Authored content | [Authored scenario content](authored-content.md) | Scenario authors and professors |
+| Scenario authoring | [Scenario authoring and validation](scenario-authoring.md) | Scenario authors and professors |
+| Authored-content architecture | [Authored scenario content](authored-content.md) | Backend developers |
 | Data model | [Data model](data-model.md) | Backend developers and operators |
 | Operations | [SQLite classroom operations](sqlite-operations.md) | Operators |
 | Deployment | [Backend deployment](deployment.md) | Operators and maintainers |
