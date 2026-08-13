@@ -1,25 +1,31 @@
 {
     "schema_version": 1,
-    "name": "Datawarehouse Migration KT 1571220",
-    "description": "Monday Natural Products GmbH & Co. KG is a long-established producer and distributor of high-quality dietary supplements, recognized for innovative products and strong industry partnerships. The company is investing in a new Data Warehouse System to accelerate data processing, automate data preparation, improve reporting, and support strategic decision-making. The delivered platform must provide a maintainable, high-quality foundation for the client's future IT landscape and must include sufficient testing. Budget compliance is the client's highest priority because it demonstrates financial reliability and supports a long-term partnership. The implementation is also time-sensitive: connected systems cannot move forward until the Data Warehouse is available, although current business operations remain supported by the existing solution during the project.",
+    "name": "Monday Natural Products: Data Warehouse Migration",
+    "description": "The CFO of Monday Natural Products sponsors the migration from the company's legacy reporting platform to a maintainable data warehouse so leaders can receive faster, consistent information for operational and strategic decisions. Delivery depends on reliable data and subject-matter input from ERP, e-commerce, logistics, and finance teams, and the warehouse must go live within the fixed 14-week window. The client values budget predictability: although the simulation displays a nominal EUR 230,000 budget, management has reserved EUR 30,000 of it as contingency and expects the baseline plan to spend no more than EUR 200,000. Key risks include inconsistent source data, limited stakeholder availability, compressed unit and integration testing, and inadequate knowledge transfer to the support team. You are taking over as project manager and must balance delivery flow, quality, schedule, and transparent cost control.",
     "authored_content": {
         "fragments": [
             {
                 "id": "project_briefing",
-                "title": "Project Briefing",
-                "body": "Build and migrate to a maintainable Data Warehouse for Monday Natural Products. The platform must automate data preparation, improve processing and reporting, and support management decisions without compromising the client's currently stable operations.",
+                "title": "Initial Project Charter",
+                "body": "You are taking over as project manager. Deliver a maintainable warehouse integrating ERP, e-commerce, logistics, and finance data by the end of week 14. Protect current operations, establish data ownership, and plan unit, integration, and acceptance testing plus support-team knowledge transfer. The nominal budget is EUR 230,000; management has reserved EUR 30,000 for contingency, so plan to a EUR 200,000 baseline ceiling.",
                 "required": true
             },
             {
                 "id": "delivery_constraints",
-                "title": "Delivery Constraints",
-                "body": "Budget compliance has the highest client priority. Delivery speed matters because downstream IT work depends on the new platform, while sufficient unit and integration testing is required for a dependable handover.",
+                "title": "Week 4 Sponsor Update",
+                "body": "A new supplier-data compliance requirement needs traceable transformations and extra validation. At the same time, supplier costs have risen. The sponsor therefore imposes a new EUR 180,000 spending ceiling for the remainder of the project. This is a management constraint, not a change to the simulation's displayed EUR 230,000 nominal budget. Reforecast, protect the fixed go-live, and escalate trade-offs.",
+                "required": true
+            },
+            {
+                "id": "quality_readiness_briefing",
+                "title": "Quality and Readiness Briefing",
+                "body": "Before go-live, review rejected transformations, unresolved source-data issues, and coverage across ERP, e-commerce, logistics, and finance interfaces. Confirm stakeholder availability for acceptance decisions, preserve enough capacity for integration and regression testing, and schedule documented knowledge-transfer sessions. Recommend corrective action without treating unfinished or untested work as delivered value.",
                 "required": true
             },
             {
                 "id": "handover_briefing",
-                "title": "Handover Review",
-                "body": "Review the accepted workload, remaining defects, elapsed time, and total cost. Consider whether the delivered platform gives the client a reliable basis for operating and extending its IT landscape.",
+                "title": "Steering-Committee Review",
+                "body": "Present the terminal review to the steering committee. Compare accepted scope, defects, elapsed time, and total cost with the fixed go-live and management's EUR 180,000 spending ceiling, while also reporting the engine's unchanged EUR 230,000 nominal budget. Explain your major trade-off, residual data and operational risks, test evidence, stakeholder acceptance, and whether the support team can operate the warehouse.",
                 "required": true
             }
         ],
@@ -90,28 +96,6 @@
         ],
         "events": [
             {
-                "id": "budget_review",
-                "effects": [
-                    {
-                        "type": "show_message",
-                        "payload": {
-                            "text": "Budget review: compare the current burn rate with the remaining migration and testing workload."
-                        }
-                    }
-                ]
-            },
-            {
-                "id": "quality_gate",
-                "effects": [
-                    {
-                        "type": "show_message",
-                        "payload": {
-                            "text": "Quality gate: completed development is not delivered value until it has passed unit and integration testing."
-                        }
-                    }
-                ]
-            },
-            {
                 "id": "handover_ready",
                 "effects": [
                     {
@@ -133,23 +117,13 @@
                 "fragment_id": "project_briefing"
             },
             {
-                "id": "s_delivery_constraints",
-                "trigger": {
-                    "type": "run_started"
-                },
-                "fragment_id": "delivery_constraints",
-                "depends_on": [
-                    "s_project_briefing"
-                ]
-            },
-            {
                 "id": "s_initial_strategy",
                 "trigger": {
                     "type": "run_started"
                 },
                 "question_id": "initial_strategy",
                 "depends_on": [
-                    "s_delivery_constraints"
+                    "s_project_briefing"
                 ]
             },
             {
@@ -158,7 +132,7 @@
                     "type": "after_week",
                     "week": 4
                 },
-                "event_id": "budget_review",
+                "fragment_id": "delivery_constraints",
                 "depends_on": [
                     "s_initial_strategy"
                 ]
@@ -180,7 +154,7 @@
                     "type": "after_week",
                     "week": 8
                 },
-                "event_id": "quality_gate",
+                "fragment_id": "quality_readiness_briefing",
                 "depends_on": [
                     "s_migration_risks"
                 ]
