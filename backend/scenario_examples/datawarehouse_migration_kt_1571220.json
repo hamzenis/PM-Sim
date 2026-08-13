@@ -1,19 +1,13 @@
 {
     "schema_version": 1,
     "name": "Monday Natural Products: Data Warehouse Migration",
-    "description": "The CFO of Monday Natural Products sponsors the migration from the company's legacy reporting platform to a maintainable data warehouse so leaders can receive faster, consistent information for operational and strategic decisions. Delivery depends on reliable data and subject-matter input from ERP, e-commerce, logistics, and finance teams, and the warehouse must go live within the fixed 14-week window. The client values budget predictability: although the simulation displays a nominal EUR 240,000 budget, management has reserved EUR 30,000 of it as contingency and expects the baseline plan to spend no more than EUR 210,000. Key risks include inconsistent source data, limited stakeholder availability, compressed unit and integration testing, and inadequate knowledge transfer to the support team. You are taking over as project manager and must balance delivery flow, quality, schedule, and transparent cost control.",
+    "description": "The CFO of Monday Natural Products sponsors the migration from the company's legacy reporting platform to a maintainable data warehouse so leaders can receive faster, consistent information for operational and strategic decisions. Delivery depends on reliable data and subject-matter input from ERP, e-commerce, logistics, and finance teams, and the warehouse must go live within the fixed 14-week window. The approved project budget is EUR 240,000, including a visible EUR 30,000 management contingency that is unavailable without sponsor approval. Key risks include inconsistent source data, limited stakeholder availability, compressed unit and integration testing, and inadequate knowledge transfer to the support team. You are taking over as project manager and must balance delivery flow, quality, schedule, and transparent cost control.",
     "authored_content": {
         "fragments": [
             {
                 "id": "project_briefing",
                 "title": "Initial Project Charter",
-                "body": "You are taking over as project manager. Deliver a maintainable warehouse integrating ERP, e-commerce, logistics, and finance data by the end of week 14. Protect current operations, establish data ownership, and plan unit, integration, and acceptance testing plus support-team knowledge transfer. The nominal budget is EUR 240,000; management has reserved EUR 30,000 for contingency, so plan to a EUR 210,000 baseline ceiling.",
-                "required": true
-            },
-            {
-                "id": "delivery_constraints",
-                "title": "Week 4 Sponsor Update",
-                "body": "A new supplier-data compliance requirement needs traceable transformations and extra validation. At the same time, supplier costs have risen. The sponsor therefore imposes a new EUR 190,000 spending ceiling for the remainder of the project. This is a management constraint, not a change to the simulation's displayed EUR 240,000 nominal budget. Reforecast, protect the fixed go-live, and escalate trade-offs.",
+                "body": "Take over as project manager and deliver a maintainable warehouse integrating ERP, e-commerce, logistics, and finance data by the end of week 14. Protect operations, establish data ownership, and plan unit, integration, and acceptance testing plus support-team knowledge transfer. The approved total is EUR 240,000, including a visible EUR 30,000 management contingency unavailable for migration work without sponsor approval. Plan migration work within EUR 210,000.",
                 "required": true
             },
             {
@@ -25,7 +19,7 @@
             {
                 "id": "handover_briefing",
                 "title": "Steering-Committee Review",
-                "body": "Present the terminal review to the steering committee. Compare accepted scope, defects, elapsed time, and total cost with the fixed go-live and management's EUR 190,000 spending ceiling, while also reporting the engine's unchanged EUR 240,000 nominal budget. Explain your major trade-off, residual data and operational risks, test evidence, stakeholder acceptance, and whether the support team can operate the warehouse.",
+                "body": "Present the terminal review to the steering committee. Compare accepted scope, defects, elapsed time, and cumulative cost with the fixed go-live and the sponsor's effective EUR 210,000 spending ceiling, while also reporting the engine's unchanged EUR 240,000 nominal budget. Explain your major trade-off, residual data and operational risks, test evidence, stakeholder acceptance, and whether the support team can operate the warehouse.",
                 "required": true
             }
         ],
@@ -110,36 +104,14 @@
             },
             {
                 "id": "spending_ceiling_response",
-                "prompt": "The sponsor has announced the EUR 190,000 spending ceiling. Which immediate response will you authorize?",
-                "answer_schema": "single_choice",
-                "options": [
-                    {
-                        "id": "scope_negotiation",
-                        "label": "Negotiate controlled scope trades while protecting acceptance and compliance"
-                    },
-                    {
-                        "id": "staff_cuts",
-                        "label": "Cut staff evenly across every role and workstream"
-                    },
-                    {
-                        "id": "sustained_overtime",
-                        "label": "Hold scope and staffing cost by relying on sustained overtime"
-                    },
-                    {
-                        "id": "evidence_replan",
-                        "label": "Reforecast from accepted work, defects, capacity, and remaining risk"
-                    }
-                ],
-                "feedback_by_option": {
-                    "scope_negotiation": "Explicit trades can align cost and time while protecting critical quality, but stakeholders may lose valued outcomes and negotiations must not delay the fixed date.",
-                    "staff_cuts": "Uniform cuts lower forecast cost quickly and appear equitable. They can remove scarce skills, slow interfaces, weaken testing, and leave owners uncertain about accountability.",
-                    "sustained_overtime": "Overtime may preserve near-term milestones without immediate hiring cost. Sustained use increases fatigue, defects, turnover risk, and stakeholder doubt about whether the plan is credible.",
-                    "evidence_replan": "Evidence exposes the cost-to-complete and supports defensible allocation changes. Analysis takes time and may reveal that scope, risk tolerance, or expectations still require sponsor negotiation."
-                }
+                "prompt": "Before week 5 begins, select a recovery approach (controlled scope trades, targeted staffing changes, schedule/productivity measures, or an evidence-based replan) and justify how it will keep cumulative migration cost at or below EUR 210,000 while protecting the fixed go-live, compliance, and quality.",
+                "answer_schema": "short_text",
+                "required": true,
+                "short_text_max_length": 500
             },
             {
                 "id": "go_no_go_readiness",
-                "prompt": "Give a go/no-go recommendation. Support it with the current forecast against the EUR 190,000 ceiling, accepted work, unresolved quality or test work, and time remaining to week 14.",
+                "prompt": "Give a go/no-go recommendation. Support it with the current forecast against the EUR 210,000 ceiling, accepted work, unresolved quality or test work, and time remaining to week 14.",
                 "answer_schema": "short_text",
                 "short_text_max_length": 500
             },
@@ -151,6 +123,24 @@
             }
         ],
         "events": [
+            {
+                "id": "contingency_consumed",
+                "effects": [
+                    {
+                        "type": "show_message",
+                        "payload": {
+                            "text": "Week 4 sponsor notice: an unforeseen regulatory labelling requirement has consumed the EUR 30,000 management contingency. The sponsor's effective ceiling for cumulative migration cost is now EUR 210,000. Compare that absolute target with dashboard cumulative cost; the dashboard's displayed EUR 240,000 budget and remaining-budget figure have not changed. Select and justify a recovery approach before week 5."
+                        }
+                    },
+                    {
+                        "type": "set_presentation_flag",
+                        "payload": {
+                            "flag": "contingency_consumed_notice",
+                            "value": true
+                        }
+                    }
+                ]
+            },
             {
                 "id": "handover_ready",
                 "effects": [
@@ -196,7 +186,7 @@
                     "type": "after_week",
                     "week": 4
                 },
-                "fragment_id": "delivery_constraints"
+                "event_id": "contingency_consumed"
             },
             {
                 "id": "s_spending_ceiling_response",
