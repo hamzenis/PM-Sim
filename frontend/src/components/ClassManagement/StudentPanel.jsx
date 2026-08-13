@@ -16,6 +16,7 @@ import {
 	Tr,
 } from '@chakra-ui/react';
 import React, { useState } from 'react';
+import { EmptyState } from '../FeedbackStates';
 
 const StudentPanel = ({ className, selectedId, students, isBusy, onCreate, onAdd, onReset, onRemove }) => {
 	const [username, setUsername] = useState('');
@@ -28,11 +29,20 @@ const StudentPanel = ({ className, selectedId, students, isBusy, onCreate, onAdd
 	};
 
 	return (
-		<Box as="section" aria-labelledby="roster-heading" bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" borderWidth="1px">
+		<Box
+			as="section"
+			aria-labelledby="roster-heading"
+			bg="white"
+			p={{ base: 4, md: 6 }}
+			borderRadius="xl"
+			borderWidth="1px"
+		>
 			<Heading size="md" mb={4}>
 				<span id="roster-heading">Student roster</span>
 			</Heading>
-			<Text color="gray.600" mb={5}>Create student accounts or add an existing student to {className || 'the selected class'}.</Text>
+			<Text color="gray.600" mb={5}>
+				Create student accounts or add an existing student to {className || 'the selected class'}.
+			</Text>
 			<Stack direction={{ base: 'column', md: 'row' }} mb={6} align="end">
 				<FormControl>
 					<FormLabel>Username</FormLabel>
@@ -51,43 +61,54 @@ const StudentPanel = ({ className, selectedId, students, isBusy, onCreate, onAdd
 				>
 					Create student
 				</Button>
-				<Button minW="160px" isLoading={isBusy} isDisabled={!selectedId || !username.trim()} onClick={() => onAdd(username)}>
+				<Button
+					minW="160px"
+					isLoading={isBusy}
+					isDisabled={!selectedId || !username.trim()}
+					onClick={() => onAdd(username)}
+				>
 					Add existing
 				</Button>
 			</Stack>
 			{students.length === 0 ? (
-				<Text>No students in this class.</Text>
+				<EmptyState
+					title="No students in this class"
+					description={`No students have joined ${className || 'this class'} yet. Create a student account above or add an existing student by username.`}
+				/>
 			) : (
-				<Box overflowX="auto"><Table>
-					<Thead>
-						<Tr>
-							<Th>Username</Th>
-							<Th>Actions</Th>
-						</Tr>
-					</Thead>
-					<Tbody>
-						{students.map((student) => (
-							<Tr key={student.id}>
-								<Td>{student.username}</Td>
-								<Td>
-									<Flex gap={2} wrap="wrap">
-										<Button size="sm" onClick={() => onReset(student)}>
-											Reset password
-										</Button>
-										<Button
-											size="sm"
-											colorScheme="red"
-											variant="outline"
-											onClick={() => onRemove(student)}
-										>
-											Remove
-										</Button>
-									</Flex>
-								</Td>
+				<Box overflowX="auto">
+					<Table>
+						<Thead>
+							<Tr>
+								<Th>Username</Th>
+								<Th>Actions</Th>
 							</Tr>
-						))}
-					</Tbody>
-				</Table></Box>
+						</Thead>
+						<Tbody>
+							{students.map((student) => (
+								<Tr key={student.id}>
+									<Td>{student.username}</Td>
+									<Td>
+										<Flex gap={2} wrap="wrap">
+											<Button size="sm" isDisabled={isBusy} onClick={() => onReset(student)}>
+												Reset password
+											</Button>
+											<Button
+												size="sm"
+												colorScheme="red"
+												variant="outline"
+												isDisabled={isBusy}
+												onClick={() => onRemove(student)}
+											>
+												Remove
+											</Button>
+										</Flex>
+									</Td>
+								</Tr>
+							))}
+						</Tbody>
+					</Table>
+				</Box>
 			)}
 		</Box>
 	);

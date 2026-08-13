@@ -22,6 +22,7 @@ import ResetPasswordDialog from '../components/ClassManagement/ResetPasswordDial
 import ResultsPanel from '../components/ClassManagement/ResultsPanel';
 import ScenarioPanel from '../components/ClassManagement/ScenarioPanel';
 import StudentPanel from '../components/ClassManagement/StudentPanel';
+import { EmptyState, PageLoadingState, RequestError } from '../components/FeedbackStates';
 
 const CourseOverview = () => {
 	const [classes, setClasses] = useState([]);
@@ -33,6 +34,7 @@ const CourseOverview = () => {
 	const [error, setError] = useState('');
 	const [message, setMessage] = useState('');
 	const [isBusy, setIsBusy] = useState(false);
+	const [isLoading, setIsLoading] = useState(true);
 	const [resetStudent, setResetStudent] = useState(null);
 	const [confirmation, setConfirmation] = useState(null);
 
@@ -62,11 +64,14 @@ const CourseOverview = () => {
 	};
 
 	useEffect(() => {
-		loadClasses().catch((requestError) => setError(requestError.message));
-		listOwnedScenarios()
-			.then((scenarios) => Promise.all(scenarios.map((scenario) => listScenarioRevisions(scenario.id))))
-			.then((groups) => setPublishedRevisions(groups.flat().filter((item) => item.status === 'published')))
-			.catch((requestError) => setError(requestError.message));
+		Promise.all([
+			loadClasses(),
+			listOwnedScenarios()
+				.then((scenarios) => Promise.all(scenarios.map((scenario) => listScenarioRevisions(scenario.id))))
+				.then((groups) => setPublishedRevisions(groups.flat().filter((item) => item.status === 'published'))),
+		])
+			.catch((requestError) => setError(requestError.message || 'Could not load the professor workspace.'))
+			.finally(() => setIsLoading(false));
 	}, []);
 
 	useEffect(() => {
@@ -80,6 +85,7 @@ const CourseOverview = () => {
 	}, [selectedId]);
 
 	const runAction = async (action, successMessage, refreshDetails = true) => {
+		if (isBusy) return false;
 		setIsBusy(true);
 		setError('');
 		setMessage('');
@@ -149,12 +155,7 @@ const CourseOverview = () => {
 			<Text color="gray.600" mb={6}>
 				Manage each class roster, scenario assignments, and simulation results in one place.
 			</Text>
-			{error && (
-				<Alert status="error" mb={4}>
-					<AlertIcon />
-					{error}
-				</Alert>
-			)}
+			{error && <RequestError title="Couldn’t complete the request" message={error} mb={4} />}
 			{message && (
 				<Alert status="success" mb={4}>
 					<AlertIcon />
@@ -162,63 +163,110 @@ const CourseOverview = () => {
 				</Alert>
 			)}
 
-			{selectedClass && <Box bg="blue.50" borderRadius="xl" p={{ base: 4, md: 6 }} mb={6}>
-				<Text fontSize="sm" color="blue.700" fontWeight="bold" textTransform="uppercase">Selected class</Text>
-				<Heading size="lg" mt={1}>{selectedClass.name}</Heading>
-				<Text color="gray.600" mt={2}>Review your roster, assignments, and student progress below.</Text>
-			</Box>}
+			{isLoading ? (
+				<PageLoadingState label="Loading professor workspace…" />
+			) : (
+				<>
+					{selectedClass && (
+						<Box bg="blue.50" borderRadius="xl" p={{ base: 4, md: 6 }} mb={6}>
+							<Text fontSize="sm" color="blue.700" fontWeight="bold" textTransform="uppercase">
+								Selected class
+							</Text>
+							<Heading size="lg" mt={1}>
+								{selectedClass.name}
+							</Heading>
+							<Text color="gray.600" mt={2}>
+								Review your roster, assignments, and student progress below.
+							</Text>
+						</Box>
+					)}
 
-			<Box>
-				<ClassPanel
-					classes={classes}
-					selectedId={selectedId}
-					selectedClass={selectedClass}
-					isBusy={isBusy}
-					onSelect={setSelectedId}
-					onCreate={createNewClass}
-					onRename={renameSelectedClass}
-					onArchive={archiveSelectedClass}
-				/>
-			</Box>
+					<Box>
+						<ClassPanel
+							classes={classes}
+							selectedId={selectedId}
+							selectedClass={selectedClass}
+							isBusy={isBusy}
+							onSelect={setSelectedId}
+							onCreate={createNewClass}
+							onRename={renameSelectedClass}
+							onArchive={archiveSelectedClass}
+						/>
+					</Box>
 
-			{selectedClass ? <Stack spacing={6} mt={6}>
-				<SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4}>
-					{[
-						['Students', students.length],
-						['Assigned scenarios', assignments.length],
-						['Results', results.length],
-					].map(([label, count]) => <Box key={label} bg="white" borderWidth="1px" borderRadius="lg" p={4}><Text color="gray.600" fontSize="sm">{label}</Text><Text fontSize="3xl" fontWeight="bold">{count}</Text></Box>)}
-				</SimpleGrid>
-				<StudentPanel
-					className={selectedClass.name}
-					selectedId={selectedId}
-					students={students}
-					isBusy={isBusy}
-					onCreate={(username, password) => runAction(() => importStudents(selectedId, [{ username, password }]), `Student ${username} created and added.`)}
-					onAdd={(username) => runAction(() => addStudent(selectedId, username), `Student ${username} added.`)}
-					onReset={setResetStudent}
-					onRemove={(student) => askForConfirmation('Remove student', `Remove ${student.username} from ${selectedClass.name}?`, 'Remove', () => removeStudent(selectedId, student.id), `${student.username} removed from the class.`)}
-				/>
-				<ScenarioPanel
-					selectedId={selectedId}
-					revisions={publishedRevisions}
-					assignments={assignments}
-					isBusy={isBusy}
-					onAssign={(revisionId) =>
-						runAction(() => assignScenario(selectedId, revisionId), 'Scenario assigned.')
-					}
-					onUnassign={(assignment) =>
-						askForConfirmation(
-							'Unassign scenario',
-							`Unassign ${assignment.scenario_name}, revision ${assignment.revision_number}, from ${selectedClass.name}?`,
-							'Unassign',
-							() => unassignScenario(selectedId, assignment.id),
-							'Scenario unassigned.'
-						)
-					}
-				/>
-				<ResultsPanel classId={selectedId} results={results} />
-			</Stack> : <Box mt={6} p={8} textAlign="center" borderWidth="1px" borderRadius="xl"><Heading size="md">No class selected</Heading><Text color="gray.600" mt={2}>Choose or create a class to open its workspace.</Text></Box>}
+					{selectedClass ? (
+						<Stack spacing={6} mt={6}>
+							<SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4}>
+								{[
+									['Students', students.length],
+									['Assigned scenarios', assignments.length],
+									['Results', results.length],
+								].map(([label, count]) => (
+									<Box key={label} bg="white" borderWidth="1px" borderRadius="lg" p={4}>
+										<Text color="gray.600" fontSize="sm">
+											{label}
+										</Text>
+										<Text fontSize="3xl" fontWeight="bold">
+											{count}
+										</Text>
+									</Box>
+								))}
+							</SimpleGrid>
+							<StudentPanel
+								className={selectedClass.name}
+								selectedId={selectedId}
+								students={students}
+								isBusy={isBusy}
+								onCreate={(username, password) =>
+									runAction(
+										() => importStudents(selectedId, [{ username, password }]),
+										`Student ${username} created and added.`
+									)
+								}
+								onAdd={(username) =>
+									runAction(() => addStudent(selectedId, username), `Student ${username} added.`)
+								}
+								onReset={setResetStudent}
+								onRemove={(student) =>
+									askForConfirmation(
+										'Remove student',
+										`Remove ${student.username} from ${selectedClass.name}?`,
+										'Remove',
+										() => removeStudent(selectedId, student.id),
+										`${student.username} removed from the class.`
+									)
+								}
+							/>
+							<ScenarioPanel
+								selectedId={selectedId}
+								revisions={publishedRevisions}
+								assignments={assignments}
+								isBusy={isBusy}
+								onAssign={(revisionId) =>
+									runAction(() => assignScenario(selectedId, revisionId), 'Scenario assigned.')
+								}
+								onUnassign={(assignment) =>
+									askForConfirmation(
+										'Unassign scenario',
+										`Unassign ${assignment.scenario_name}, revision ${assignment.revision_number}, from ${selectedClass.name}?`,
+										'Unassign',
+										() => unassignScenario(selectedId, assignment.id),
+										'Scenario unassigned.'
+									)
+								}
+							/>
+							<ResultsPanel classId={selectedId} results={results} />
+						</Stack>
+					) : (
+						<Box mt={6}>
+							<EmptyState
+								title="No classes yet"
+								description="There are no active classes to select. Create a class above to start adding students and assigning scenarios."
+							/>
+						</Box>
+					)}
+				</>
+			)}
 
 			<ResetPasswordDialog
 				student={resetStudent}

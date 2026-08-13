@@ -13,16 +13,23 @@ const ConfirmDialog = ({ isOpen, title, message, confirmLabel = 'Confirm', onCan
 	const cancelRef = useRef();
 
 	return (
-		<AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={onCancel}>
+		<AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={isBusy ? undefined : onCancel}>
 			<AlertDialogOverlay>
 				<AlertDialogContent>
 					<AlertDialogHeader>{title}</AlertDialogHeader>
 					<AlertDialogBody>{message}</AlertDialogBody>
 					<AlertDialogFooter>
-						<Button ref={cancelRef} onClick={onCancel}>
+						<Button ref={cancelRef} isDisabled={isBusy} onClick={onCancel}>
 							Cancel
 						</Button>
-						<Button colorScheme="red" ml={3} isLoading={isBusy} onClick={onConfirm}>
+						<Button
+							colorScheme="red"
+							ml={3}
+							isLoading={isBusy}
+							loadingText={confirmLabel}
+							isDisabled={isBusy}
+							onClick={onConfirm}
+						>
 							{confirmLabel}
 						</Button>
 					</AlertDialogFooter>

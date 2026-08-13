@@ -1,23 +1,8 @@
-import {
-	Alert,
-	AlertIcon,
-	Box,
-	Button,
-	Container,
-	Flex,
-	Heading,
-	Spinner,
-	Table,
-	Tbody,
-	Td,
-	Th,
-	Thead,
-	Tr,
-	Text,
-} from '@chakra-ui/react';
+import { Box, Button, Container, Flex, Heading, Table, Tbody, Td, Th, Thead, Tr, Text } from '@chakra-ui/react';
 import React, { useEffect, useState } from 'react';
 import { listAuditEntries } from '../api/audit';
 import { formatDateTime, plainLanguageLabel } from '../utils/resultPresentation';
+import { EmptyState, PageLoadingState, RequestError } from '../components/FeedbackStates';
 
 const PAGE_SIZE = 50;
 
@@ -39,15 +24,22 @@ const AuditOverview = () => {
 	return (
 		<Container maxW="7xl" py={8} flexGrow={1}>
 			<Heading mb={2}>Administrative audit</Heading>
-			<Text mb={6}>Professor activity history. Support identifiers and raw records are available in each row’s technical details.</Text>
-			{error && (
-				<Alert status="error" mb={4}>
-					<AlertIcon />
-					{error}
-				</Alert>
-			)}
+			<Text mb={6}>
+				Professor activity history. Support identifiers and raw records are available in each row’s technical
+				details.
+			</Text>
+			{error && <RequestError title="Couldn’t load audit activity" message={error} mb={4} />}
 			{isLoading ? (
-				<Spinner />
+				<PageLoadingState label="Loading audit activity…" />
+			) : entries.length === 0 ? (
+				<EmptyState
+					title="No audit activity on this page"
+					description={
+						offset === 0
+							? 'No professor actions have been recorded yet. Activity will appear here after professors manage classes or scenarios.'
+							: 'There are no more recorded actions. Return to the previous page to review earlier activity.'
+					}
+				/>
 			) : (
 				<Table bg="white">
 					<Thead>
@@ -64,7 +56,14 @@ const AuditOverview = () => {
 								<Td>{plainLanguageLabel(entry.action)}</Td>
 								<Td>
 									{plainLanguageLabel(entry.target_type)}
-									<Box as="details" mt={1}><Box as="summary" cursor="pointer" fontWeight="semibold">Technical details</Box><Text>Target UUID: {entry.target_id}</Text><Box as="pre" overflowX="auto" fontSize="xs">{JSON.stringify(entry.details, null, 2)}</Box></Box>
+									<Box as="details" mt={1}>
+										<Box as="summary" cursor="pointer" fontWeight="semibold">
+											Technical details
+										</Box>
+										<Box as="pre" overflowX="auto" fontSize="xs">
+											{JSON.stringify(entry.details, null, 2)}
+										</Box>
+									</Box>
 								</Td>
 							</Tr>
 						))}
