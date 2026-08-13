@@ -236,3 +236,9 @@ during play. It must only appear in professor screens. Its `content_audit` objec
 
 The projection digests cover canonical student presentation state, not simulation state or score.
 Professor replay is read-only and does not synthesize historical deliveries, responses, or effects.
+
+## Related documentation
+
+- [Frontend API integration](../../frontend/docs/api-integration.md)
+- [Frontend authentication](../../frontend/docs/authentication.md)
+- [Authored scenario content](authored-content.md)

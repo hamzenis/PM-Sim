@@ -55,3 +55,16 @@ feat: #73 add hat wobble
 ## Pull Requests
 
 Sobald ein Issue gelöst wurde, wird ein Pull Request zum Mergen des Branches in den *develop* Branch erstellt. Der PR muss dann mindestens ein Approval bekommen und die Tests bestehen, um dann gemergt zu werden.
+
+## Dokumentation pflegen
+
+- Übergreifende Orientierung gehört in die Root-[`README.md`](README.md). Backend-Themen gehören
+  unter [`backend/docs/`](backend/docs/README.md), Frontend-Themen unter
+  [`frontend/docs/`](frontend/docs/README.md). Die jeweiligen `README.md`-Dateien bleiben kurze
+  Einstiegs- und Schnellstartseiten.
+- Änderungen an Verhalten, API-Verträgen, Konfiguration, Datenmodell, Bedienabläufen oder Betrieb
+  müssen die betroffenen Anleitungen im selben Pull Request aktualisieren. Gekoppelte Backend- und
+  Frontend-Themen erhalten gegenseitige Links unter **Related documentation**.
+- Befehle und Codebeispiele müssen aus dem angegebenen Arbeitsverzeichnis ausgeführt beziehungsweise
+  gegen die aktuelle Schnittstelle geprüft werden. Beispiel-Payloads müssen validiert und relative
+  Links vor dem Review auf erreichbare Ziele geprüft werden.

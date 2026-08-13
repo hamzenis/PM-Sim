@@ -55,6 +55,20 @@ npm run lint
 npm run build
 ```
 
-See [`backend/README.md`](backend/README.md),
-[`backend/docs/architecture.md`](backend/docs/architecture.md), and
-[`frontend/README.md`](frontend/README.md) for more detail.
+## Documentation map
+
+Choose the path that matches what you are trying to do:
+
+| Audience | Start here | Continue with |
+| --- | --- | --- |
+| New contributors | [Contributing](CONTRIBUTING.md) | [Backend quick start](backend/README.md) or [frontend quick start](frontend/README.md) |
+| Backend developers | [Backend documentation](backend/docs/README.md) | [Architecture](backend/docs/architecture.md), [development](backend/docs/development.md), and [testing](backend/docs/testing.md) |
+| Frontend developers | [Frontend documentation](frontend/docs/README.md) | [Architecture](frontend/docs/architecture.md), [API integration](frontend/docs/api-integration.md), and [testing](frontend/docs/testing.md) |
+| Operators | [Backend operations](backend/docs/sqlite-operations.md) | [Backend setup and configuration](backend/docs/development.md) and [frontend deployment](frontend/docs/deployment.md) |
+| API consumers | [HTTP API](backend/docs/api.md) | [Authentication](frontend/docs/authentication.md) and [frontend adapters](frontend/docs/api-integration.md) |
+| Scenario authors | [Authored scenario content](backend/docs/authored-content.md) | [Simulation engine](backend/docs/simulation-engine.md) and [data model](backend/docs/data-model.md) |
+| Professors | [Professor workflows](frontend/docs/routing.md#professor-workflows) | [Scenario authoring](backend/docs/authored-content.md) |
+| Students | [Student workflows](frontend/docs/routing.md#student-workflows) | [Accessibility and keyboard use](frontend/docs/accessibility.md) |
+
+The two documentation indexes are the complete inventories for the
+[`backend`](backend/docs/README.md) and [`frontend`](frontend/docs/README.md).

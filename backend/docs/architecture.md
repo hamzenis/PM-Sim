@@ -143,3 +143,9 @@ by the database engine factory. The CLI also creates professor accounts, removes
 sessions, and produces consistent SQLite backups.
 
 No container runtime is required or assumed.
+
+## Related documentation
+
+- [Data model](data-model.md)
+- [Simulation engine](simulation-engine.md)
+- [Architecture decision records](adr/README.md)
