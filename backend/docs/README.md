@@ -12,6 +12,7 @@ simulation engine. Begin with the [backend orientation and quick start](../READM
 | Authored content | [Authored scenario content](authored-content.md) | Scenario authors and professors |
 | Data model | [Data model](data-model.md) | Backend developers and operators |
 | Operations | [SQLite classroom operations](sqlite-operations.md) | Operators |
+| Deployment | [Backend deployment](deployment.md) | Operators and maintainers |
 | Testing | [Backend testing](testing.md) | Contributors and backend developers |
 | Decisions | [Architecture decision records](adr/README.md) | Maintainers |
 
