@@ -1,10 +1,11 @@
-import { Box, Grid, Heading, SimpleGrid, Stat, StatHelpText, StatLabel, StatNumber, Text } from '@chakra-ui/react';
+import { Box, Grid, SimpleGrid, Stat, StatHelpText, StatLabel, StatNumber } from '@chakra-ui/react';
 import React from 'react';
+import { CHART, ChartCard, ChartDataTable, ChartGrid, ChartLegend, EmptyChart } from './ChartPresentation';
 
 const metrics = [
-	{ key: 'stress', label: 'Stress', color: '#E53E3E' },
-	{ key: 'motivation', label: 'Motivation', color: '#3182CE' },
-	{ key: 'familiarity', label: 'Familiarity', color: '#38A169' },
+	{ key: 'stress', label: 'Stress', color: 'var(--chakra-colors-chart-stress)', marker: 'circle' },
+	{ key: 'motivation', label: 'Motivation', color: 'var(--chakra-colors-chart-motivation)', marker: 'square' },
+	{ key: 'familiarity', label: 'Familiarity', color: 'var(--chakra-colors-chart-familiarity)', dashed: true },
 ];
 
 const finiteNumber = (value) => {
@@ -54,25 +55,26 @@ const formatChange = (current, previous) => {
 };
 
 const TrendChart = ({ snapshots }) => {
-	const x = (index) => (snapshots.length === 1 ? 50 : 5 + (index / (snapshots.length - 1)) * 90);
-	const y = (value) => 90 - toPercentage(value) * 0.8;
+	if (snapshots.length === 0) return <EmptyChart>No employee status history is available yet.</EmptyChart>;
+	const getXPosition = (index) => (snapshots.length === 1 ? 55 : CHART.left + (index / (snapshots.length - 1)) * (CHART.right - CHART.left));
+	const getYPosition = (value) => CHART.bottom - toPercentage(value) / 100 * (CHART.bottom - CHART.top);
 
 	return (
 		<Box minW={0}>
-			<Box as="svg" viewBox="0 0 100 100" width="100%" height="280px" role="img" aria-label="Weekly team-average employee status percentages">
-				<line x1="5" y1="90" x2="95" y2="90" stroke="#CBD5E0" strokeWidth="0.7" />
-				{metrics.map(({ key, label, color }) => {
+			<Box as="svg" viewBox="0 0 100 104" width="100%" height={{ base: '210px', md: '280px' }} role="img" aria-label="Weekly team-average employee status percentages">
+				<desc>Stress, motivation, and familiarity team averages shown as percentages for each project week.</desc>
+				<ChartGrid ticks={[0, 0.5, 1]} getYPosition={getYPosition} formatTick={(value) => `${toPercentage(value)}%`} xLabel="Project week" yLabel="Team average (%)" />
+				{metrics.map(({ key, color, dashed }) => {
 					const points = snapshots
-						.map((snapshot, index) => snapshot[key] === null ? null : `${x(index)},${y(snapshot[key])}`)
+						.map((snapshot, index) => snapshot[key] === null ? null : `${getXPosition(index)},${getYPosition(snapshot[key])}`)
 						.filter(Boolean)
 						.join(' ');
-					return points && <polyline key={key} aria-label={label} points={points} fill="none" stroke={color} strokeWidth="2" />;
+					return points && <polyline key={key} points={points} fill="none" stroke={color} strokeWidth="2" strokeDasharray={dashed ? '4 3' : undefined} />;
 				})}
-				{snapshots.map(({ week }, index) => <text key={week} x={x(index)} y="99" fontSize="4" textAnchor="middle">W{week}</text>)}
+				{snapshots.map(({ week }, index) => <text key={week} x={getXPosition(index)} y="90" fontSize="3.5" textAnchor="middle">W{week}</text>)}
 			</Box>
-			<SimpleGrid columns={{ base: 1, sm: 3 }} spacing={2} mt={2}>
-				{metrics.map(({ key, label, color }) => <Text key={key} color={color} fontSize="sm">● {label}</Text>)}
-			</SimpleGrid>
+			<ChartLegend items={metrics} />
+			<ChartDataTable caption="Employee status trend data" columns={['Week', ...metrics.map(({ label }) => label)]} rows={snapshots.map((snapshot) => [`Week ${snapshot.week}`, ...metrics.map(({ key }) => snapshot[key] === null ? 'No employees' : formatPercentage(snapshot[key]))])} />
 		</Box>
 	);
 };
@@ -82,13 +84,9 @@ const EmployeeStatusChart = ({ state, turns = [] }) => {
 	const { current, previous } = trend;
 
 	return (
-		<Box bg="white" borderRadius="2xl" p={7} mb={8}>
-			<Heading size="md">Employee status</Heading>
-			<Text color="gray.600" fontSize="sm" mt={2} mb={5}>
-				These are per-week team averages. The employees included can change through hiring and dismissal.
-			</Text>
+		<ChartCard title="Employee status" description="These are per-week team averages. The employees included can change through hiring and dismissal.">
 			{current.employeeCount === 0 ? (
-				<Text fontWeight="semibold">No employees</Text>
+				<EmptyChart>No employees</EmptyChart>
 			) : (
 				<Grid templateColumns={{ base: '1fr', lg: 'minmax(0, 3fr) minmax(260px, 2fr)' }} gap={7}>
 					<TrendChart snapshots={trend.snapshots} />
@@ -108,7 +106,7 @@ const EmployeeStatusChart = ({ state, turns = [] }) => {
 					</SimpleGrid>
 				</Grid>
 			)}
-		</Box>
+		</ChartCard>
 	);
 };
 

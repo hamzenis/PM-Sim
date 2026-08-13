@@ -1,13 +1,14 @@
-import { Box, Grid, Heading, SimpleGrid, Text } from '@chakra-ui/react';
+import { Box, Grid, SimpleGrid, Text } from '@chakra-ui/react';
 import React from 'react';
+import { CHART, ChartCard, ChartDataTable, ChartGrid, ChartLegend, EmptyChart } from './ChartPresentation';
 import StatCard from './StatCard';
 import { taskPoolTotal } from './taskPool';
 
 const series = [
-	{ key: 'tasks_completed', label: 'Completed', color: '#3182ce' },
-	{ key: 'tasks_unit_tested', label: 'Unit tested', color: '#805ad5' },
-	{ key: 'tasks_integration_tested', label: 'Integration tested', color: '#38a169' },
-	{ key: 'known_bugs', label: 'Known bugs', color: '#e53e3e' },
+	{ key: 'tasks_completed', label: 'Completed', color: 'var(--chakra-colors-chart-completed)', marker: 'circle' },
+	{ key: 'tasks_unit_tested', label: 'Unit tested', color: 'var(--chakra-colors-chart-unitTested)', marker: 'square' },
+	{ key: 'tasks_integration_tested', label: 'Integration tested', color: 'var(--chakra-colors-chart-integrationTested)', dashed: true },
+	{ key: 'known_bugs', label: 'Known bugs', color: 'var(--chakra-colors-chart-bugs)', dashed: true },
 ];
 
 export const orderedSnapshots = (state, turns = []) => {
@@ -28,32 +29,33 @@ const deltaText = (current, previous) => {
 };
 
 const ProgressChart = ({ snapshots }) => {
+	if (snapshots.length === 0) return <EmptyChart>No task progress history is available yet.</EmptyChart>;
 	const values = snapshots.flatMap(({ snapshot }) => series.map(({ key }) => taskPoolTotal(snapshot[key])));
 	const maximum = Math.max(1, ...values);
-	const x = (index) => (snapshots.length === 1 ? 50 : (index / (snapshots.length - 1)) * 100);
-	const y = (value) => 92 - (value / maximum) * 80;
+	const getXPosition = (index) => (snapshots.length === 1 ? 55 : CHART.left + (index / (snapshots.length - 1)) * (CHART.right - CHART.left));
+	const getYPosition = (value) => CHART.bottom - (value / maximum) * (CHART.bottom - CHART.top);
 
 	return (
 		<Box minW={0}>
-		<Box as="svg" viewBox="0 0 100 100" width="100%" height="280px" role="img" aria-label="Cumulative task progress by week">
-			<line x1="0" y1="92" x2="100" y2="92" stroke="#CBD5E0" strokeWidth="0.7" />
-			{series.map(({ key, label, color }) => (
+		<Box as="svg" viewBox="0 0 100 104" width="100%" height={{ base: '210px', md: '280px' }} role="img" aria-label="Cumulative task progress by week">
+			<desc>Completed, unit-tested, integration-tested, and known-bug task totals for each project week.</desc>
+			<ChartGrid ticks={[0, maximum / 2, maximum]} getYPosition={getYPosition} formatTick={(value) => Math.round(value).toLocaleString()} xLabel="Project week" yLabel="Task count" />
+			{series.map(({ key, color, dashed }) => (
 				<polyline
 					key={key}
-					aria-label={label}
 					fill="none"
 					stroke={color}
 					strokeWidth="2"
-					points={snapshots.map(({ snapshot }, index) => `${x(index)},${y(taskPoolTotal(snapshot[key]))}`).join(' ')}
+					strokeDasharray={dashed ? '4 3' : undefined}
+					points={snapshots.map(({ snapshot }, index) => `${getXPosition(index)},${getYPosition(taskPoolTotal(snapshot[key]))}`).join(' ')}
 				/>
 			))}
 			{snapshots.map(({ week }, index) => (
-				<text key={week} x={x(index)} y="99" fontSize="4" textAnchor="middle">W{week}</text>
+				<text key={week} x={getXPosition(index)} y="90" fontSize="3.5" textAnchor="middle">W{week}</text>
 			))}
 		</Box>
-		<SimpleGrid columns={{ base: 2, md: 4 }} spacing={2} mt={2}>
-			{series.map(({ key, label, color }) => <Text key={key} fontSize="sm" color={color}>● {label}</Text>)}
-		</SimpleGrid>
+		<ChartLegend items={series} />
+		<ChartDataTable caption="Task progress trend data" columns={['Week', ...series.map(({ label }) => label)]} rows={snapshots.map(({ week, snapshot }) => [`Week ${week}`, ...series.map(({ key }) => taskPoolTotal(snapshot[key]))])} />
 		</Box>
 	);
 };
@@ -71,8 +73,7 @@ const TaskProgressDashboard = ({ state, turns = [] }) => {
 	];
 
 	return (
-		<Box bg="white" borderRadius="2xl" p={7} mb={8}>
-			<Heading size="md" mb={5}>Task progress</Heading>
+		<ChartCard title="Task progress" description="Track cumulative development, testing, and known-bug totals from week to week.">
 			<Grid templateColumns={{ base: '1fr', lg: 'minmax(0, 3fr) minmax(260px, 2fr)' }} gap={7}>
 				<ProgressChart snapshots={snapshots} />
 				<SimpleGrid columns={{ base: 1, sm: 2, lg: 1 }} spacing={3}>
@@ -84,7 +85,7 @@ const TaskProgressDashboard = ({ state, turns = [] }) => {
 					{!bugDiscoverySeen && <Text color="gray.600" fontSize="sm">No bugs have been discovered through testing yet; the known-bug count only reflects findings visible so far.</Text>}
 				</SimpleGrid>
 			</Grid>
-		</Box>
+		</ChartCard>
 	);
 };
 

@@ -34,12 +34,17 @@ test('renders an explicit empty-workforce state without percentages', () => {
 	render(<ChakraProvider><EmployeeStatusChart state={snapshot(2, [])} turns={[turn(1, snapshot(1, [employee(0.2, 0.5, 0.7)]))]} /></ChakraProvider>);
 	expect(screen.getByText('No employees')).toBeInTheDocument();
 	expect(screen.queryByText('NaN%')).not.toBeInTheDocument();
+	expect(screen.queryByRole('img')).not.toBeInTheDocument();
 });
 
 test('shows current percentages and changes from the preceding snapshot', () => {
 	render(<ChakraProvider><EmployeeStatusChart state={snapshot(2, [employee(0.3, 0.6, 0.8)])} turns={[turn(1, snapshot(1, [employee(0.2, 0.7, 0.5)]))]} /></ChakraProvider>);
-	expect(screen.getByText('30.0%')).toBeInTheDocument();
+	expect(screen.getAllByText('30.0%')).toHaveLength(2);
 	expect(screen.getByText('+10.0 pp since last week')).toBeInTheDocument();
 	expect(screen.getByText('−10.0 pp since last week')).toBeInTheDocument();
 	expect(screen.getByRole('img', { name: 'Weekly team-average employee status percentages' })).toBeInTheDocument();
+	expect(screen.getByText('Project week')).toBeInTheDocument();
+	expect(screen.getByText('Team average (%)')).toBeInTheDocument();
+	expect(screen.getByLabelText('Chart legend')).toHaveTextContent(/Stress.*Motivation.*Familiarity/);
+	expect(screen.getByText('Employee status trend data')).toBeInTheDocument();
 });

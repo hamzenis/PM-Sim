@@ -1,5 +1,6 @@
-import { Box, Grid, Heading, SimpleGrid, Text } from '@chakra-ui/react';
+import { Box, Grid, SimpleGrid, Text } from '@chakra-ui/react';
 import React from 'react';
+import { CHART, ChartCard, ChartDataTable, ChartGrid, ChartLegend, EmptyChart } from './ChartPresentation';
 import StatCard from './StatCard';
 
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -44,31 +45,33 @@ export const selectBudgetTrend = (state, turns = []) => {
 
 const BudgetChart = ({ trend }) => {
 	const { snapshots, current } = trend;
+	if (!current || snapshots.length === 0) return <EmptyChart>No budget history is available yet.</EmptyChart>;
 	const totalDays = Math.max(1, current.scheduledDays);
 	const maximum = Math.max(1, current.initialBudget, ...snapshots.map(({ actualCost }) => actualCost));
-	const x = (days) => 7 + (Math.min(days, totalDays) / totalDays) * 88;
-	const y = (cost) => 90 - (cost / maximum) * 80;
-	const actualPoints = snapshots.map(({ elapsedDays, actualCost }) => `${x(elapsedDays)},${y(actualCost)}`).join(' ');
-	const plannedPoints = `7,90 95,${y(current.initialBudget)}`;
+	const getXPosition = (days) => CHART.left + (Math.min(days, totalDays) / totalDays) * (CHART.right - CHART.left);
+	const getYPosition = (cost) => CHART.bottom - (cost / maximum) * (CHART.bottom - CHART.top);
+	const ticks = [0, maximum / 2, maximum];
+	const actualPoints = snapshots.map(({ elapsedDays, actualCost }) => `${getXPosition(elapsedDays)},${getYPosition(actualCost)}`).join(' ');
+	const plannedPoints = `${CHART.left},${CHART.bottom} ${CHART.right},${getYPosition(current.initialBudget)}`;
+	const colors = { actual: 'var(--chakra-colors-chart-actual)', planned: 'var(--chakra-colors-chart-planned)', limit: 'var(--chakra-colors-chart-limit)' };
 
 	return (
 		<Box minW={0}>
-			<Box as="svg" viewBox="0 0 100 100" width="100%" height="280px" role="img" aria-label="Actual and planned cumulative budget spend">
-				<line x1="7" y1={y(current.initialBudget)} x2="95" y2={y(current.initialBudget)} stroke="#E53E3E" strokeWidth="1" strokeDasharray="3 2" aria-label="Initial budget limit" />
-				<polyline points={plannedPoints} fill="none" stroke="#718096" strokeWidth="1.5" strokeDasharray="3 2" aria-label="Planned cumulative cost" />
-				<polyline points={actualPoints} fill="none" stroke="#3182CE" strokeWidth="2.5" aria-label="Actual cumulative cost" />
+			<Box as="svg" viewBox="0 0 100 104" width="100%" height={{ base: '210px', md: '280px' }} role="img" aria-label="Actual and planned cumulative budget spend">
+				<desc>Actual cumulative cost is compared with planned spending and the initial budget limit by week.</desc>
+				<ChartGrid ticks={ticks} getYPosition={getYPosition} formatTick={(value) => `$${Math.round(value).toLocaleString()}`} xLabel="Project week" yLabel="Cumulative cost (USD)" />
+				<line x1={CHART.left} y1={getYPosition(current.initialBudget)} x2={CHART.right} y2={getYPosition(current.initialBudget)} stroke={colors.limit} strokeWidth="1" strokeDasharray="3 2" />
+				<polyline points={plannedPoints} fill="none" stroke={colors.planned} strokeWidth="1.5" strokeDasharray="3 2" />
+				<polyline points={actualPoints} fill="none" stroke={colors.actual} strokeWidth="2.5" />
 				{snapshots.map(({ week, elapsedDays, actualCost }) => (
 					<g key={week}>
-						<circle cx={x(elapsedDays)} cy={y(actualCost)} r="1.7" fill="#3182CE" />
-						<text x={x(elapsedDays)} y="98" fontSize="4" textAnchor="middle">W{week}</text>
+						<circle cx={getXPosition(elapsedDays)} cy={getYPosition(actualCost)} r="1.7" fill={colors.actual} />
+						<text x={getXPosition(elapsedDays)} y="90" fontSize="3.5" textAnchor="middle">W{week}</text>
 					</g>
 				))}
 			</Box>
-			<SimpleGrid columns={{ base: 1, sm: 3 }} spacing={2} mt={2}>
-				<Text fontSize="sm" color="blue.600">● Actual cost</Text>
-				<Text fontSize="sm" color="gray.600">┄ Planned spend</Text>
-				<Text fontSize="sm" color="red.600">┄ Initial budget limit</Text>
-			</SimpleGrid>
+			<ChartLegend items={[{ key: 'actual', label: 'Actual cost', color: colors.actual }, { key: 'planned', label: 'Planned spend', color: colors.planned, dashed: true }, { key: 'limit', label: 'Initial budget limit', color: colors.limit, dashed: true }]} />
+			<ChartDataTable caption="Budget trend data" columns={['Week', 'Actual cost', 'Planned cost']} rows={snapshots.map(({ week, actualCost, plannedCost }) => [`Week ${week}`, formatCurrency(actualCost), formatCurrency(plannedCost)])} />
 		</Box>
 	);
 };
@@ -79,8 +82,7 @@ const BudgetTrendChart = ({ state, turns = [], isComplete = false }) => {
 	const completedEarly = isComplete && current.elapsedDays < current.scheduledDays;
 
 	return (
-		<Box bg="white" borderRadius="2xl" p={7} mb={8}>
-			<Heading size="md" mb={5}>Budget trend</Heading>
+		<ChartCard title="Budget trend" description="See cumulative project spending compared with the planned pace and original budget.">
 			<Grid templateColumns={{ base: '1fr', lg: 'minmax(0, 3fr) minmax(280px, 2fr)' }} gap={7}>
 				<BudgetChart trend={trend} />
 				<Box>
@@ -94,7 +96,7 @@ const BudgetTrendChart = ({ state, turns = [], isComplete = false }) => {
 					{completedEarly && <Text mt={4} color="gray.600">Run completed {current.scheduledDays - current.elapsedDays} working days before its scheduled end; the planned line continues to the original end date.</Text>}
 				</Box>
 			</Grid>
-		</Box>
+		</ChartCard>
 	);
 };
 

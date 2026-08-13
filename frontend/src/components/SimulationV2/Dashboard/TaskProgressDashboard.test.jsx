@@ -40,6 +40,10 @@ test('shows current totals and changes from the preceding week', () => {
 	expect(screen.getByText('+2 since last week')).toBeInTheDocument();
 	expect(screen.getByText('-2 since last week')).toBeInTheDocument();
 	expect(screen.getByRole('img', { name: 'Cumulative task progress by week' })).toBeInTheDocument();
+	expect(screen.getByText('Project week')).toBeInTheDocument();
+	expect(screen.getByText('Task count')).toBeInTheDocument();
+	expect(screen.getByLabelText('Chart legend')).toHaveTextContent(/Completed.*Unit tested.*Integration tested.*Known bugs/);
+	expect(screen.getByText('Task progress trend data')).toBeInTheDocument();
 });
 
 test('uses neutral bug wording until discovery evidence is visible', () => {

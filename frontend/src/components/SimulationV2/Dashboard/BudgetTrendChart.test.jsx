@@ -28,4 +28,8 @@ test('highlights an overrun and explains an early completed run', () => {
 	expect(screen.getByText('Budget exceeded by $100.00.')).toBeInTheDocument();
 	expect(screen.getByText(/completed 10 working days before/i)).toBeInTheDocument();
 	expect(screen.getByRole('img', { name: 'Actual and planned cumulative budget spend' })).toBeInTheDocument();
+	expect(screen.getByText('Project week')).toBeInTheDocument();
+	expect(screen.getByText('Cumulative cost (USD)')).toBeInTheDocument();
+	expect(screen.getByLabelText('Chart legend')).toHaveTextContent(/Actual cost.*Planned spend.*Initial budget limit/);
+	expect(screen.getByText('Budget trend data')).toBeInTheDocument();
 });

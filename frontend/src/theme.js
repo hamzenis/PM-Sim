@@ -10,6 +10,12 @@ const theme = extendTheme({
 			700: '#173f6d',
 			900: '#102a43',
 		},
+		chart: {
+			actual: '#2B6CB0', planned: '#4A5568', limit: '#C53030',
+			stress: '#C53030', motivation: '#2B6CB0', familiarity: '#2F855A',
+			completed: '#2B6CB0', unitTested: '#6B46C1', integrationTested: '#2F855A', bugs: '#C53030',
+			grid: '#E2E8F0', axis: '#4A5568',
+		},
 	},
 	semanticTokens: {
 		colors: {
