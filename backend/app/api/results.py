@@ -7,7 +7,12 @@ from app.api.audit import ProfessorContentAuditResponse
 from app.api.auth import ProfessorUser
 from app.api.classes import DatabaseSession
 from app.db.models import SimulationRunRecord
-from app.results.service import ProfessorResultError, get_class_run_audit, list_class_results
+from app.results.service import (
+    ProfessorResultError,
+    ProfessorRunResult,
+    get_class_run_audit,
+    list_class_results,
+)
 
 router = APIRouter(prefix="/classes", tags=["professor results"])
 
@@ -16,6 +21,8 @@ class ClassResultResponse(BaseModel):
     run_id: str
     student_id: str
     student_username: str
+    class_name: str
+    scenario_name: str
     scenario_revision_id: str
     status: str
     current_week: int
@@ -51,7 +58,7 @@ def class_results(
     except ProfessorResultError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     return [
-        _result_response(result.run, result.student.id, result.student.username)
+        _result_response(result)
         for result in results
     ]
 
@@ -73,7 +80,7 @@ def run_audit(
     except ProfessorResultError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     result, turns = audit.result, audit.turns
-    summary = _result_response(result.run, result.student.id, result.student.username)
+    summary = _result_response(result)
     return RunAuditResponse(
         **summary.model_dump(),
         seed=result.run.seed,
@@ -102,13 +109,14 @@ def run_audit(
     )
 
 
-def _result_response(
-    run: SimulationRunRecord, student_id: str, username: str
-) -> ClassResultResponse:
+def _result_response(result: ProfessorRunResult) -> ClassResultResponse:
+    run: SimulationRunRecord = result.run
     return ClassResultResponse(
         run_id=run.id,
-        student_id=student_id,
-        student_username=username,
+        student_id=result.student.id,
+        student_username=result.student.username,
+        class_name=result.class_name,
+        scenario_name=result.scenario_name,
         scenario_revision_id=run.scenario_revision_id,
         status=run.status,
         current_week=run.current_week,

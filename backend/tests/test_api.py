@@ -594,11 +594,15 @@ def test_professor_can_compare_final_results_and_inspect_full_audit(client: Test
     results = client.get(f"/api/classes/{course_class['id']}/results")
     assert results.status_code == 200
     assert results.json()[0]["student_username"] == "student"
+    assert results.json()[0]["class_name"] == "Results"
+    assert results.json()[0]["scenario_name"] == "Example"
     assert results.json()[0]["final_result"]["outcome"] == "submitted"
 
     audit = client.get(f"/api/classes/{course_class['id']}/results/{run['id']}")
     assert audit.status_code == 200
     assert audit.json()["seed"] == 11
+    assert audit.json()["class_name"] == "Results"
+    assert audit.json()["scenario_name"] == "Example"
     assert audit.json()["turns"][0]["turn_seed"] == 11
     assert "undiscovered_bugs" in audit.json()["current_state"]
     content = audit.json()["content_audit"]
@@ -625,3 +629,4 @@ def test_professor_can_compare_final_results_and_inspect_full_audit(client: Test
         json={"username": "other-professor", "password": "other-professor-password"},
     )
     assert client.get(f"/api/classes/{course_class['id']}/results/{run['id']}").status_code == 404
+    assert client.get(f"/api/classes/{course_class['id']}/results").status_code == 404

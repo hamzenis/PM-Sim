@@ -1,6 +1,7 @@
 import {
 	Alert,
 	AlertIcon,
+	Box,
 	Button,
 	Container,
 	Flex,
@@ -12,9 +13,11 @@ import {
 	Th,
 	Thead,
 	Tr,
+	Text,
 } from '@chakra-ui/react';
 import React, { useEffect, useState } from 'react';
 import { listAuditEntries } from '../api/audit';
+import { formatDateTime, plainLanguageLabel } from '../utils/resultPresentation';
 
 const PAGE_SIZE = 50;
 
@@ -35,7 +38,8 @@ const AuditOverview = () => {
 
 	return (
 		<Container maxW="7xl" py={8} flexGrow={1}>
-			<Heading mb={6}>Administrative audit</Heading>
+			<Heading mb={2}>Administrative audit</Heading>
+			<Text mb={6}>Professor activity history. Support identifiers and raw records are available in each row’s technical details.</Text>
 			{error && (
 				<Alert status="error" mb={4}>
 					<AlertIcon />
@@ -56,10 +60,11 @@ const AuditOverview = () => {
 					<Tbody>
 						{entries.map((entry) => (
 							<Tr key={entry.id}>
-								<Td>{new Date(entry.created_at).toLocaleString()}</Td>
-								<Td>{entry.action}</Td>
+								<Td>{formatDateTime(entry.created_at)}</Td>
+								<Td>{plainLanguageLabel(entry.action)}</Td>
 								<Td>
-									{entry.target_type}: {entry.target_id}
+									{plainLanguageLabel(entry.target_type)}
+									<Box as="details" mt={1}><Box as="summary" cursor="pointer" fontWeight="semibold">Technical details</Box><Text>Target UUID: {entry.target_id}</Text><Box as="pre" overflowX="auto" fontSize="xs">{JSON.stringify(entry.details, null, 2)}</Box></Box>
 								</Td>
 							</Tr>
 						))}

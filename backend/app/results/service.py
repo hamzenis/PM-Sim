@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.audit.service import ProfessorContentAudit, load_professor_content_audit
 from app.db.models import (
     ClassRecord,
+    ScenarioRecord,
+    ScenarioRevisionRecord,
     SimulationRunRecord,
     SimulationTurnRecord,
     UserRecord,
@@ -21,6 +23,8 @@ class ProfessorResultError(ValueError):
 class ProfessorRunResult:
     run: SimulationRunRecord
     student: UserRecord
+    class_name: str
+    scenario_name: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,8 +42,11 @@ def list_class_results(
 ) -> list[ProfessorRunResult]:
     _owned_class(session, class_id=class_id, professor_id=professor_id)
     statement = (
-        select(SimulationRunRecord, UserRecord)
+        select(SimulationRunRecord, UserRecord, ClassRecord.name, ScenarioRecord.name)
         .join(UserRecord, UserRecord.id == SimulationRunRecord.user_id)
+        .join(ClassRecord, ClassRecord.id == SimulationRunRecord.class_id)
+        .join(ScenarioRevisionRecord, ScenarioRevisionRecord.id == SimulationRunRecord.scenario_revision_id)
+        .join(ScenarioRecord, ScenarioRecord.id == ScenarioRevisionRecord.scenario_id)
         .where(
             SimulationRunRecord.class_id == class_id,
             SimulationRunRecord.status != SimulationOutcome.ACTIVE,
@@ -47,7 +54,8 @@ def list_class_results(
         .order_by(UserRecord.username, SimulationRunRecord.finished_at, SimulationRunRecord.id)
     )
     return [
-        ProfessorRunResult(run=run, student=student) for run, student in session.execute(statement)
+        ProfessorRunResult(run=run, student=student, class_name=class_name, scenario_name=scenario_name)
+        for run, student, class_name, scenario_name in session.execute(statement)
     ]
 
 
@@ -60,8 +68,11 @@ def get_class_run_audit(
 ) -> ProfessorRunAudit:
     _owned_class(session, class_id=class_id, professor_id=professor_id)
     row = session.execute(
-        select(SimulationRunRecord, UserRecord)
+        select(SimulationRunRecord, UserRecord, ClassRecord.name, ScenarioRecord.name)
         .join(UserRecord, UserRecord.id == SimulationRunRecord.user_id)
+        .join(ClassRecord, ClassRecord.id == SimulationRunRecord.class_id)
+        .join(ScenarioRevisionRecord, ScenarioRevisionRecord.id == SimulationRunRecord.scenario_revision_id)
+        .join(ScenarioRecord, ScenarioRecord.id == ScenarioRevisionRecord.scenario_id)
         .where(
             SimulationRunRecord.id == run_id,
             SimulationRunRecord.class_id == class_id,
@@ -69,7 +80,7 @@ def get_class_run_audit(
     ).one_or_none()
     if row is None:
         raise ProfessorResultError("simulation run not found")
-    run, student = row
+    run, student, class_name, scenario_name = row
     turns = list(
         session.scalars(
             select(SimulationTurnRecord)
@@ -80,7 +91,11 @@ def get_class_run_audit(
     # Authored facts are loaded only after the scoped professor/class/run query succeeds.
     content = load_professor_content_audit(session, run=run)
     return ProfessorRunAudit(
-        result=ProfessorRunResult(run=run, student=student), turns=tuple(turns), content=content
+        result=ProfessorRunResult(
+            run=run, student=student, class_name=class_name, scenario_name=scenario_name
+        ),
+        turns=tuple(turns),
+        content=content,
     )
 
 
