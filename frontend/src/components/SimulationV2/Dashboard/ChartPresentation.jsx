@@ -11,18 +11,18 @@ export const ChartCard = ({ title, description, children }) => (
 	</Box>
 );
 
-export const ChartGrid = ({ ticks, getYPosition, formatTick, xLabel, yLabel }) => (
+export const ChartGrid = ({ ticks, getYPosition, formatTick, xLabel, yLabel, chart = CHART, yLabelX = 3.5 }) => (
 	<g aria-hidden="true">
 		{ticks.map((tick) => (
 			<g key={tick}>
-				<line x1={CHART.left} y1={getYPosition(tick)} x2={CHART.right} y2={getYPosition(tick)} stroke="var(--chakra-colors-chart-grid)" strokeWidth="0.5" />
-				<text x={CHART.left - 2} y={getYPosition(tick) + 1.5} fontSize="3.3" textAnchor="end" fill="var(--chakra-colors-chart-axis)">{formatTick(tick)}</text>
+				<line x1={chart.left} y1={getYPosition(tick)} x2={chart.right} y2={getYPosition(tick)} stroke="var(--chakra-colors-chart-grid)" strokeWidth="0.5" />
+				<text x={chart.left - 2} y={getYPosition(tick) + 1.5} fontSize="3.3" textAnchor="end" fill="var(--chakra-colors-chart-axis)">{formatTick(tick)}</text>
 			</g>
 		))}
-		<line x1={CHART.left} y1={CHART.top} x2={CHART.left} y2={CHART.bottom} stroke="var(--chakra-colors-chart-axis)" strokeWidth="0.6" />
-		<line x1={CHART.left} y1={CHART.bottom} x2={CHART.right} y2={CHART.bottom} stroke="var(--chakra-colors-chart-axis)" strokeWidth="0.6" />
-		<text x="55" y="99" fontSize="3.5" textAnchor="middle" fill="var(--chakra-colors-chart-axis)">{xLabel}</text>
-		<text x="3.5" y="46" fontSize="3.5" textAnchor="middle" transform="rotate(-90 3.5 46)" fill="var(--chakra-colors-chart-axis)">{yLabel}</text>
+		<line x1={chart.left} y1={chart.top} x2={chart.left} y2={chart.bottom} stroke="var(--chakra-colors-chart-axis)" strokeWidth="0.6" />
+		<line x1={chart.left} y1={chart.bottom} x2={chart.right} y2={chart.bottom} stroke="var(--chakra-colors-chart-axis)" strokeWidth="0.6" />
+		<text x={(chart.left + chart.right) / 2} y="99" fontSize="3.5" textAnchor="middle" fill="var(--chakra-colors-chart-axis)">{xLabel}</text>
+		<text x={yLabelX} y="46" fontSize="3.5" textAnchor="middle" transform={`rotate(-90 ${yLabelX} 46)`} fill="var(--chakra-colors-chart-axis)">{yLabel}</text>
 	</g>
 );
 
