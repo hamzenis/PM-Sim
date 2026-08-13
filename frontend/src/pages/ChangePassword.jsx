@@ -11,7 +11,7 @@ import {
 	Stack,
 	Text,
 } from '@chakra-ui/react';
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { changePassword } from '../api/auth';
 import { AuthContext } from '../context/AuthProvider';
@@ -24,12 +24,22 @@ const ChangePassword = () => {
 	const [confirmation, setConfirmation] = useState('');
 	const [error, setError] = useState('');
 	const [isSaving, setIsSaving] = useState(false);
+	const saveInProgress = useRef(false);
+	const errorRef = useRef(null);
+	const isValid = currentPassword !== '' && newPassword.length >= 10 && confirmation !== '';
 
-	const submit = async () => {
+	useEffect(() => {
+		if (error) errorRef.current?.focus();
+	}, [error]);
+
+	const submit = async (event) => {
+		event.preventDefault();
+		if (!isValid || saveInProgress.current) return;
 		if (newPassword !== confirmation) {
 			setError('The new passwords do not match.');
 			return;
 		}
+		saveInProgress.current = true;
 		setIsSaving(true);
 		setError('');
 		try {
@@ -39,13 +49,14 @@ const ChangePassword = () => {
 		} catch (requestError) {
 			setError(requestError.message || 'Could not change the password.');
 		} finally {
+			saveInProgress.current = false;
 			setIsSaving(false);
 		}
 	};
 
 	return (
 		<Container maxW="lg" py={12} flexGrow={1}>
-			<Box bg="white" borderRadius="xl" p={8}>
+			<Box as="form" onSubmit={submit} bg="white" borderRadius="xl" p={8}>
 				<Heading size="lg" mb={2}>
 					Change password
 				</Heading>
@@ -53,41 +64,51 @@ const ChangePassword = () => {
 					You will need to sign in again after changing your password.
 				</Text>
 				{error && (
-					<Alert status="error" mb={4}>
+					<Alert ref={errorRef} status="error" role="alert" tabIndex={-1} mb={4}>
 						<AlertIcon />
 						{error}
 					</Alert>
 				)}
 				<Stack spacing={4}>
-					<FormControl>
-						<FormLabel>Current password</FormLabel>
+					<FormControl isRequired>
+						<FormLabel htmlFor="current-password">Current password</FormLabel>
 						<Input
+							id="current-password"
+							name="currentPassword"
 							type="password"
+							autoComplete="current-password"
 							value={currentPassword}
 							onChange={(event) => setCurrentPassword(event.target.value)}
 						/>
 					</FormControl>
-					<FormControl>
-						<FormLabel>New password</FormLabel>
+					<FormControl isRequired>
+						<FormLabel htmlFor="new-password">New password</FormLabel>
 						<Input
+							id="new-password"
+							name="newPassword"
 							type="password"
+							autoComplete="new-password"
 							value={newPassword}
 							onChange={(event) => setNewPassword(event.target.value)}
 						/>
 					</FormControl>
-					<FormControl>
-						<FormLabel>Repeat new password</FormLabel>
+					<FormControl isRequired>
+						<FormLabel htmlFor="confirm-password">Repeat new password</FormLabel>
 						<Input
+							id="confirm-password"
+							name="confirmPassword"
 							type="password"
+							autoComplete="new-password"
 							value={confirmation}
 							onChange={(event) => setConfirmation(event.target.value)}
 						/>
 					</FormControl>
 					<Button
+						type="submit"
 						colorScheme="blue"
 						isLoading={isSaving}
-						isDisabled={!currentPassword || newPassword.length < 10 || !confirmation}
-						onClick={submit}
+						loadingText="Changing password"
+						isDisabled={!isValid || isSaving}
 					>
 						Change password
 					</Button>
