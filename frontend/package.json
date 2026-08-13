@@ -20,6 +20,8 @@
     },
     "scripts": {
         "build": "vite build",
+        "test:visual": "playwright test",
+        "test:visual:update": "playwright test --update-snapshots",
         "test": "vitest run",
         "dev": "vite",
         "lint": "eslint ."
@@ -29,6 +31,7 @@
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
+        "@playwright/test": "1.55.0",
         "@vitejs/plugin-react": "^6.0.5",
         "axe-core": "^4.13.0",
         "eslint": "^10.8.1",

@@ -57,7 +57,18 @@ npm run dev   # start Vite's development server
 npm run lint
 npm test      # run the Vitest suite once
 npm run build
+npm run test:visual          # compare focused page screenshots
+npm run test:visual:update   # intentionally replace visual baselines
 ```
+
+## Visual regression review
+
+Playwright covers five high-value page states at desktop and mobile widths. Its API routes use fixed
+fixtures, dates, locale, timezone, fonts, reduced motion, and disabled animations; it is deliberately
+separate from the ordinary Vitest unit suite. When a visual test fails, inspect the rendered diff and
+confirm that every changed pixel is an intended UI change. Only then run `npm run test:visual:update`,
+review the new images, and commit the updated snapshots in the same commit as the UI change. Do not
+update snapshots merely to make CI green, and do not broaden masking to hide unexpected layout changes.
 
 `npm run build` creates the production files in `dist/`. Vite handles fallback routing during
 development, but the production web server or static host must rewrite unknown non-file paths to

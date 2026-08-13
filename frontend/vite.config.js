@@ -10,6 +10,7 @@ export default defineConfig({
     },
   },
   test: {
+    exclude: ['tests/visual/**', 'node_modules/**', 'dist/**'],
     environment: 'jsdom',
     globals: true,
     restoreMocks: true,

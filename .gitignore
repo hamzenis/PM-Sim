@@ -21,6 +21,8 @@ frontend/.pnp.js
 
 # testing
 frontend/coverage
+frontend/playwright-report
+frontend/test-results
 
 # production
 frontend/dist
