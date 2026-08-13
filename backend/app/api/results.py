@@ -57,10 +57,7 @@ def class_results(
         results = list_class_results(session, class_id=class_id, professor_id=professor.id)
     except ProfessorResultError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
-    return [
-        _result_response(result)
-        for result in results
-    ]
+    return [_result_response(result) for result in results]
 
 
 @router.get("/{class_id}/results/{run_id}", response_model=RunAuditResponse)

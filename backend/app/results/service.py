@@ -45,7 +45,10 @@ def list_class_results(
         select(SimulationRunRecord, UserRecord, ClassRecord.name, ScenarioRecord.name)
         .join(UserRecord, UserRecord.id == SimulationRunRecord.user_id)
         .join(ClassRecord, ClassRecord.id == SimulationRunRecord.class_id)
-        .join(ScenarioRevisionRecord, ScenarioRevisionRecord.id == SimulationRunRecord.scenario_revision_id)
+        .join(
+            ScenarioRevisionRecord,
+            ScenarioRevisionRecord.id == SimulationRunRecord.scenario_revision_id,
+        )
         .join(ScenarioRecord, ScenarioRecord.id == ScenarioRevisionRecord.scenario_id)
         .where(
             SimulationRunRecord.class_id == class_id,
@@ -54,7 +57,9 @@ def list_class_results(
         .order_by(UserRecord.username, SimulationRunRecord.finished_at, SimulationRunRecord.id)
     )
     return [
-        ProfessorRunResult(run=run, student=student, class_name=class_name, scenario_name=scenario_name)
+        ProfessorRunResult(
+            run=run, student=student, class_name=class_name, scenario_name=scenario_name
+        )
         for run, student, class_name, scenario_name in session.execute(statement)
     ]
 
@@ -71,7 +76,10 @@ def get_class_run_audit(
         select(SimulationRunRecord, UserRecord, ClassRecord.name, ScenarioRecord.name)
         .join(UserRecord, UserRecord.id == SimulationRunRecord.user_id)
         .join(ClassRecord, ClassRecord.id == SimulationRunRecord.class_id)
-        .join(ScenarioRevisionRecord, ScenarioRevisionRecord.id == SimulationRunRecord.scenario_revision_id)
+        .join(
+            ScenarioRevisionRecord,
+            ScenarioRevisionRecord.id == SimulationRunRecord.scenario_revision_id,
+        )
         .join(ScenarioRecord, ScenarioRecord.id == ScenarioRevisionRecord.scenario_id)
         .where(
             SimulationRunRecord.id == run_id,
