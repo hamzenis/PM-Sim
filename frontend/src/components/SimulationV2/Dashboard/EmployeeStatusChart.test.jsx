@@ -1,5 +1,6 @@
 import { ChakraProvider } from '@chakra-ui/react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import EmployeeStatusChart, { selectEmployeeStatusTrend, toPercentage } from './EmployeeStatusChart';
 
@@ -47,4 +48,40 @@ test('shows current percentages and changes from the preceding snapshot', () => 
 	expect(screen.getByText('Team average (%)')).toBeInTheDocument();
 	expect(screen.getByLabelText('Chart legend')).toHaveTextContent(/Stress.*Motivation.*Familiarity/);
 	expect(screen.getByText('Employee status trend data')).toBeInTheDocument();
+});
+
+test('labels the percentage axis from zero to one hundred percent', () => {
+	render(<ChakraProvider><EmployeeStatusChart state={snapshot(1, [employee(0.5, 0.6, 0.7)])} /></ChakraProvider>);
+	expect(screen.getByText('0%')).toBeInTheDocument();
+	expect(screen.getByText('50%')).toBeInTheDocument();
+	expect(screen.getByText('100%')).toBeInTheDocument();
+	expect(screen.getByText('W1')).toBeInTheDocument();
+});
+
+test('annotates increases and decreases in team size without claiming a cause', () => {
+	const first = snapshot(1, Array.from({ length: 3 }, () => employee(0.2, 0.5, 0.6)));
+	const second = snapshot(2, Array.from({ length: 5 }, () => employee(0.3, 0.6, 0.7)));
+	const current = snapshot(3, Array.from({ length: 4 }, () => employee(0.4, 0.7, 0.8)));
+	render(<ChakraProvider><EmployeeStatusChart state={current} turns={[turn(1, first), turn(2, second)]} /></ChakraProvider>);
+	expect(screen.getByText('Team increased from 3 to 5')).toBeInTheDocument();
+	expect(screen.getByText('Team decreased from 5 to 4')).toBeInTheDocument();
+});
+
+test('provides complete weekly point details', () => {
+	render(<ChakraProvider><EmployeeStatusChart state={snapshot(4, [employee(0.25, 0.75, 0.5)])} /></ChakraProvider>);
+	expect(screen.getByRole('button', { name: 'Week 4. Team size 1. Average stress 25.0%. Average motivation 75.0%. Average familiarity 50.0%.' })).toHaveTextContent('Latest');
+});
+
+test('weekly details are keyboard accessible', async () => {
+	const user = userEvent.setup();
+	render(<ChakraProvider><EmployeeStatusChart state={snapshot(2, [employee(0.3, 0.7, 0.8)])} turns={[turn(1, snapshot(1, [employee(0.2, 0.6, 0.7)]))]} /></ChakraProvider>);
+	await user.tab();
+	expect(screen.getByRole('button', { name: /Week 1\. Team size 1/ })).toHaveFocus();
+	await user.tab();
+	expect(screen.getByRole('button', { name: /Week 2\. Team size 1/ })).toHaveFocus();
+});
+
+test('keeps current-workforce averages usable when metric values are missing', () => {
+	const trend = selectEmployeeStatusTrend(snapshot(1, [{ stress: undefined, motivation: 0.6, familiarity: null }]));
+	expect(trend.current).toMatchObject({ employeeCount: 1, stress: 0, motivation: 0.6, familiarity: 0 });
 });
