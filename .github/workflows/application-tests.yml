@@ -20,6 +20,9 @@ jobs:
             - run: uv run ruff format --check .
             - run: uv run ruff check .
             - run: uv run pytest
+            - name: Check documentation and documented contracts
+              working-directory: .
+              run: uv run --project backend python scripts/check_docs.py
 
     frontend:
         runs-on: ubuntu-latest

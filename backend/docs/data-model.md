@@ -21,6 +21,6 @@ deployed database schema directly; create and apply an Alembic migration.
 ## Related documentation
 
 - [Backend architecture: persistence](architecture.md#persistence)
-- [Development: migration workflow](development.md#migration-workflow)
+- [Development: migration workflow](development.md#alembic-conventions-and-workflow)
 - [SQLite classroom operations](sqlite-operations.md)
 - [HTTP API](api.md)

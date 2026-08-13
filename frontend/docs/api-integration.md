@@ -14,6 +14,6 @@ to consistent human-readable labels at the presentation boundary.
 ## Related documentation
 
 - [Backend HTTP API](../../backend/docs/api.md)
-- [Backend authored-content endpoints](../../backend/docs/api.md#answer-or-acknowledge-authored-content)
+- [Backend authored-content endpoints](../../backend/docs/api.md#simulation-runs-and-authored-content)
 - [Authentication](authentication.md)
 - [Frontend testing](testing.md)

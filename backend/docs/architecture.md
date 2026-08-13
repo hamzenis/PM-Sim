@@ -97,7 +97,7 @@ Only the random raw token crosses the browser boundary; the database stores its 
 change deletes all of that user's sessions, commits, and clears the current cookie. Role checks are
 FastAPI dependencies layered after authentication.
 
-## Scenario lifecycle
+## Detailed scenario lifecycle
 
 ```mermaid
 stateDiagram-v2

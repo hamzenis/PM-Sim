@@ -20,7 +20,7 @@ basic project for a minimal scenario.
 ## Related documentation
 
 - [Simulation engine](simulation-engine.md)
-- [HTTP API: authored content](api.md#answer-or-acknowledge-authored-content)
+- [HTTP API: authored content](api.md#simulation-runs-and-authored-content)
 - [ADR 0001: authored scenario content](adr/0001-authored-scenario-content.md)
 - [ADR 0002: content persistence and idempotency](adr/0002-content-persistence-idempotency.md)
 - [Frontend API integration](../../frontend/docs/api-integration.md)

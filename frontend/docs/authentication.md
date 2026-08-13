@@ -11,6 +11,6 @@ credentialed requests.
 
 ## Related documentation
 
-- [Backend HTTP API: authentication](../../backend/docs/api.md#authentication)
+- [Backend HTTP API: authentication](../../backend/docs/api.md#authentication-cookies-and-cors)
 - [API integration](api-integration.md)
 - [Routing and role gates](routing.md)
