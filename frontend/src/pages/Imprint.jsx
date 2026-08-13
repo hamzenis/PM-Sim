@@ -20,10 +20,10 @@ const Imprint = () => {
 		<Flex px={10} pt={2} flexDir="column" flexGrow={1}>
 			<Breadcrumb spacing="8px" separator={<HiChevronRight color="gray.500" />}>
 				<BreadcrumbItem>
-					<BreadcrumbLink href="">Privacy Policy</BreadcrumbLink>
+					<BreadcrumbLink href="">Imprint</BreadcrumbLink>
 				</BreadcrumbItem>
 			</Breadcrumb>
-			<Heading>Privacy Policy</Heading>
+			<Heading>Imprint</Heading>
 			<Box h={5}></Box>
 			<Box backgroundColor="white" borderRadius="2xl">
 				<Container maxW="6xl" pt={10} h="full" pb={10}>
