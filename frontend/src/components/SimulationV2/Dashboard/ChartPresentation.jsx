@@ -28,12 +28,12 @@ export const ChartGrid = ({ ticks, getYPosition, formatTick, xLabel, yLabel, cha
 
 export const ChartLegend = ({ items }) => (
 	<Wrap spacingX={5} spacingY={2} mt={3} aria-label="Chart legend">
-		{items.map(({ key, label, color, dashed, marker = 'circle' }) => (
+		{items.map(({ key, label, color, dashed, dasharray, marker = 'circle', strokeWidth = 2 }) => (
 			<WrapItem key={key}>
 				<HStack spacing={2} fontSize="sm">
 					<Box as="svg" viewBox="0 0 24 12" width="24px" height="12px" aria-hidden="true">
-						<line x1="1" y1="6" x2="23" y2="6" stroke={color} strokeWidth="2" strokeDasharray={dashed ? '4 3' : undefined} />
-						{!dashed && (marker === 'square' ? <rect x="9" y="3" width="6" height="6" fill={color} /> : <circle cx="12" cy="6" r="3" fill={color} />)}
+						<line x1="1" y1="6" x2="23" y2="6" stroke={color} strokeWidth={strokeWidth} strokeDasharray={dasharray || (dashed ? '4 3' : undefined)} />
+						{marker === 'square' ? <rect x="9" y="3" width="6" height="6" fill={color} /> : <circle cx="12" cy="6" r="3" fill={color} />}
 					</Box>
 					<Text>{label}</Text>
 				</HStack>
