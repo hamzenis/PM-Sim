@@ -1,4 +1,4 @@
-import { Alert, AlertIcon, Container, Heading, SimpleGrid, Text } from '@chakra-ui/react';
+import { Alert, AlertIcon, Box, Container, Heading, SimpleGrid, Stack, Text } from '@chakra-ui/react';
 import React, { useEffect, useState } from 'react';
 import {
 	addStudent,
@@ -144,10 +144,10 @@ const CourseOverview = () => {
 	};
 
 	return (
-		<Container maxW="7xl" py={8} flexGrow={1}>
-			<Heading mb={2}>Class management</Heading>
+		<Container maxW="7xl" py={{ base: 5, md: 8 }} flexGrow={1}>
+			<Heading mb={2}>Professor workspace</Heading>
 			<Text color="gray.600" mb={6}>
-				Create classes, manage students, and assign published scenarios.
+				Manage each class roster, scenario assignments, and simulation results in one place.
 			</Text>
 			{error && (
 				<Alert status="error" mb={4}>
@@ -162,7 +162,13 @@ const CourseOverview = () => {
 				</Alert>
 			)}
 
-			<SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+			{selectedClass && <Box bg="blue.50" borderRadius="xl" p={{ base: 4, md: 6 }} mb={6}>
+				<Text fontSize="sm" color="blue.700" fontWeight="bold" textTransform="uppercase">Selected class</Text>
+				<Heading size="lg" mt={1}>{selectedClass.name}</Heading>
+				<Text color="gray.600" mt={2}>Review your roster, assignments, and student progress below.</Text>
+			</Box>}
+
+			<Box>
 				<ClassPanel
 					classes={classes}
 					selectedId={selectedId}
@@ -173,50 +179,46 @@ const CourseOverview = () => {
 					onRename={renameSelectedClass}
 					onArchive={archiveSelectedClass}
 				/>
+			</Box>
+
+			{selectedClass ? <Stack spacing={6} mt={6}>
+				<SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4}>
+					{[
+						['Students', students.length],
+						['Assigned scenarios', assignments.length],
+						['Results', results.length],
+					].map(([label, count]) => <Box key={label} bg="white" borderWidth="1px" borderRadius="lg" p={4}><Text color="gray.600" fontSize="sm">{label}</Text><Text fontSize="3xl" fontWeight="bold">{count}</Text></Box>)}
+				</SimpleGrid>
+				<StudentPanel
+					className={selectedClass.name}
+					selectedId={selectedId}
+					students={students}
+					isBusy={isBusy}
+					onCreate={(username, password) => runAction(() => importStudents(selectedId, [{ username, password }]), `Student ${username} created and added.`)}
+					onAdd={(username) => runAction(() => addStudent(selectedId, username), `Student ${username} added.`)}
+					onReset={setResetStudent}
+					onRemove={(student) => askForConfirmation('Remove student', `Remove ${student.username} from ${selectedClass.name}?`, 'Remove', () => removeStudent(selectedId, student.id), `${student.username} removed from the class.`)}
+				/>
 				<ScenarioPanel
 					selectedId={selectedId}
 					revisions={publishedRevisions}
 					assignments={assignments}
+					isBusy={isBusy}
 					onAssign={(revisionId) =>
 						runAction(() => assignScenario(selectedId, revisionId), 'Scenario assigned.')
 					}
 					onUnassign={(assignment) =>
 						askForConfirmation(
 							'Unassign scenario',
-							`Unassign revision ${assignment.revision_number} from this class?`,
+							`Unassign ${assignment.scenario_name}, revision ${assignment.revision_number}, from ${selectedClass.name}?`,
 							'Unassign',
 							() => unassignScenario(selectedId, assignment.id),
 							'Scenario unassigned.'
 						)
 					}
 				/>
-			</SimpleGrid>
-
-			<StudentPanel
-				className={selectedClass?.name}
-				selectedId={selectedId}
-				students={students}
-				isBusy={isBusy}
-				onCreate={(username, password) =>
-					runAction(
-						() => importStudents(selectedId, [{ username, password }]),
-						'Student created and added to the class.'
-					)
-				}
-				onAdd={(username) => runAction(() => addStudent(selectedId, username), 'Existing student added.')}
-				onReset={setResetStudent}
-				onRemove={(student) =>
-					askForConfirmation(
-						'Remove student',
-						`Remove ${student.username} from this class?`,
-						'Remove',
-						() => removeStudent(selectedId, student.id),
-						'Student removed.'
-					)
-				}
-			/>
-
-			<ResultsPanel classId={selectedId} results={results} />
+				<ResultsPanel classId={selectedId} results={results} />
+			</Stack> : <Box mt={6} p={8} textAlign="center" borderWidth="1px" borderRadius="xl"><Heading size="md">No class selected</Heading><Text color="gray.600" mt={2}>Choose or create a class to open its workspace.</Text></Box>}
 
 			<ResetPasswordDialog
 				student={resetStudent}

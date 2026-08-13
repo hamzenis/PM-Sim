@@ -1,13 +1,14 @@
-import { Box, Button, Flex, Heading, Select, Stack, Text } from '@chakra-ui/react';
+import { Badge, Box, Button, Flex, Heading, Select, Stack, Text } from '@chakra-ui/react';
 import React, { useState } from 'react';
 
-const ScenarioPanel = ({ selectedId, revisions, assignments, onAssign, onUnassign }) => {
+const ScenarioPanel = ({ selectedId, revisions, assignments, isBusy, onAssign, onUnassign }) => {
 	const [revisionId, setRevisionId] = useState('');
 	return (
-		<Box bg="white" p={6} borderRadius="xl">
+		<Box as="section" aria-labelledby="assignments-heading" bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" borderWidth="1px">
 			<Heading size="md" mb={4}>
-				Assigned scenarios
+				<span id="assignments-heading">Scenario assignments</span>
 			</Heading>
+			<Text color="gray.600" mb={4}>Choose from your published scenario revisions.</Text>
 			<Stack direction={{ base: 'column', md: 'row' }} mb={4}>
 				<Select
 					aria-label="Published revision"
@@ -21,7 +22,7 @@ const ScenarioPanel = ({ selectedId, revisions, assignments, onAssign, onUnassig
 						</option>
 					))}
 				</Select>
-				<Button colorScheme="blue" isDisabled={!selectedId || !revisionId} onClick={() => onAssign(revisionId)}>
+				<Button colorScheme="blue" isLoading={isBusy} isDisabled={!selectedId || !revisionId} onClick={() => onAssign(revisionId)}>
 					Assign
 				</Button>
 			</Stack>
@@ -29,11 +30,9 @@ const ScenarioPanel = ({ selectedId, revisions, assignments, onAssign, onUnassig
 				<Text>No scenarios assigned.</Text>
 			) : (
 				assignments.map((item) => (
-					<Flex key={item.id} justify="space-between" align="center" py={2}>
-						<Text>
-							Revision {item.revision_number} ({item.status})
-						</Text>
-						<Button size="sm" colorScheme="red" variant="outline" onClick={() => onUnassign(item)}>
+					<Flex key={item.id} justify="space-between" align={{ base: 'start', sm: 'center' }} direction={{ base: 'column', sm: 'row' }} gap={3} py={3} borderBottomWidth="1px">
+						<Box><Text fontWeight="semibold">{item.scenario_name}</Text><Text fontSize="sm" color="gray.600">Revision {item.revision_number} <Badge ml={2} colorScheme="green">{item.status}</Badge></Text></Box>
+						<Button size="sm" colorScheme="red" variant="outline" isDisabled={isBusy} onClick={() => onUnassign(item)}>
 							Unassign
 						</Button>
 					</Flex>

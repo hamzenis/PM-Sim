@@ -31,6 +31,17 @@ class AvailableScenario:
     revision: ScenarioRevisionRecord
 
 
+@dataclass(frozen=True, slots=True)
+class AssignedScenario:
+    """Professor-facing assignment details while retaining API identifiers."""
+
+    id: str
+    scenario_id: str
+    scenario_name: str
+    revision_number: int
+    status: str
+
+
 def import_students(
     session: Session,
     *,
@@ -250,18 +261,28 @@ def list_assigned_scenarios(
     *,
     professor_id: str,
     class_id: str,
-) -> list[ScenarioRevisionRecord]:
+) -> list[AssignedScenario]:
     course_class = _owned_class(session, class_id, professor_id)
     statement = (
-        select(ScenarioRevisionRecord)
+        select(ScenarioRevisionRecord, ScenarioRecord.name)
         .join(
             ScenarioAvailabilityRecord,
             ScenarioAvailabilityRecord.scenario_revision_id == ScenarioRevisionRecord.id,
         )
+        .join(ScenarioRecord, ScenarioRecord.id == ScenarioRevisionRecord.scenario_id)
         .where(ScenarioAvailabilityRecord.class_id == course_class.id)
         .order_by(ScenarioRevisionRecord.id)
     )
-    return list(session.scalars(statement))
+    return [
+        AssignedScenario(
+            id=revision.id,
+            scenario_id=revision.scenario_id,
+            scenario_name=scenario_name,
+            revision_number=revision.revision_number,
+            status=revision.status,
+        )
+        for revision, scenario_name in session.execute(statement)
+    ]
 
 
 def unassign_scenario(

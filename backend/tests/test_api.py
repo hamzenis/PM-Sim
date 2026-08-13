@@ -265,6 +265,10 @@ def test_professor_can_manage_class_members_assignments_and_archival(
     actual_student_id = students[0]["id"]
     assignments = client.get(f"/api/classes/{class_id}/scenarios").json()
     assert assignments[0]["id"] == revision["id"]
+    assert assignments[0]["scenario_id"] == scenario_id
+    assert assignments[0]["scenario_name"] == "Example"
+    assert assignments[0]["revision_number"] == 1
+    assert assignments[0]["status"] == "published"
 
     assert client.delete(f"/api/classes/{class_id}/students/{actual_student_id}").status_code == 204
     assert client.get(f"/api/classes/{class_id}/students").json() == []
@@ -276,6 +280,28 @@ def test_professor_can_manage_class_members_assignments_and_archival(
         client.post(f"/api/classes/{class_id}/students", json={"username": "student"}).status_code
         == 404
     )
+
+
+def test_assigned_scenario_display_fields_remain_professor_authorized(
+    client: TestClient,
+) -> None:
+    revision = client.post("/api/scenarios", json=scenario_payload()).json()
+    scenario_id = client.get("/api/scenarios").json()[0]["id"]
+    client.post(f"/api/scenarios/{scenario_id}/revisions/1/publish")
+    course_class = client.post("/api/classes", json={"name": "Private class"}).json()
+    client.post(
+        f"/api/classes/{course_class['id']}/scenarios",
+        json={"scenario_revision_id": revision["id"]},
+    )
+
+    client.post("/api/auth/logout")
+    client.post(
+        "/api/auth/login",
+        json={"username": "other-professor", "password": "other-professor-password"},
+    )
+    response = client.get(f"/api/classes/{course_class['id']}/scenarios")
+    assert response.status_code == 404
+    assert "scenario_name" not in response.json()
 
 
 def test_professor_can_import_students_transactionally_and_reset_passwords(

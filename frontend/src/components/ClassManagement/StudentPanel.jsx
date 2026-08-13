@@ -28,10 +28,11 @@ const StudentPanel = ({ className, selectedId, students, isBusy, onCreate, onAdd
 	};
 
 	return (
-		<Box bg="white" p={6} borderRadius="xl" mt={6}>
+		<Box as="section" aria-labelledby="roster-heading" bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" borderWidth="1px">
 			<Heading size="md" mb={4}>
-				Students in {className || 'the selected class'}
+				<span id="roster-heading">Student roster</span>
 			</Heading>
+			<Text color="gray.600" mb={5}>Create student accounts or add an existing student to {className || 'the selected class'}.</Text>
 			<Stack direction={{ base: 'column', md: 'row' }} mb={6} align="end">
 				<FormControl>
 					<FormLabel>Username</FormLabel>
@@ -50,14 +51,14 @@ const StudentPanel = ({ className, selectedId, students, isBusy, onCreate, onAdd
 				>
 					Create student
 				</Button>
-				<Button minW="160px" isDisabled={!selectedId || !username.trim()} onClick={() => onAdd(username)}>
+				<Button minW="160px" isLoading={isBusy} isDisabled={!selectedId || !username.trim()} onClick={() => onAdd(username)}>
 					Add existing
 				</Button>
 			</Stack>
 			{students.length === 0 ? (
 				<Text>No students in this class.</Text>
 			) : (
-				<Table>
+				<Box overflowX="auto"><Table>
 					<Thead>
 						<Tr>
 							<Th>Username</Th>
@@ -69,7 +70,7 @@ const StudentPanel = ({ className, selectedId, students, isBusy, onCreate, onAdd
 							<Tr key={student.id}>
 								<Td>{student.username}</Td>
 								<Td>
-									<Flex gap={2}>
+									<Flex gap={2} wrap="wrap">
 										<Button size="sm" onClick={() => onReset(student)}>
 											Reset password
 										</Button>
@@ -86,7 +87,7 @@ const StudentPanel = ({ className, selectedId, students, isBusy, onCreate, onAdd
 							</Tr>
 						))}
 					</Tbody>
-				</Table>
+				</Table></Box>
 			)}
 		</Box>
 	);

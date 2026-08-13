@@ -5,15 +5,15 @@ import { useNavigate } from 'react-router-dom';
 const ResultsPanel = ({ classId, results }) => {
 	const navigate = useNavigate();
 	return (
-		<Box bg="white" p={6} borderRadius="xl" mt={6}>
+		<Box as="section" aria-labelledby="results-heading" bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" borderWidth="1px">
 			<Heading size="md" mb={4}>
-				Simulation results
+				<span id="results-heading">Simulation results</span>
 			</Heading>
 			{results.length === 0 ? (
 				<Text>No simulation results yet.</Text>
 			) : (
 				results.map((result) => (
-					<Flex key={result.run_id} justify="space-between" py={2}>
+					<Flex key={result.run_id} justify="space-between" direction={{ base: 'column', md: 'row' }} gap={2} py={3} borderBottomWidth="1px">
 						<Text>{result.student_username}</Text>
 						<Text>
 							{result.status}, week {result.current_week}

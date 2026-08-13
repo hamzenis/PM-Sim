@@ -88,6 +88,7 @@ class AssignedScenarioResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
     scenario_id: str
+    scenario_name: str
     revision_number: int
     status: str
 
