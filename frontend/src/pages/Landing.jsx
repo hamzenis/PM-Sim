@@ -25,11 +25,11 @@ const Landing = () => (
 					Learn by leading a project
 				</Heading>
 				<Text color="gray.600" fontSize={{ base: 'md', md: 'lg' }} maxW="560px">
-					Simplify is an interactive project simulation where your decisions about people, time, and
+					PM-Sim is an interactive project simulation where your decisions about people, time, and
 					priorities shape the outcome.
 				</Text>
 				<Button as={Link} to="/login" colorScheme="blue" size="lg" w={{ base: 'full', sm: 'auto' }} px={12}>
-					Log in to Simplify
+					Log in to PM-Sim
 				</Button>
 			</Stack>
 		</Box>

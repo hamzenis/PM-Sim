@@ -50,7 +50,7 @@ const Login = () => {
 				setError('The username or password is incorrect.');
 			} else {
 				console.error('Login failed', requestError);
-				setError('We could not reach Simplify. Check your connection and try again.');
+				setError('We could not reach PM-Sim. Check your connection and try again.');
 			}
 		} finally {
 			submissionInProgress.current = false;

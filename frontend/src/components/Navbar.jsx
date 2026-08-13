@@ -25,7 +25,7 @@ import {
 import { HiKey, HiMenu, HiOutlineLogout, HiOutlineUser } from 'react-icons/hi';
 import { useContext, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import Logo from '../images/logo-simplify.png';
+import Logo from '../images/logo-pmsim.png';
 import { AuthContext } from '../context/AuthProvider';
 
 const linksFor = (user) => [
