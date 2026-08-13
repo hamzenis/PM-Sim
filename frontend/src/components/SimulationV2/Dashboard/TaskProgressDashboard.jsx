@@ -25,6 +25,21 @@ export const orderedSnapshots = (state, turns = []) => {
 		.map(([week, snapshot]) => ({ week, snapshot }));
 };
 
+/** Select the task totals used by both the compact summary and detailed chart. */
+export const selectTaskProgress = (state, turns = []) => {
+	const snapshots = orderedSnapshots(state, turns);
+	const current = state;
+	const previous = snapshots.find(({ week }) => week === Number(state.week) - 1)?.snapshot;
+	return {
+		snapshots,
+		current,
+		previous,
+		integrationTested: taskPoolTotal(current.tasks_integration_tested),
+		previousIntegrationTested: previous === undefined ? null : taskPoolTotal(previous.tasks_integration_tested),
+		projectTasks: taskPoolTotal(current.tasks_todo) + taskPoolTotal(current.tasks_completed),
+	};
+};
+
 const deltaText = (current, previous) => {
 	if (previous === undefined) return null;
 	const change = current - previous;
@@ -100,9 +115,8 @@ const ProgressChart = ({ snapshots }) => {
 };
 
 const TaskProgressDashboard = ({ state, turns = [] }) => {
-	const snapshots = orderedSnapshots(state, turns);
-	const current = state;
-	const previous = snapshots.find(({ week }) => week === Number(state.week) - 1)?.snapshot;
+	const progress = selectTaskProgress(state, turns);
+	const { snapshots, current, previous, integrationTested, projectTasks } = progress;
 	const bugDiscoverySeen = turns.some((turn) =>
 		(turn.events || []).some((event) => event.kind === 'bugs_discovered' && taskPoolTotal(event.values) > 0)
 	) || snapshots.some(({ snapshot }) => taskPoolTotal(snapshot.known_bugs) > 0);
@@ -110,8 +124,6 @@ const TaskProgressDashboard = ({ state, turns = [] }) => {
 		...series.map(({ key, label }) => ({ key, label, favorable: key !== 'known_bugs' })),
 		{ key: 'tasks_todo', label: 'Remaining tasks', favorable: false },
 	];
-	const integrationTested = taskPoolTotal(current.tasks_integration_tested);
-	const projectTasks = taskPoolTotal(current.tasks_todo) + taskPoolTotal(current.tasks_completed);
 	const snapshotByWeek = new Map(snapshots.map(({ week, snapshot }) => [week, snapshot]));
 	const backlogReturns = turns.flatMap((turn) => (turn.events || [])
 		.filter((event) => event.kind === 'tasks_returned_to_backlog' && taskPoolTotal(event.values) > 0)

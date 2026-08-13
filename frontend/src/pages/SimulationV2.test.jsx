@@ -20,6 +20,7 @@ vi.mock('../components/SimulationV2/Dashboard/DashboardStats', () => ({ default:
 vi.mock('../components/SimulationV2/Dashboard/TaskProgressDashboard', () => ({ default: () => null }));
 vi.mock('../components/SimulationV2/Dashboard/BudgetTrendChart', () => ({ default: () => null }));
 vi.mock('../components/SimulationV2/Dashboard/EmployeeStatusChart', () => ({ default: () => null }));
+vi.mock('../components/SimulationV2/Dashboard/ProjectHealthSummary', () => ({ default: () => null }));
 vi.mock('../components/SimulationV2/TurnHistory', () => ({ default: () => null }));
 vi.mock('../components/SimulationV2/AuthoredContent/ContentPanel', () => ({
 	default: ({ version, deliveries = [] }) => <div>Run version {version}{deliveries.some((entry) => entry.required && entry.status === 'actionable') && <p>Required before continuing: {deliveries[0].prompt}</p>}</div>,

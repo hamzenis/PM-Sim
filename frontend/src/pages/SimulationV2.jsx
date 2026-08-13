@@ -37,6 +37,7 @@ import DashboardStats from '../components/SimulationV2/Dashboard/DashboardStats'
 import TaskProgressDashboard from '../components/SimulationV2/Dashboard/TaskProgressDashboard';
 import BudgetTrendChart from '../components/SimulationV2/Dashboard/BudgetTrendChart';
 import EmployeeStatusChart from '../components/SimulationV2/Dashboard/EmployeeStatusChart';
+import ProjectHealthSummary from '../components/SimulationV2/Dashboard/ProjectHealthSummary';
 import HelpContent from '../components/HelpContent';
 import { taskPoolTotal } from '../components/SimulationV2/Dashboard/taskPool';
 import ContentPanel from '../components/SimulationV2/AuthoredContent/ContentPanel';
@@ -258,9 +259,10 @@ const SimulationV2 = () => {
 			<Box as="section" aria-labelledby="project-health-heading">
 				<Heading id="project-health-heading" size="md" mb={4}>Project health</Heading>
 				<DashboardStats state={state} turns={turns} />
-				<BudgetTrendChart state={state} turns={turns} isComplete={run.status !== 'active'} />
-				<EmployeeStatusChart state={state} turns={turns} />
-				<TaskProgressDashboard state={state} turns={turns} />
+				<ProjectHealthSummary state={state} turns={turns} />
+				<Box id="budget-detail" tabIndex={-1} _focusVisible={{ boxShadow: 'outline' }}><BudgetTrendChart state={state} turns={turns} isComplete={run.status !== 'active'} /></Box>
+				<Box id="employee-detail" tabIndex={-1} _focusVisible={{ boxShadow: 'outline' }}><EmployeeStatusChart state={state} turns={turns} /></Box>
+				<Box id="task-detail" tabIndex={-1} _focusVisible={{ boxShadow: 'outline' }}><TaskProgressDashboard state={state} turns={turns} /></Box>
 			</Box>
 			<ContentPanel
 				runId={runId}
