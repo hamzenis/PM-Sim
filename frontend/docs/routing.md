@@ -27,4 +27,4 @@ ordinary page copy.
 ## Related documentation
 
 - [Authentication](authentication.md)
-- [UI conventions](ui-conventions.md)
+- [UI guidelines](ui-guidelines.md)

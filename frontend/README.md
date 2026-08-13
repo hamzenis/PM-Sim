@@ -31,5 +31,10 @@ npm run build
 
 ## Documentation
 
-Use the [frontend documentation index](docs/README.md) for architecture, routing, API integration,
-authentication, UI conventions, testing, accessibility, and deployment.
+Use the [frontend documentation index](docs/README.md) for local development, architecture, routing,
+API integration, authentication, UI guidelines, testing, accessibility, and deployment. In
+particular, follow the [UI guide](docs/ui-guidelines.md#adding-a-page-consistently) when adding a page.
+
+Visual snapshots are review artifacts: never update them only to make CI pass. Follow the
+[visual-diff and baseline procedure](docs/testing.md#reviewing-visual-diffs-and-snapshots) for every
+snapshot change.

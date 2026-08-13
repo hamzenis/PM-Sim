@@ -5,11 +5,12 @@ This index is the source of truth for the React application. Begin with the
 
 | Topic | Guide |
 | --- | --- |
+| Local development | [Development](development.md) |
 | Architecture | [Frontend architecture](architecture.md) |
 | Routing | [Routing and role gates](routing.md) |
 | API integration | [API integration](api-integration.md) |
 | Authentication | [Authentication](authentication.md) |
-| UI conventions | [UI conventions](ui-conventions.md) |
+| UI guidelines | [UI guidelines](ui-guidelines.md) |
 | Testing | [Frontend testing](testing.md) |
 | Accessibility | [Accessibility](accessibility.md) |
 | Deployment | [Frontend deployment](deployment.md) |
