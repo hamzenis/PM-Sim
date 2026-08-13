@@ -19,7 +19,7 @@ src/
 │   ├── ClassResultDetail.jsx
 │   │                      One student's run and authored-content audit
 │   ├── AuditOverview.jsx  Administrative activity log
-│   └── …                  Help, password, GDPR, and imprint pages
+│   └── …                  Help and password pages
 ├── components/            Reusable presentation and feature components
 │   ├── ClassManagement/   Class, roster, assignment, and result panels/dialogs
 │   ├── SimulationV2/      Decision, authored-content, dashboard, and result UI
@@ -98,8 +98,6 @@ the backend must enforce every permission independently.
 |---|---|---:|---:|---|---|---|
 | `/` | Anonymous or authenticated | Yes | Yes | `Landing` when anonymous | None | Any authenticated user is replaced to `/scenarios`. |
 | `/login` | Anonymous only | No | No | `Login` | `auth.login` | An authenticated user is replaced to `/`, which then resolves to `/scenarios`. |
-| `/gdpr` | Public | Yes | Yes | `GDPR` | None | Always rendered, including while signed out. |
-| `/imprint` | Public | Yes | Yes | `Imprint` | None | Always rendered, including while signed out. |
 | `/scenarios` | Required | Yes | Yes | `ScenarioOverview` | Professor: scenario list/validate/create/publish/archive. Student: available scenarios plus simulation list/start. | A guest's wildcard route replaces the URL with `/login`. |
 | `/simulations/:run_id` | Required | Yes | Yes | `SimulationV2` | simulation get/turn list/complete turn; content answer/acknowledge; submit | Load failure is rendered in-page. Guests go to `/login`. Backend ownership remains authoritative. |
 | `/help` | Required | Yes | Yes | `Help` | None | Guests go to `/login`. |

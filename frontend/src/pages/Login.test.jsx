@@ -27,7 +27,6 @@ function renderLogin(login = vi.fn().mockResolvedValue({ username: 'student' }))
 async function completeForm(user) {
 	await user.type(screen.getByLabelText(/^Username/), 'student');
 	await user.type(screen.getByLabelText(/^Password/), 'student-password');
-	await user.click(screen.getByRole('checkbox', { name: /privacy policy/i }));
 }
 
 test('uses visible labels and authentication autocomplete values', () => {
@@ -43,13 +42,11 @@ test('submits the semantic form with Enter', async () => {
 	expect(login).toHaveBeenCalledWith('student', 'student-password');
 });
 
-test('requires privacy-policy acceptance before login', async () => {
-	const { user, login } = renderLogin();
-	await user.type(screen.getByLabelText(/^Username/), 'student');
-	await user.type(screen.getByLabelText(/^Password/), 'student-password');
-	expect(screen.getByRole('button', { name: 'Log in' })).toBeDisabled();
-	await user.type(screen.getByLabelText(/^Password/), '{Enter}');
-	expect(login).not.toHaveBeenCalled();
+test('enables login once both credentials are complete', async () => {
+	const { user } = renderLogin();
+	await completeForm(user);
+	expect(screen.getByRole('button', { name: 'Log in' })).toBeEnabled();
+	expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 });
 
 test('shows and focuses the wrong-credentials error', async () => {

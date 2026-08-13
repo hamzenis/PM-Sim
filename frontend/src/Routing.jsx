@@ -7,8 +7,6 @@ import SimulationV2 from './pages/SimulationV2';
 import Login from './pages/Login';
 import ChangePassword from './pages/ChangePassword';
 import Help from './pages/Help';
-import GDPR from './pages/GDPR';
-import Imprint from './pages/Imprint';
 import { PageLoadingState } from './components/FeedbackStates';
 import NotFoundPage from './components/NotFoundPage';
 import CourseOverview from './pages/CourseOverview';
@@ -21,12 +19,6 @@ const Routing = () => {
 
 	return (
 		<Routes>
-			<>
-				{/* routes which are accessible for every user */}
-				<Route path="/gdpr" element={<GDPR />} />
-				<Route path="/imprint" element={<Imprint />} />
-			</>
-
 			{currentUser ? (
 				<>
 					{/* routes which are accessible for every logged-in user */}

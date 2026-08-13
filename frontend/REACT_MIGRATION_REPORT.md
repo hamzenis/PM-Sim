@@ -85,7 +85,7 @@ After `npm ci`, `npm ls --depth=0` listed every manifest dependency exactly once
 | Backend format/lint | Passed: 109 files formatted and all Ruff checks passed. |
 | Backend automated tests | Passed: 144 tests, with one pre-existing Starlette TestClient deprecation warning. |
 | Browser startup and initial render | Passed in real Chromium against Vite/FastAPI. |
-| Public routes | Passed for landing/login and `/gdpr`; anonymous protected paths redirect to login. |
+| Public routes | Passed for landing/login; anonymous protected paths redirect to login. |
 | Authentication/session | Passed for professor and student login, cookie-backed session restoration after refresh, and logout. |
 | Authorization | Passed: professor `/classes` renders with API data, role-gated navigation is present, and a student cannot access the professor class UI. |
 | API calls and states | Passed through browser reads plus unit/integration suites; expected anonymous session probe returns 401. |

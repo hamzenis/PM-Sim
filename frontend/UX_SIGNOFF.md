@@ -14,8 +14,6 @@ Before the redesign, workflows exposed implementation-oriented data and used une
 spacing, and responsive behaviour. After the redesign, the scenario and simulation paths lead with
 teaching labels and progress; professor class/results workflows use task-oriented panels; shared
 loading, empty, error, status, formatting, confirmation, focus, and mobile patterns are in place.
-The final audit fixed one remaining regression: `/imprint` incorrectly called itself “Privacy
-Policy”; it now consistently says “Imprint”.
 
 Representative after screenshots are the desktop and mobile baselines in
 `tests/visual/__screenshots__` for login, student scenarios, the weekly decision, professor class
@@ -26,7 +24,7 @@ before/after reviews.
 
 | Audience | Routes reviewed | Result |
 | --- | --- | --- |
-| Public | `/`, `/login`, `/gdpr`, `/imprint`, unknown route | Correct landing/login/legal content and redirects; imprint label fixed. |
+| Public | `/`, `/login`, unknown route | Correct landing/login content and redirects. |
 | Student | `/scenarios`, `/simulations/:run_id`, `/help`, `/change-password`, unknown route | Assignment, resume/start, briefing, weekly decision, submission confirmation, and support paths are classroom-ready. |
 | Professor | `/scenarios`, `/classes`, `/classes/:class_id/results/:run_id`, `/audit`, `/help`, `/change-password` | Scenario, roster, assignment, result, technical audit, and account paths are classroom-ready. |
 

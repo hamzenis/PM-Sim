@@ -3,7 +3,6 @@ import {
 	AlertIcon,
 	Box,
 	Button,
-	Checkbox,
 	FormControl,
 	FormLabel,
 	Heading,
@@ -16,7 +15,6 @@ import {
 } from '@chakra-ui/react';
 import { HiOutlineEye, HiOutlineEyeOff, HiOutlineLogin } from 'react-icons/hi';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { AuthContext } from '../context/AuthProvider';
 import landingBg from '../images/landing_bg.svg';
@@ -25,13 +23,12 @@ const Login = () => {
 	const { login } = useContext(AuthContext);
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
-	const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
 	const [error, setError] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const submissionInProgress = useRef(false);
 	const errorRef = useRef(null);
-	const isValid = username.trim() !== '' && password !== '' && privacyPolicyAccepted;
+	const isValid = username.trim() !== '' && password !== '';
 
 	useEffect(() => {
 		if (error) errorRef.current?.focus();
@@ -95,9 +92,6 @@ const Login = () => {
 							</InputRightElement>
 						</InputGroup>
 					</FormControl>
-					<Checkbox isChecked={privacyPolicyAccepted} onChange={(event) => setPrivacyPolicyAccepted(event.target.checked)}>
-						I accept the <Link to="/gdpr"><Text as="span" color="blue.600" textDecoration="underline">Privacy Policy</Text></Link>
-					</Checkbox>
 					<Button type="submit" rightIcon={<HiOutlineLogin />} isLoading={isSubmitting} loadingText="Logging in" colorScheme="blue" size="lg" isDisabled={!isValid || isSubmitting}>
 						Log in
 					</Button>
