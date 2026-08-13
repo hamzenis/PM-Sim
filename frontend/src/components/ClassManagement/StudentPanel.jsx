@@ -45,12 +45,12 @@ const StudentPanel = ({ className, selectedId, students, isBusy, onCreate, onAdd
 			</Text>
 			<Stack direction={{ base: 'column', md: 'row' }} mb={6} align="end">
 				<FormControl>
-					<FormLabel>Username</FormLabel>
-					<Input value={username} onChange={(event) => setUsername(event.target.value)} />
+					<FormLabel htmlFor="student-username">Username</FormLabel>
+					<Input id="student-username" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} />
 				</FormControl>
 				<FormControl>
-					<FormLabel>Temporary password</FormLabel>
-					<Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+					<FormLabel htmlFor="student-temporary-password">Temporary password</FormLabel>
+					<Input id="student-temporary-password" autoComplete="new-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
 				</FormControl>
 				<Button
 					colorScheme="blue"
@@ -78,10 +78,11 @@ const StudentPanel = ({ className, selectedId, students, isBusy, onCreate, onAdd
 			) : (
 				<Box overflowX="auto">
 					<Table>
+						<caption className="chakra-visually-hidden">Students in the selected class</caption>
 						<Thead>
 							<Tr>
-								<Th>Username</Th>
-								<Th>Actions</Th>
+								<Th scope="col">Username</Th>
+								<Th scope="col">Actions</Th>
 							</Tr>
 						</Thead>
 						<Tbody>

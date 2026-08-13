@@ -42,6 +42,7 @@ const AuditOverview = () => {
 				/>
 			) : (
 				<Table bg="white">
+								<caption className="chakra-visually-hidden">Administrative audit events</caption>
 					<Thead>
 						<Tr>
 							<Th>Time</Th>

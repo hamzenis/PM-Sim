@@ -42,7 +42,7 @@ const theme = extendTheme({
 	components: {
 		Button: {
 			defaultProps: { colorScheme: 'brand' },
-			baseStyle: { borderRadius: 'md', fontWeight: 'semibold' },
+			baseStyle: { borderRadius: 'md', fontWeight: 'semibold', minH: '44px' },
 		},
 	},
 });

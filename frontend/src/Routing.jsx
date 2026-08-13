@@ -9,6 +9,7 @@ import ChangePassword from './pages/ChangePassword';
 import Help from './pages/Help';
 import GDPR from './pages/GDPR';
 import Imprint from './pages/Imprint';
+import { PageLoadingState } from './components/FeedbackStates';
 import NotFoundPage from './components/NotFoundPage';
 import CourseOverview from './pages/CourseOverview';
 import AuditOverview from './pages/AuditOverview';
@@ -16,7 +17,7 @@ import ClassResultDetail from './pages/ClassResultDetail';
 
 const Routing = () => {
 	const { currentUser, isAuthenticating } = useContext(AuthContext);
-	if (isAuthenticating) return null;
+	if (isAuthenticating) return <PageLoadingState label="Loading application…" />;
 
 	return (
 		<Routes>

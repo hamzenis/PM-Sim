@@ -11,6 +11,21 @@ import LogoutTimer from './components/LogoutTimer';
 function App() {
 	return (
 		<Flex minH="100vh" flexDir="column">
+			<Box
+				as="a"
+				href="#main-content"
+				position="fixed"
+				top="2"
+				left="2"
+				zIndex="skipLink"
+				px="4"
+				py="3"
+				bg="white"
+				transform="translateY(-150%)"
+				_focus={{ transform: 'translateY(0)' }}
+			>
+				Skip to main content
+			</Box>
 			<BrowserRouter>
 				<AuthProvider>
 					<ScrollToTop>

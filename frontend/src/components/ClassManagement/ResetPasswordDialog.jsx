@@ -37,13 +37,15 @@ const ResetPasswordDialog = ({ student, isOpen, isBusy, onCancel, onSave }) => {
 				<ModalCloseButton />
 				<ModalBody>
 					<FormControl isInvalid={isTooShort} mb={4}>
-						<FormLabel>New temporary password</FormLabel>
-						<Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+						<FormLabel htmlFor="reset-password">New temporary password</FormLabel>
+						<Input id="reset-password" autoComplete="new-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
 						<FormErrorMessage>The password must contain at least 10 characters.</FormErrorMessage>
 					</FormControl>
 					<FormControl isInvalid={doesNotMatch}>
-						<FormLabel>Repeat password</FormLabel>
+						<FormLabel htmlFor="reset-password-confirmation">Repeat password</FormLabel>
 						<Input
+							id="reset-password-confirmation"
+							autoComplete="new-password"
 							type="password"
 							value={confirmation}
 							onChange={(event) => setConfirmation(event.target.value)}

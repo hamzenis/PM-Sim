@@ -43,8 +43,9 @@ const ScenarioImportDialog = ({ isOpen, isBusy, onCancel, onImport }) => {
 				<ModalCloseButton />
 				<ModalBody>
 					<FormControl isInvalid={Boolean(parseError)}>
-						<FormLabel>Scenario definition</FormLabel>
+						<FormLabel htmlFor="scenario-definition">Scenario definition</FormLabel>
 						<Textarea
+							id="scenario-definition"
 							minH="360px"
 							fontFamily="mono"
 							value={source}

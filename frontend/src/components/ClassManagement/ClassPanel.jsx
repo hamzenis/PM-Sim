@@ -20,9 +20,9 @@ const ClassPanel = ({ classes, selectedId, selectedClass, isBusy, onSelect, onCr
 			<Text color="gray.600" mb={4}>Select the class you want to work with, or create a new one.</Text>
 			<Stack spacing={4}>
 				<FormControl>
-					<FormLabel>Current class</FormLabel>
+					<FormLabel htmlFor="current-class">Current class</FormLabel>
 					<Select
-						aria-label="Select a class"
+						id="current-class"
 						placeholder="Select a class"
 						value={selectedId}
 						onChange={(event) => onSelect(event.target.value)}

@@ -314,6 +314,7 @@ const ScenarioOverview = () => {
 					) : (
 						<TableContainer>
 							<Table variant="simple">
+								<caption className="chakra-visually-hidden">Professor scenarios and revision status</caption>
 								<Thead>
 									<Tr>
 										<Th>Name</Th>
