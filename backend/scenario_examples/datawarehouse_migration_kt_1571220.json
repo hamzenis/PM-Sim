@@ -32,64 +32,120 @@
         "questions": [
             {
                 "id": "initial_strategy",
-                "prompt": "Which principle will guide your initial delivery strategy?",
+                "prompt": "At kickoff, which governance and staffing approach will you adopt for the 14-week migration?",
                 "answer_schema": "single_choice",
                 "options": [
                     {
-                        "id": "balanced_control",
-                        "label": "Balance budget, progress, and continuous testing"
+                        "id": "cross_functional_core",
+                        "label": "Fund a cross-functional core team with weekly data-owner decisions"
                     },
                     {
-                        "id": "budget_first",
-                        "label": "Minimize staffing cost before optimizing delivery"
+                        "id": "lean_escalation",
+                        "label": "Start lean and add specialists through stage-gate escalation"
                     },
                     {
-                        "id": "speed_first",
-                        "label": "Maximize early development throughput"
+                        "id": "specialist_frontload",
+                        "label": "Front-load scarce specialists, then transition work to the delivery team"
                     },
                     {
-                        "id": "quality_first",
-                        "label": "Prioritize testing and defect prevention"
+                        "id": "workstream_ownership",
+                        "label": "Assign interface workstreams to source-system teams with central assurance"
                     }
                 ],
                 "feedback_by_option": {
-                    "balanced_control": "Track all three constraints weekly and adjust before a gap becomes expensive.",
-                    "budget_first": "A small team protects budget but may create deadline pressure and late testing risk.",
-                    "speed_first": "Fast development only creates value when completed work also passes testing and integration.",
-                    "quality_first": "Strong quality controls support handover, but the team must still maintain delivery flow."
+                    "cross_functional_core": "A stable core raises early cost but shortens decisions and supports continuous quality. Weekly owner access can protect schedule and acceptance, provided governance does not become meeting-heavy.",
+                    "lean_escalation": "Low initial burn preserves contingency and gives sponsors control. Later approvals or scarce hires may delay work, compress testing, and frustrate stakeholders if escalation thresholds are vague.",
+                    "specialist_frontload": "Early expertise can retire hard design risks and improve estimates, at a high initial cost. Schedule and support quality depend on disciplined transfer before specialists leave and owners validating decisions.",
+                    "workstream_ownership": "Distributed ownership can deepen interface knowledge and stakeholder commitment while containing central cost. Competing operational priorities may slow delivery or create uneven quality without common standards."
                 }
             },
             {
                 "id": "migration_risks",
-                "prompt": "Which risks need active control during the migration?",
+                "prompt": "By week 4, which risks are most important to place on the active watchlist? Select all that merit explicit mitigation.",
                 "answer_schema": "multiple_choice",
                 "options": [
                     {
                         "id": "data_quality",
-                        "label": "Source-data quality and transformation defects"
+                        "label": "Inconsistent source data and unclear ownership"
                     },
                     {
-                        "id": "source_changes",
-                        "label": "Changes to connected source systems"
+                        "id": "interface_changes",
+                        "label": "ERP, commerce, logistics, or finance interface changes"
                     },
                     {
-                        "id": "performance",
-                        "label": "Reporting and processing performance"
+                        "id": "scarce_expertise",
+                        "label": "Scarce ETL and source-system expertise"
                     },
                     {
                         "id": "knowledge_transfer",
-                        "label": "Maintainability and client knowledge transfer"
+                        "label": "Late knowledge transfer to the support team"
+                    },
+                    {
+                        "id": "scope_growth",
+                        "label": "Uncontrolled growth in reports, rules, or compliance needs"
+                    },
+                    {
+                        "id": "testing_debt",
+                        "label": "Unit-test shortcuts accumulating as integration debt"
+                    },
+                    {
+                        "id": "dashboard_branding",
+                        "label": "Stakeholders disagreeing about dashboard colors and branding"
+                    },
+                    {
+                        "id": "office_move",
+                        "label": "A planned office move disrupting in-person ceremonies"
                     }
-                ]
+                ],
+                "feedback_by_option": {
+                    "data_quality": "Profiling, ownership, and acceptance rules consume capacity now but reduce transformation rework, disputed outputs, and late stakeholder rejection.",
+                    "interface_changes": "Contract monitoring and change control protect integration. Ignored interface drift can invalidate completed mappings and consume schedule and test budget.",
+                    "scarce_expertise": "Named backups and reserved expert time cost money but reduce bottlenecks. Unavailable experts can stall decisions and force lower-quality workarounds.",
+                    "knowledge_transfer": "Pairing and documented rehearsals reduce current throughput, yet lower handover and operational risk. Deferring transfer makes support readiness dependent on a few people.",
+                    "scope_growth": "A visible change budget and sponsor trade-offs preserve alignment. Quiet additions dilute capacity, push tests later, and obscure the forecast.",
+                    "testing_debt": "Tracking skipped tests as debt makes the cost visible. Leaving it unmanaged can create misleading progress and expensive integration defects near go-live.",
+                    "dashboard_branding": "Branding disagreement can affect acceptance, but decision time-boxes usually contain it. Compare its likely impact with risks that threaten data correctness or integration.",
+                    "office_move": "Location disruption may affect ceremonies, but remote access and scheduling can often mitigate it. Assess evidence before diverting contingency from delivery-critical risks."
+                }
             },
             {
-                "id": "test_readiness",
-                "prompt": "Is the remaining plan sufficient to complete integration testing within the budget and deadline?",
-                "answer_schema": "boolean"
+                "id": "spending_ceiling_response",
+                "prompt": "The sponsor has announced the EUR 190,000 spending ceiling. Which immediate response will you authorize?",
+                "answer_schema": "single_choice",
+                "options": [
+                    {
+                        "id": "scope_negotiation",
+                        "label": "Negotiate controlled scope trades while protecting acceptance and compliance"
+                    },
+                    {
+                        "id": "staff_cuts",
+                        "label": "Cut staff evenly across every role and workstream"
+                    },
+                    {
+                        "id": "sustained_overtime",
+                        "label": "Hold scope and staffing cost by relying on sustained overtime"
+                    },
+                    {
+                        "id": "evidence_replan",
+                        "label": "Reforecast from accepted work, defects, capacity, and remaining risk"
+                    }
+                ],
+                "feedback_by_option": {
+                    "scope_negotiation": "Explicit trades can align cost and time while protecting critical quality, but stakeholders may lose valued outcomes and negotiations must not delay the fixed date.",
+                    "staff_cuts": "Uniform cuts lower forecast cost quickly and appear equitable. They can remove scarce skills, slow interfaces, weaken testing, and leave owners uncertain about accountability.",
+                    "sustained_overtime": "Overtime may preserve near-term milestones without immediate hiring cost. Sustained use increases fatigue, defects, turnover risk, and stakeholder doubt about whether the plan is credible.",
+                    "evidence_replan": "Evidence exposes the cost-to-complete and supports defensible allocation changes. Analysis takes time and may reveal that scope, risk tolerance, or expectations still require sponsor negotiation."
+                }
+            },
+            {
+                "id": "go_no_go_readiness",
+                "prompt": "Give a go/no-go recommendation. Support it with the current forecast against the EUR 190,000 ceiling, accepted work, unresolved quality or test work, and time remaining to week 14.",
+                "answer_schema": "short_text",
+                "short_text_max_length": 500
             },
             {
                 "id": "final_retrospective",
-                "prompt": "Summarize the most important trade-off you made and how it affected the migration outcome.",
+                "prompt": "Give the steering committee a concise retrospective: connect at least one staffing or allocation decision to delivered scope, elapsed time, total cost, quality, and team sustainability.",
                 "answer_schema": "short_text",
                 "short_text_max_length": 500
             }
@@ -127,23 +183,28 @@
                 ]
             },
             {
+                "id": "s_migration_risks",
+                "trigger": {
+                    "type": "before_week",
+                    "week": 4
+                },
+                "question_id": "migration_risks"
+            },
+            {
                 "id": "s_budget_review",
                 "trigger": {
                     "type": "after_week",
                     "week": 4
                 },
-                "fragment_id": "delivery_constraints",
-                "depends_on": [
-                    "s_initial_strategy"
-                ]
+                "fragment_id": "delivery_constraints"
             },
             {
-                "id": "s_migration_risks",
+                "id": "s_spending_ceiling_response",
                 "trigger": {
-                    "type": "before_week",
-                    "week": 5
+                    "type": "after_week",
+                    "week": 4
                 },
-                "question_id": "migration_risks",
+                "question_id": "spending_ceiling_response",
                 "depends_on": [
                     "s_budget_review"
                 ]
@@ -154,18 +215,15 @@
                     "type": "after_week",
                     "week": 8
                 },
-                "fragment_id": "quality_readiness_briefing",
-                "depends_on": [
-                    "s_migration_risks"
-                ]
+                "fragment_id": "quality_readiness_briefing"
             },
             {
-                "id": "s_test_readiness",
+                "id": "s_go_no_go_readiness",
                 "trigger": {
                     "type": "before_week",
                     "week": 9
                 },
-                "question_id": "test_readiness",
+                "question_id": "go_no_go_readiness",
                 "depends_on": [
                     "s_quality_gate"
                 ]
@@ -175,10 +233,7 @@
                 "trigger": {
                     "type": "run_finished"
                 },
-                "fragment_id": "handover_briefing",
-                "depends_on": [
-                    "s_test_readiness"
-                ]
+                "fragment_id": "handover_briefing"
             },
             {
                 "id": "s_final_retrospective",
@@ -195,10 +250,7 @@
                 "trigger": {
                     "type": "run_finished"
                 },
-                "event_id": "handover_ready",
-                "depends_on": [
-                    "s_final_retrospective"
-                ]
+                "event_id": "handover_ready"
             }
         ]
     },

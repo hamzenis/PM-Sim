@@ -251,7 +251,7 @@ not gain access to a student's player routes; professor inspection uses result r
 
 | Method/path | Input | Success | Response schema | Meaningful endpoint errors |
 | --- | --- | --- | --- | --- |
-| `POST /api/simulations` | `StartSimulationRequest {scenario_revision_id, class_id:string|null = null, seed:int}` | `201` | `RunResponse` | `400` user/revision/scenario unavailable, unpublished, inaccessible, or invalid class association; `401`; `422`. |
+| `POST /api/simulations` | `StartSimulationRequest {scenario_revision_id, class_id:string  null = null, seed:int}` | `201` | `RunResponse` | `400` user/revision/scenario unavailable, unpublished, inaccessible, or invalid class association; `401`; `422`. |
 | `GET /api/simulations` | None | `200` | `RunSummaryResponse[]` | `401`. |
 | `GET /api/simulations/{run_id}` | Path ID | `200` | `RunResponse` | `404` missing/not owned; `401`. |
 | `GET /api/simulations/{run_id}/turns` | Path ID | `200` | `TurnHistoryResponse[]` | `404` missing/not owned; `401`. |
