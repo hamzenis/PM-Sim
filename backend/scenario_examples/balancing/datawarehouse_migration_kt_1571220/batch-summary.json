@@ -1,0 +1,675 @@
+{
+  "scenario": "scenario_examples/datawarehouse_migration_kt_1571220.json",
+  "scenario_sha256": "2359602794b38b41ea4aa2a98c94f5a3d8e880e97c0676944593b89233c0d381",
+  "engine_entry_point": "app.batch.runner.run_simulation_batch",
+  "initial_seed": 1571220,
+  "repetitions_per_strategy": 200,
+  "seed_range": [
+    1571220,
+    1571419
+  ],
+  "strategies": [
+    {
+      "name": "low-cost-staffing",
+      "roster": {
+        "junior_data_engineer": 3,
+        "data_engineer": 1
+      },
+      "allocation": [
+        40,
+        25,
+        15,
+        20
+      ],
+      "recovery_overtime": 0
+    },
+    {
+      "name": "senior-heavy-delivery",
+      "roster": {
+        "senior_data_engineer": 3,
+        "data_architect": 1
+      },
+      "allocation": [
+        40,
+        25,
+        15,
+        20
+      ],
+      "recovery_overtime": 0
+    },
+    {
+      "name": "specialist-balanced-staffing",
+      "roster": {
+        "data_engineer": 1,
+        "senior_data_engineer": 1,
+        "etl_migration_specialist": 1,
+        "data_quality_test_engineer": 1
+      },
+      "allocation": [
+        30,
+        30,
+        15,
+        25
+      ],
+      "recovery_overtime": 0
+    },
+    {
+      "name": "development-first-allocation",
+      "roster": {
+        "data_engineer": 1,
+        "senior_data_engineer": 1,
+        "data_quality_test_engineer": 1,
+        "migration_coordinator": 1
+      },
+      "allocation": [
+        55,
+        20,
+        10,
+        15
+      ],
+      "recovery_overtime": 0
+    },
+    {
+      "name": "quality-first-allocation",
+      "roster": {
+        "data_engineer": 1,
+        "senior_data_engineer": 1,
+        "data_quality_test_engineer": 1,
+        "migration_coordinator": 1
+      },
+      "allocation": [
+        25,
+        30,
+        20,
+        25
+      ],
+      "recovery_overtime": 0
+    },
+    {
+      "name": "overtime-recovery-after-budget-shock",
+      "roster": {
+        "data_engineer": 1,
+        "senior_data_engineer": 1,
+        "data_quality_test_engineer": 1,
+        "migration_coordinator": 1
+      },
+      "allocation": [
+        35,
+        27,
+        13,
+        25
+      ],
+      "recovery_overtime": 2
+    }
+  ],
+  "modes": {
+    "none": {
+      "low-cost-staffing": {
+        "completion_rate": 0.0,
+        "budget_exhaustion_rate_nominal_240000": 0.0,
+        "effective_210000_ceiling_exceedance_rate": 0,
+        "accepted_tasks": {
+          "mean": 63.515,
+          "min": 48,
+          "max": 74
+        },
+        "rejected_tasks": {
+          "mean": 36.485,
+          "min": 26,
+          "max": 52
+        },
+        "total_cost": {
+          "mean": 116900.0,
+          "min": 116900.0,
+          "max": 116900.0
+        },
+        "elapsed_working_days": {
+          "mean": 70,
+          "min": 70,
+          "max": 70
+        },
+        "score_distribution": {
+          "mean": 82.24,
+          "min": 76,
+          "p10": 80,
+          "median": 82,
+          "p90": 85,
+          "max": 87
+        },
+        "score_component_ranges": {
+          "quality": [
+            11,
+            22
+          ],
+          "time": [
+            20,
+            20
+          ],
+          "budget": [
+            45,
+            45
+          ]
+        }
+      },
+      "senior-heavy-delivery": {
+        "completion_rate": 1.0,
+        "budget_exhaustion_rate_nominal_240000": 0.115,
+        "effective_210000_ceiling_exceedance_rate": 0.68,
+        "accepted_tasks": {
+          "mean": 100,
+          "min": 100,
+          "max": 100
+        },
+        "rejected_tasks": {
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "total_cost": {
+          "mean": 217150.0,
+          "min": 172000.0,
+          "max": 301000.0
+        },
+        "elapsed_working_days": {
+          "mean": 50.5,
+          "min": 40,
+          "max": 70
+        },
+        "score_distribution": {
+          "mean": 99.075,
+          "min": 74,
+          "p10": 94,
+          "median": 100,
+          "p90": 100,
+          "max": 100
+        },
+        "score_component_ranges": {
+          "quality": [
+            35,
+            35
+          ],
+          "time": [
+            20,
+            20
+          ],
+          "budget": [
+            19,
+            45
+          ]
+        }
+      },
+      "specialist-balanced-staffing": {
+        "completion_rate": 0.615,
+        "budget_exhaustion_rate_nominal_240000": 0.0,
+        "effective_210000_ceiling_exceedance_rate": 0.615,
+        "accepted_tasks": {
+          "mean": 99.45,
+          "min": 96,
+          "max": 100
+        },
+        "rejected_tasks": {
+          "mean": 0.55,
+          "min": 0,
+          "max": 4
+        },
+        "total_cost": {
+          "mean": 202631.25,
+          "min": 151500.0,
+          "max": 212100.0
+        },
+        "elapsed_working_days": {
+          "mean": 66.875,
+          "min": 50,
+          "max": 70
+        },
+        "score_distribution": {
+          "mean": 99.49,
+          "min": 97,
+          "p10": 99,
+          "median": 100,
+          "p90": 100,
+          "max": 100
+        },
+        "score_component_ranges": {
+          "quality": [
+            32,
+            35
+          ],
+          "time": [
+            20,
+            20
+          ],
+          "budget": [
+            45,
+            45
+          ]
+        }
+      },
+      "development-first-allocation": {
+        "completion_rate": 0.0,
+        "budget_exhaustion_rate_nominal_240000": 0.0,
+        "effective_210000_ceiling_exceedance_rate": 0,
+        "accepted_tasks": {
+          "mean": 88.645,
+          "min": 78,
+          "max": 97
+        },
+        "rejected_tasks": {
+          "mean": 11.355,
+          "min": 3,
+          "max": 22
+        },
+        "total_cost": {
+          "mean": 202300.0,
+          "min": 202300.0,
+          "max": 202300.0
+        },
+        "elapsed_working_days": {
+          "mean": 70,
+          "min": 70,
+          "max": 70
+        },
+        "score_distribution": {
+          "mean": 93.595,
+          "min": 89,
+          "p10": 91,
+          "median": 94,
+          "p90": 96,
+          "max": 98
+        },
+        "score_component_ranges": {
+          "quality": [
+            24,
+            33
+          ],
+          "time": [
+            20,
+            20
+          ],
+          "budget": [
+            45,
+            45
+          ]
+        }
+      },
+      "quality-first-allocation": {
+        "completion_rate": 0.755,
+        "budget_exhaustion_rate_nominal_240000": 0.0,
+        "effective_210000_ceiling_exceedance_rate": 0,
+        "accepted_tasks": {
+          "mean": 99.725,
+          "min": 98,
+          "max": 100
+        },
+        "rejected_tasks": {
+          "mean": 0.275,
+          "min": 0,
+          "max": 2
+        },
+        "total_cost": {
+          "mean": 191245.75,
+          "min": 158950.0,
+          "max": 202300.0
+        },
+        "elapsed_working_days": {
+          "mean": 66.175,
+          "min": 55,
+          "max": 70
+        },
+        "score_distribution": {
+          "mean": 99.725,
+          "min": 98,
+          "p10": 99,
+          "median": 100,
+          "p90": 100,
+          "max": 100
+        },
+        "score_component_ranges": {
+          "quality": [
+            33,
+            35
+          ],
+          "time": [
+            20,
+            20
+          ],
+          "budget": [
+            45,
+            45
+          ]
+        }
+      },
+      "overtime-recovery-after-budget-shock": {
+        "completion_rate": 0.91,
+        "budget_exhaustion_rate_nominal_240000": 0.0,
+        "effective_210000_ceiling_exceedance_rate": 0,
+        "accepted_tasks": {
+          "mean": 99.905,
+          "min": 98,
+          "max": 100
+        },
+        "rejected_tasks": {
+          "mean": 0.095,
+          "min": 0,
+          "max": 2
+        },
+        "total_cost": {
+          "mean": 183442.75,
+          "min": 144500.0,
+          "max": 202300.0
+        },
+        "elapsed_working_days": {
+          "mean": 63.475,
+          "min": 50,
+          "max": 70
+        },
+        "score_distribution": {
+          "mean": 99.905,
+          "min": 98,
+          "p10": 100,
+          "median": 100,
+          "p90": 100,
+          "max": 100
+        },
+        "score_component_ranges": {
+          "quality": [
+            33,
+            35
+          ],
+          "time": [
+            20,
+            20
+          ],
+          "budget": [
+            45,
+            45
+          ]
+        }
+      }
+    },
+    "semi": {
+      "low-cost-staffing": {
+        "completion_rate": 0.0,
+        "budget_exhaustion_rate_nominal_240000": 0.0,
+        "effective_210000_ceiling_exceedance_rate": 0,
+        "accepted_tasks": {
+          "mean": 62.92,
+          "min": 48,
+          "max": 77
+        },
+        "rejected_tasks": {
+          "mean": 37.08,
+          "min": 23,
+          "max": 52
+        },
+        "total_cost": {
+          "mean": 116900.0,
+          "min": 116900.0,
+          "max": 116900.0
+        },
+        "elapsed_working_days": {
+          "mean": 70,
+          "min": 70,
+          "max": 70
+        },
+        "score_distribution": {
+          "mean": 82,
+          "min": 76,
+          "p10": 79,
+          "median": 82,
+          "p90": 85,
+          "max": 88
+        },
+        "score_component_ranges": {
+          "quality": [
+            11,
+            23
+          ],
+          "time": [
+            20,
+            20
+          ],
+          "budget": [
+            45,
+            45
+          ]
+        }
+      },
+      "senior-heavy-delivery": {
+        "completion_rate": 1.0,
+        "budget_exhaustion_rate_nominal_240000": 0.13,
+        "effective_210000_ceiling_exceedance_rate": 0.685,
+        "accepted_tasks": {
+          "mean": 100,
+          "min": 100,
+          "max": 100
+        },
+        "rejected_tasks": {
+          "mean": 0,
+          "min": 0,
+          "max": 0
+        },
+        "total_cost": {
+          "mean": 218225.0,
+          "min": 172000.0,
+          "max": 279500.0
+        },
+        "elapsed_working_days": {
+          "mean": 50.75,
+          "min": 40,
+          "max": 65
+        },
+        "score_distribution": {
+          "mean": 98.995,
+          "min": 85,
+          "p10": 94,
+          "median": 100,
+          "p90": 100,
+          "max": 100
+        },
+        "score_component_ranges": {
+          "quality": [
+            35,
+            35
+          ],
+          "time": [
+            20,
+            20
+          ],
+          "budget": [
+            30,
+            45
+          ]
+        }
+      },
+      "specialist-balanced-staffing": {
+        "completion_rate": 0.625,
+        "budget_exhaustion_rate_nominal_240000": 0.0,
+        "effective_210000_ceiling_exceedance_rate": 0.58,
+        "accepted_tasks": {
+          "mean": 99.515,
+          "min": 97,
+          "max": 100
+        },
+        "rejected_tasks": {
+          "mean": 0.485,
+          "min": 0,
+          "max": 3
+        },
+        "total_cost": {
+          "mean": 201798.0,
+          "min": 151500.0,
+          "max": 212100.0
+        },
+        "elapsed_working_days": {
+          "mean": 66.6,
+          "min": 50,
+          "max": 70
+        },
+        "score_distribution": {
+          "mean": 99.54,
+          "min": 98,
+          "p10": 99,
+          "median": 100,
+          "p90": 100,
+          "max": 100
+        },
+        "score_component_ranges": {
+          "quality": [
+            33,
+            35
+          ],
+          "time": [
+            20,
+            20
+          ],
+          "budget": [
+            45,
+            45
+          ]
+        }
+      },
+      "development-first-allocation": {
+        "completion_rate": 0.01,
+        "budget_exhaustion_rate_nominal_240000": 0.0,
+        "effective_210000_ceiling_exceedance_rate": 0,
+        "accepted_tasks": {
+          "mean": 86.685,
+          "min": 73,
+          "max": 100
+        },
+        "rejected_tasks": {
+          "mean": 13.315,
+          "min": 0,
+          "max": 27
+        },
+        "total_cost": {
+          "mean": 202300.0,
+          "min": 202300.0,
+          "max": 202300.0
+        },
+        "elapsed_working_days": {
+          "mean": 70,
+          "min": 70,
+          "max": 70
+        },
+        "score_distribution": {
+          "mean": 92.685,
+          "min": 86,
+          "p10": 90,
+          "median": 93,
+          "p90": 96,
+          "max": 100
+        },
+        "score_component_ranges": {
+          "quality": [
+            21,
+            35
+          ],
+          "time": [
+            20,
+            20
+          ],
+          "budget": [
+            45,
+            45
+          ]
+        }
+      },
+      "quality-first-allocation": {
+        "completion_rate": 0.75,
+        "budget_exhaustion_rate_nominal_240000": 0.0,
+        "effective_210000_ceiling_exceedance_rate": 0,
+        "accepted_tasks": {
+          "mean": 99.67,
+          "min": 94,
+          "max": 100
+        },
+        "rejected_tasks": {
+          "mean": 0.33,
+          "min": 0,
+          "max": 6
+        },
+        "total_cost": {
+          "mean": 191823.75,
+          "min": 158950.0,
+          "max": 202300.0
+        },
+        "elapsed_working_days": {
+          "mean": 66.375,
+          "min": 55,
+          "max": 70
+        },
+        "score_distribution": {
+          "mean": 99.685,
+          "min": 96,
+          "p10": 99,
+          "median": 100,
+          "p90": 100,
+          "max": 100
+        },
+        "score_component_ranges": {
+          "quality": [
+            31,
+            35
+          ],
+          "time": [
+            20,
+            20
+          ],
+          "budget": [
+            45,
+            45
+          ]
+        }
+      },
+      "overtime-recovery-after-budget-shock": {
+        "completion_rate": 0.815,
+        "budget_exhaustion_rate_nominal_240000": 0.0,
+        "effective_210000_ceiling_exceedance_rate": 0,
+        "accepted_tasks": {
+          "mean": 99.805,
+          "min": 98,
+          "max": 100
+        },
+        "rejected_tasks": {
+          "mean": 0.195,
+          "min": 0,
+          "max": 2
+        },
+        "total_cost": {
+          "mean": 185827.0,
+          "min": 144500.0,
+          "max": 202300.0
+        },
+        "elapsed_working_days": {
+          "mean": 64.3,
+          "min": 50,
+          "max": 70
+        },
+        "score_distribution": {
+          "mean": 99.805,
+          "min": 98,
+          "p10": 99,
+          "median": 100,
+          "p90": 100,
+          "max": 100
+        },
+        "score_component_ranges": {
+          "quality": [
+            33,
+            35
+          ],
+          "time": [
+            20,
+            20
+          ],
+          "budget": [
+            45,
+            45
+          ]
+        }
+      }
+    }
+  }
+}

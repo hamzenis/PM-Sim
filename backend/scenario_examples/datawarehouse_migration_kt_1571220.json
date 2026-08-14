@@ -251,7 +251,7 @@
         "working_days_per_week": 5
     },
     "tasks": {
-        "total": 120,
+        "total": 100,
         "difficulty_distribution": {
             "easy": 0.3,
             "medium": 0.45,
@@ -264,9 +264,9 @@
             "name": "Junior Data Engineer",
             "cost_per_day": 360,
             "throughput": {
-                "easy": 5.4,
-                "medium": 2,
-                "hard": 0.55
+                "easy": 9.18,
+                "medium": 3.4,
+                "hard": 0.94
             },
             "error_rate": 0.1,
             "management_skill": 0.22
@@ -276,9 +276,9 @@
             "name": "Data Engineer",
             "cost_per_day": 590,
             "throughput": {
-                "easy": 5.2,
-                "medium": 3.2,
-                "hard": 1.4
+                "easy": 8.84,
+                "medium": 5.44,
+                "hard": 2.38
             },
             "error_rate": 0.05,
             "management_skill": 0.52
@@ -286,11 +286,11 @@
         {
             "code": "senior_data_engineer",
             "name": "Senior Data Engineer",
-            "cost_per_day": 850,
+            "cost_per_day": 1000,
             "throughput": {
-                "easy": 5.4,
-                "medium": 4.4,
-                "hard": 2.35
+                "easy": 9.18,
+                "medium": 7.48,
+                "hard": 4.0
             },
             "error_rate": 0.022,
             "management_skill": 0.72
@@ -300,9 +300,9 @@
             "name": "ETL Migration Specialist",
             "cost_per_day": 680,
             "throughput": {
-                "easy": 7.5,
-                "medium": 4.1,
-                "hard": 1.05
+                "easy": 12.75,
+                "medium": 6.97,
+                "hard": 1.78
             },
             "error_rate": 0.065,
             "management_skill": 0.25
@@ -312,9 +312,9 @@
             "name": "Data Quality and Test Engineer",
             "cost_per_day": 760,
             "throughput": {
-                "easy": 3.2,
-                "medium": 2.5,
-                "hard": 1.3
+                "easy": 5.44,
+                "medium": 4.25,
+                "hard": 2.21
             },
             "error_rate": 0.012,
             "management_skill": 0.58
@@ -322,11 +322,11 @@
         {
             "code": "data_architect",
             "name": "Data Architect",
-            "cost_per_day": 1100,
+            "cost_per_day": 1300,
             "throughput": {
-                "easy": 4.5,
-                "medium": 4,
-                "hard": 2.8
+                "easy": 7.65,
+                "medium": 6.8,
+                "hard": 4.76
             },
             "error_rate": 0.03,
             "management_skill": 0.94
@@ -336,9 +336,9 @@
             "name": "Migration Coordinator",
             "cost_per_day": 540,
             "throughput": {
-                "easy": 2.4,
-                "medium": 1.45,
-                "hard": 0.45
+                "easy": 4.08,
+                "medium": 2.46,
+                "hard": 0.77
             },
             "error_rate": 0.018,
             "management_skill": 0.88
