@@ -1,4 +1,6 @@
+import json
 from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -379,55 +381,97 @@ def _assign_scenario_and_login_student(
 def test_student_run_contract_exposes_messages_and_flag_only_event_deliveries(
     client: TestClient,
 ) -> None:
-    payload = scenario_payload()
-    payload["authored_content"] = {
-        "fragments": [],
-        "questions": [],
-        "events": [
-            {
-                "id": "budget_review",
-                "effects": [
-                    {
-                        "type": "show_message",
-                        "payload": {"text": "Week 4 sponsor notice: contingency consumed."},
-                    }
-                ],
-            },
-            {
-                "id": "handover_ready",
-                "effects": [
-                    {
-                        "type": "set_presentation_flag",
-                        "payload": {"flag": "handover_review_ready", "value": True},
-                    }
-                ],
-            },
-        ],
-        "sequence": [
-            {
-                "id": "s_budget_review",
-                "trigger": {"type": "run_started"},
-                "event_id": "budget_review",
-            },
-            {
-                "id": "s_handover_ready",
-                "trigger": {"type": "run_started"},
-                "event_id": "handover_ready",
-            },
-        ],
-    }
+    payload = json.loads(
+        Path("scenario_examples/datawarehouse_migration_kt_1571220.json").read_text()
+    )
     revision_id = _assign_scenario_and_login_student(client, payload)
 
-    response = client.post(
+    started = client.post(
         "/api/simulations", json={"scenario_revision_id": revision_id, "seed": 123}
     )
 
-    assert response.status_code == 201
-    run = response.json()
-    assert run["presentation"]["messages"] == ["Week 4 sponsor notice: contingency consumed."]
-    assert run["presentation"]["flags"]["handover_review_ready"] is True
+    assert started.status_code == 201
+    run = started.json()
+    acknowledged = client.post(
+        f"/api/simulations/{run['id']}/content/s_project_briefing/acknowledge",
+        json={"expected_version": run["version"]},
+        headers={"Idempotency-Key": "acknowledge-project-briefing"},
+    )
+    assert acknowledged.status_code == 200, acknowledged.json()
+    run = acknowledged.json()
+    initial_strategy = client.post(
+        f"/api/simulations/{run['id']}/content/s_initial_strategy/answer",
+        json={
+            "expected_version": run["version"],
+            "answer": "cross_functional_core",
+        },
+        headers={"Idempotency-Key": "answer-initial-strategy"},
+    )
+    assert initial_strategy.status_code == 200, initial_strategy.json()
+    run = initial_strategy.json()
+
+    for week in range(1, 5):
+        turn_url = f"/api/simulations/{run['id']}/turns"
+        turn_payload = {
+            "expected_version": run["version"],
+            "allocation": {
+                "development": 100,
+                "unit_testing": 0,
+                "bug_fixing": 0,
+                "integration_testing": 0,
+            },
+            "hires": (
+                [{"employee_type_code": "data_engineer", "count": 1}]
+                if week == 1
+                else []
+            ),
+        }
+        turn = client.post(
+            turn_url,
+            json=turn_payload,
+            headers={"Idempotency-Key": f"data-warehouse-week-{week}"},
+        )
+        if week == 4:
+            assert turn.status_code == 409, turn.json()
+            blocker = turn.json()["detail"]["blocking_entry"]
+            assert blocker["sequence_entry_id"] == "s_migration_risks"
+            risks = client.post(
+                f"/api/simulations/{run['id']}/content/s_migration_risks/answer",
+                json={
+                    "expected_version": run["version"],
+                    "answer": ["data_quality", "testing_debt"],
+                },
+                headers={"Idempotency-Key": "answer-migration-risks"},
+            )
+            assert risks.status_code == 200, risks.json()
+            run = risks.json()
+            turn_payload["expected_version"] = run["version"]
+            turn = client.post(
+                turn_url,
+                json=turn_payload,
+                headers={"Idempotency-Key": "data-warehouse-week-4-after-content"},
+            )
+        assert turn.status_code == 200, turn.json()
+        run = turn.json()["run"]
+
+    assert run["current_week"] == 4
+    assert len(run["presentation"]["messages"]) == 1
+    assert run["presentation"]["messages"][0].startswith("Week 4 sponsor notice:")
+    assert run["presentation"]["flags"]["contingency_consumed_notice"] is True
     deliveries = {item["sequence_entry_id"]: item for item in run["deliveries"]}
-    assert set(deliveries) == {"s_budget_review", "s_handover_ready"}
+    assert deliveries["s_budget_review"]["status"] == "completed"
+    assert deliveries["s_budget_review"]["title"] is None
+    assert deliveries["s_budget_review"]["body"] is None
+
+    submitted = client.post(
+        f"/api/simulations/{run['id']}/submit",
+        json={"expected_version": run["version"]},
+    )
+    assert submitted.status_code == 200, submitted.json()
+    finished = submitted.json()
+    assert finished["presentation"]["flags"]["handover_review_ready"] is True
+    deliveries = {item["sequence_entry_id"]: item for item in finished["deliveries"]}
+    assert deliveries["s_handover_ready"]["status"] == "completed"
     assert deliveries["s_handover_ready"]["title"] is None
     assert deliveries["s_handover_ready"]["body"] is None
     assert deliveries["s_handover_ready"]["feedback"] is None

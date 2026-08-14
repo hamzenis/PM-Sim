@@ -28,6 +28,7 @@
                 "id": "initial_strategy",
                 "prompt": "At kickoff, which governance and staffing approach will you adopt for the 14-week migration?",
                 "answer_schema": "single_choice",
+                "required": true,
                 "options": [
                     {
                         "id": "cross_functional_core",
@@ -57,6 +58,7 @@
                 "id": "migration_risks",
                 "prompt": "By week 4, which risks are most important to place on the active watchlist? Select all that merit explicit mitigation.",
                 "answer_schema": "multiple_choice",
+                "required": true,
                 "options": [
                     {
                         "id": "data_quality",
@@ -113,12 +115,14 @@
                 "id": "go_no_go_readiness",
                 "prompt": "Give a go/no-go recommendation. Support it with the current forecast against the EUR 210,000 ceiling, accepted work, unresolved quality or test work, and time remaining to week 14.",
                 "answer_schema": "short_text",
+                "required": true,
                 "short_text_max_length": 500
             },
             {
                 "id": "final_retrospective",
                 "prompt": "Give the steering committee a concise retrospective: connect at least one staffing or allocation decision to delivered scope, elapsed time, total cost, quality, and team sustainability.",
                 "answer_schema": "short_text",
+                "required": true,
                 "short_text_max_length": 500
             }
         ],
