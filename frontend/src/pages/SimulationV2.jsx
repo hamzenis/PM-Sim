@@ -268,6 +268,7 @@ const SimulationV2 = () => {
 				runId={runId}
 				version={run.version}
 				deliveries={run.deliveries}
+				presentation={run.presentation}
 				onRunChange={setRun}
 				onConflict={load}
 			/>

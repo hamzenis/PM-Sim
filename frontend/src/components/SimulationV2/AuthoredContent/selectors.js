@@ -1,5 +1,13 @@
+export const hasStudentVisibleEventContent = (entry) =>
+	entry?.kind !== 'event' || Boolean(entry.title?.trim() || entry.body?.trim() || entry.feedback?.trim());
+
 export const orderedContentEntries = (deliveries = []) =>
-	[...deliveries].filter((entry) => entry.visible !== false).sort((left, right) => left.sequence_ordinal - right.sequence_ordinal);
+	[...deliveries]
+		.filter((entry) => entry.visible !== false && hasStudentVisibleEventContent(entry))
+		.sort((left, right) => left.sequence_ordinal - right.sequence_ordinal);
+
+export const selectPresentationMessages = (presentation) =>
+	[...new Set((presentation?.messages || []).filter((message) => typeof message === 'string' && message.trim()).map((message) => message.trim()))];
 
 export const selectEarliestActionableRequiredEntry = (deliveries = []) =>
 	orderedContentEntries(deliveries).find((entry) => entry.required && entry.status === 'actionable') || null;

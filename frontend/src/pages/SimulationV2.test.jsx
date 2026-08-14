@@ -23,7 +23,7 @@ vi.mock('../components/SimulationV2/Dashboard/EmployeeStatusChart', () => ({ def
 vi.mock('../components/SimulationV2/Dashboard/ProjectHealthSummary', () => ({ default: () => null }));
 vi.mock('../components/SimulationV2/TurnHistory', () => ({ default: () => null }));
 vi.mock('../components/SimulationV2/AuthoredContent/ContentPanel', () => ({
-	default: ({ version, deliveries = [] }) => <div>Run version {version}{deliveries.some((entry) => entry.required && entry.status === 'actionable') && <p>Required before continuing: {deliveries[0].prompt}</p>}</div>,
+	default: ({ version, deliveries = [], presentation }) => <div>Run version {version}{deliveries.some((entry) => entry.required && entry.status === 'actionable') && <p>Required before continuing: {deliveries[0].prompt}</p>}{presentation?.messages?.map((message) => <p key={message}>{message}</p>)}</div>,
 }));
 
 beforeEach(() => {
@@ -109,6 +109,15 @@ test('loads the selected run and its turns once on initial mount', async () => {
 	expect(getSimulationRun).toHaveBeenCalledWith('run-1');
 	expect(listSimulationTurns).toHaveBeenCalledTimes(1);
 	expect(listSimulationTurns).toHaveBeenCalledWith('run-1');
+});
+
+test('passes the backend presentation projection to scenario updates', async () => {
+	getSimulationRun.mockResolvedValue({ ...run(1), presentation: { messages: ['Week 4 sponsor notice'] } });
+	listSimulationTurns.mockResolvedValue([]);
+
+	await renderSimulation();
+
+	expect(await screen.findByText('Week 4 sponsor notice')).toBeInTheDocument();
 });
 
 test('shows the briefing, scenario heading, current week, and status without internal UUIDs', async () => {

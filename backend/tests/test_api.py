@@ -355,8 +355,10 @@ def test_professor_can_import_students_transactionally_and_reset_passwords(
     assert new_login.status_code == 200
 
 
-def _assign_scenario_and_login_student(client: TestClient) -> str:
-    revision = client.post("/api/scenarios", json=scenario_payload()).json()
+def _assign_scenario_and_login_student(
+    client: TestClient, payload: dict[str, object] | None = None
+) -> str:
+    revision = client.post("/api/scenarios", json=payload or scenario_payload()).json()
     scenario_id = client.get("/api/scenarios").json()[0]["id"]
     assert client.post(f"/api/scenarios/{scenario_id}/revisions/1/publish").status_code == 200
     course_class = client.post("/api/classes", json={"name": "Simulation API"}).json()
@@ -372,6 +374,65 @@ def _assign_scenario_and_login_student(client: TestClient) -> str:
     )
     assert login.status_code == 200
     return revision["id"]
+
+
+def test_student_run_contract_exposes_messages_and_flag_only_event_deliveries(
+    client: TestClient,
+) -> None:
+    payload = scenario_payload()
+    payload["authored_content"] = {
+        "fragments": [],
+        "questions": [],
+        "events": [
+            {
+                "id": "budget_review",
+                "effects": [
+                    {
+                        "type": "show_message",
+                        "payload": {"text": "Week 4 sponsor notice: contingency consumed."},
+                    }
+                ],
+            },
+            {
+                "id": "handover_ready",
+                "effects": [
+                    {
+                        "type": "set_presentation_flag",
+                        "payload": {"flag": "handover_review_ready", "value": True},
+                    }
+                ],
+            },
+        ],
+        "sequence": [
+            {
+                "id": "s_budget_review",
+                "trigger": {"type": "run_started"},
+                "event_id": "budget_review",
+            },
+            {
+                "id": "s_handover_ready",
+                "trigger": {"type": "run_started"},
+                "event_id": "handover_ready",
+            },
+        ],
+    }
+    revision_id = _assign_scenario_and_login_student(client, payload)
+
+    response = client.post(
+        "/api/simulations", json={"scenario_revision_id": revision_id, "seed": 123}
+    )
+
+    assert response.status_code == 201
+    run = response.json()
+    assert run["presentation"]["messages"] == [
+        "Week 4 sponsor notice: contingency consumed."
+    ]
+    assert run["presentation"]["flags"]["handover_review_ready"] is True
+    deliveries = {item["sequence_entry_id"]: item for item in run["deliveries"]}
+    assert set(deliveries) == {"s_budget_review", "s_handover_ready"}
+    assert deliveries["s_handover_ready"]["title"] is None
+    assert deliveries["s_handover_ready"]["body"] is None
+    assert deliveries["s_handover_ready"]["feedback"] is None
 
 
 def test_student_can_start_read_and_complete_a_simulation_turn(client: TestClient) -> None:
