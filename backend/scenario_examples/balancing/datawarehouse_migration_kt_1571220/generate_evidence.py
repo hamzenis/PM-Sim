@@ -42,9 +42,7 @@ class MixedTeamStrategy:
         return WeeklyDecision(
             allocation=ActivityAllocation(*self.allocation),
             hires=hires,
-            overtime_hours_per_employee=(
-                self.recovery_overtime if state.week >= 4 else 0
-            ),
+            overtime_hours_per_employee=(self.recovery_overtime if state.week >= 4 else 0),
         )
 
 
@@ -158,9 +156,12 @@ def main() -> None:
                 "total_cost": {"mean": mean(costs), "min": min(costs), "max": max(costs)},
                 "elapsed_working_days": {"mean": mean(days), "min": min(days), "max": max(days)},
                 "score_distribution": {
-                    "mean": mean(scores), "min": min(scores),
-                    "p10": percentile(scores, 0.10), "median": percentile(scores, 0.50),
-                    "p90": percentile(scores, 0.90), "max": max(scores),
+                    "mean": mean(scores),
+                    "min": min(scores),
+                    "p10": percentile(scores, 0.10),
+                    "median": percentile(scores, 0.50),
+                    "p90": percentile(scores, 0.90),
+                    "max": max(scores),
                 },
                 "score_component_ranges": {
                     "quality": [
@@ -178,21 +179,25 @@ def main() -> None:
                 },
             }
             for run in runs:
-                csv_rows.append({
-                    "randomness": randomness, "strategy": strategy.name,
-                    "run_number": run.run_number, "seed": run.seed,
-                    "outcome": run.result.outcome.value,
-                    "accepted_tasks": run.result.accepted_tasks,
-                    "rejected_tasks": run.result.rejected_tasks,
-                    "elapsed_working_days": run.result.elapsed_working_days,
-                    "total_cost": run.result.total_cost,
-                    "nominal_budget_exhausted": run.final_state.remaining_budget < 0,
-                    "effective_210000_ceiling_exceeded": run.result.total_cost > 210_000,
-                    "quality_score": run.result.score.quality,
-                    "time_score": run.result.score.time,
-                    "budget_score": run.result.score.budget,
-                    "total_score": run.result.score.total,
-                })
+                csv_rows.append(
+                    {
+                        "randomness": randomness,
+                        "strategy": strategy.name,
+                        "run_number": run.run_number,
+                        "seed": run.seed,
+                        "outcome": run.result.outcome.value,
+                        "accepted_tasks": run.result.accepted_tasks,
+                        "rejected_tasks": run.result.rejected_tasks,
+                        "elapsed_working_days": run.result.elapsed_working_days,
+                        "total_cost": run.result.total_cost,
+                        "nominal_budget_exhausted": run.final_state.remaining_budget < 0,
+                        "effective_210000_ceiling_exceeded": run.result.total_cost > 210_000,
+                        "quality_score": run.result.score.quality,
+                        "time_score": run.result.score.time,
+                        "budget_score": run.result.score.budget,
+                        "total_score": run.result.score.total,
+                    }
+                )
         reports["modes"][randomness] = mode_summaries
 
     (OUTPUT_DIR / "batch-summary.json").write_text(json.dumps(reports, indent=2) + "\n")

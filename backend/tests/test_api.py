@@ -424,9 +424,7 @@ def test_student_run_contract_exposes_messages_and_flag_only_event_deliveries(
 
     assert response.status_code == 201
     run = response.json()
-    assert run["presentation"]["messages"] == [
-        "Week 4 sponsor notice: contingency consumed."
-    ]
+    assert run["presentation"]["messages"] == ["Week 4 sponsor notice: contingency consumed."]
     assert run["presentation"]["flags"]["handover_review_ready"] is True
     deliveries = {item["sequence_entry_id"]: item for item in run["deliveries"]}
     assert set(deliveries) == {"s_budget_review", "s_handover_ready"}
