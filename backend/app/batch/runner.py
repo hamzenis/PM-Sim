@@ -50,6 +50,8 @@ class BatchSummary:
     average_total_cost: float
     average_known_bugs: float
     average_undiscovered_bugs: float
+    score_distribution: "DistributionSummary"
+    total_cost_distribution: "DistributionSummary"
 
 
 @dataclass(frozen=True, slots=True)
@@ -200,6 +202,8 @@ def _summarize(runs: Iterable[SimulationBatchRun]) -> BatchSummary:
         average_total_cost=mean(run.result.total_cost for run in values),
         average_known_bugs=mean(run.final_state.known_bugs.total for run in values),
         average_undiscovered_bugs=mean(run.final_state.undiscovered_bugs.total for run in values),
+        score_distribution=summarize_distribution(run.result.score.total for run in values),
+        total_cost_distribution=summarize_distribution(run.result.total_cost for run in values),
     )
 
 

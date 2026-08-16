@@ -21,6 +21,7 @@ BACKEND_ROOT = REPOSITORY_ROOT / "backend"
 def _backend_imports() -> tuple[Any, ...]:
     sys.path.insert(0, str(BACKEND_ROOT))
     from app.batch.export import export_reports, export_text
+    from app.batch.html_report import write_html_report
     from app.batch.service import BatchExecutionConfig, execute_batch
     from app.batch.strategies import TeamMemberCount
 
@@ -30,6 +31,7 @@ def _backend_imports() -> tuple[Any, ...]:
         execute_batch,
         export_reports,
         export_text,
+        write_html_report,
     )
 
 
@@ -49,9 +51,7 @@ def _load_config(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
-        raise ValueError(
-            f"could not load experiment configuration '{path}': {error}"
-        ) from error
+        raise ValueError(f"could not load experiment configuration '{path}': {error}") from error
     if not isinstance(value, dict):
         raise TypeError("experiment configuration must be a JSON object")
     required = {
@@ -63,7 +63,7 @@ def _load_config(path: Path) -> dict[str, Any]:
         "output_root",
     }
     missing = sorted(required - value.keys())
-    unknown = sorted(value.keys() - required)
+    unknown = sorted(value.keys() - required - {"output_formats"})
     if missing:
         raise ValueError(f"missing experiment configuration field: {missing[0]}")
     if unknown:
@@ -72,11 +72,16 @@ def _load_config(path: Path) -> dict[str, Any]:
         raise ValueError("scenarios must be a non-empty list")
     if not isinstance(value["strategies"], list) or not value["strategies"]:
         raise ValueError("strategies must be a non-empty list")
-    if (
-        not isinstance(value["team_compositions"], list)
-        or not value["team_compositions"]
-    ):
+    if not isinstance(value["team_compositions"], list) or not value["team_compositions"]:
         raise ValueError("team_compositions must be a non-empty list")
+    formats = value.setdefault("output_formats", ["json", "csv"])
+    if (
+        not isinstance(formats, list)
+        or not formats
+        or any(item not in {"json", "csv", "html"} for item in formats)
+        or len(formats) != len(set(formats))
+    ):
+        raise ValueError("output_formats must contain unique json, csv, or html values")
     return value
 
 
@@ -94,6 +99,7 @@ def _experiment(config_path: Path, *, force: bool) -> int:
         execute_batch,
         export_reports,
         export_text,
+        write_html_report,
     ) = _backend_imports()
     raw = _load_config(config_path)
     base = config_path.resolve().parent
@@ -131,12 +137,13 @@ def _experiment(config_path: Path, *, force: bool) -> int:
     manifest_path = output_root / "manifest.json"
     artifacts = [manifest_path]
     for job in jobs:
-        artifacts.extend(
-            [
-                job["output_directory"] / "results.json",
-                job["output_directory"] / "results.csv",
-            ]
-        )
+        job_artifacts = [
+            job["output_directory"] / "results.json",
+            job["output_directory"] / "results.csv",
+        ]
+        if "html" in raw["output_formats"]:
+            job_artifacts.append(job["output_directory"] / "report.html")
+        artifacts.extend(job_artifacts)
     existing = [path for path in artifacts if path.exists()]
     if existing and not force:
         raise FileExistsError(f"refusing to overwrite existing file: {existing[0]}")
@@ -181,6 +188,10 @@ def _experiment(config_path: Path, *, force: bool) -> int:
                 create_parents=True,
                 force=force,
             )
+            if "html" in raw["output_formats"]:
+                html_path = job["output_directory"] / "report.html"
+                entry["output_paths"]["html"] = str(html_path)
+                write_html_report(result, html_path, create_parents=True, force=force)
             entry["status"] = "success"
         # A single invalid scenario must not stop the remaining matrix.
         except Exception as error:  # noqa: BLE001
@@ -210,9 +221,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
     if "--config" not in arguments:
         return _delegate(arguments)
-    parser = argparse.ArgumentParser(
-        description="Run a configured batch experiment matrix"
-    )
+    parser = argparse.ArgumentParser(description="Run a configured batch experiment matrix")
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--force", action="store_true")
     try:

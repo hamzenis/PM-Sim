@@ -89,10 +89,15 @@ def _fake_backend(run_batch, monkeypatch, *, failing: str | None = None):
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(content, encoding="utf-8")
 
+    def write_html_report(result, destination, *, create_parents, force):
+        assert destination.parent.joinpath("results.json").is_file()
+        assert destination.parent.joinpath("results.csv").is_file()
+        destination.write_text("<html>report</html>", encoding="utf-8")
+
     monkeypatch.setattr(
         run_batch,
         "_backend_imports",
-        lambda: (Config, Member, execute, export_reports, export_text),
+        lambda: (Config, Member, execute, export_reports, export_text, write_html_report),
     )
     return calls
 
@@ -113,6 +118,21 @@ def test_experiment_runs_scenario_composition_matrix_and_writes_manifest(
     assert all(len(job["scenario_sha256"]) == 64 for job in manifest["jobs"])
     assert (tmp_path / "results" / "one" / "two-developers" / "results.json").is_file()
     assert (tmp_path / "results" / "two" / "mixed-team" / "results.csv").is_file()
+
+
+def test_experiment_writes_html_after_json_and_csv(tmp_path, monkeypatch, run_batch) -> None:
+    config = _configuration(tmp_path, ["one.json"])
+    value = json.loads(config.read_text())
+    value["output_formats"] = ["json", "csv", "html"]
+    config.write_text(json.dumps(value), encoding="utf-8")
+    _fake_backend(run_batch, monkeypatch)
+
+    assert run_batch.main(["--config", str(config)]) == 0
+
+    output = tmp_path / "results" / "one" / "two-developers"
+    assert (output / "report.html").read_text() == "<html>report</html>"
+    manifest = json.loads((tmp_path / "results" / "manifest.json").read_text())
+    assert manifest["jobs"][0]["output_paths"]["html"].endswith("/report.html")
 
 
 def test_experiment_continues_after_partial_failure(tmp_path, monkeypatch, run_batch) -> None:

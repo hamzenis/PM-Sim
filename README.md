@@ -44,6 +44,7 @@ For a reproducible matrix, save a dependency-free JSON configuration such as
   ],
   "repetitions": 100,
   "initial_seed": 500,
+  "output_formats": ["json", "csv", "html"],
   "output_root": "batch-experiments/example"
 }
 ```
@@ -55,8 +56,11 @@ uv run --project backend python scripts/run_batch.py --config experiment.json
 ```
 
 Scenario and output paths are resolved relative to the configuration file. Experiment mode writes
-atomic JSON and CSV results beneath one filesystem-safe directory per scenario/composition and a
-top-level `manifest.json`. It attempts every job and exits nonzero if any fails. Existing artifacts
+atomic JSON and raw per-run CSV results beneath one filesystem-safe directory per
+scenario/composition and, when `html` is requested, a self-contained `report.html` after those
+underlying artifacts succeed. The report's baseline comparisons are balancing aids, not predictions
+of student behavior. Experiment mode also writes a top-level `manifest.json`. It attempts every job
+and exits nonzero if any fails. Existing artifacts
 are protected; pass `--force` explicitly to replace them. Invocations without `--config` retain the
 original argument-forwarding behavior.
 

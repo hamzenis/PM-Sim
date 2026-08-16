@@ -146,16 +146,17 @@ content. Implement the `DecisionStrategy` protocol for scenario-specific policie
 
 `execute_batch` validates positive repetitions and employee counts, a non-empty composition with
 unique known employee type codes, a bounded non-negative seed range, unique built-in strategy
-names, requested JSON/CSV formats, and any configured
+names, requested JSON/CSV/HTML formats, and any configured
 output directory. Every requested strategy receives the same seed range. Its typed result contains
 one report per strategy plus the scenario, strategy, seed, complete team composition, and format
 provenance needed to interpret the comparison. The structured report metadata records the scenario
 name and SHA-256 digest of its exact input bytes; initial/final seeds and repetitions; and each
 strategy's name, ordered employee type/count composition, complete activity allocation, and overtime. It also
 identifies the `pm-sim-backend` package version and explicit batch report schema version (currently
-`2`). Consumers should reject or explicitly migrate unsupported schema versions. Version 2 replaces
+`3`). Consumers should reject or explicitly migrate unsupported schema versions. Version 2 replaced
 the singular employee type and team-size metadata fields with `team_composition` entries containing
-`employee_type_code` and `count`.
+`employee_type_code` and `count`. Version 3 adds deterministic score and total-cost distribution
+summaries containing mean, minimum, p10, median, p90, and maximum values.
 
 `execution_result_to_dict` places that metadata in the JSON envelope beside the deterministic
 `reports` simulation payload. Its UTC `generated_at` timestamp is intentionally non-deterministic;
@@ -171,6 +172,14 @@ known/undiscovered bugs. CSV omits aggregate summary and detailed state; JSON re
 but still projects only the listed run fields. Whenever CSV is requested, the exporter writes
 `batch-report-metadata.json` as its documented companion provenance file (also when the main JSON
 report is requested). Preserve that file with every CSV report.
+
+Requesting HTML from the service writes a self-contained `report.html`, structured
+`batch-report.json`, per-strategy raw CSV files, and CSV metadata. The HTML uses inline SVG and CSS,
+so it opens directly without a server, network access, or plotting library. Its score and total-cost
+graphs show p10, median, and p90 to expose spread; completion counts distinguish completed runs from
+all other outcomes; and the comparison graph places average score, completion percentage, and
+budget-exhaustion percentage on a common 0–100 scale. These strategy baselines are balancing aids,
+not predictions of student behavior. Preserve and inspect the raw CSV for independent analysis.
 
 For direct report export, use the stable `app.batch` functions `reports_to_dict`, `reports_to_json`,
 `reports_to_csv`, and `export_reports`. Each accepts either one `SimulationBatchReport` or an
@@ -236,6 +245,9 @@ Paths in the file are relative to the configuration file (absolute paths are als
 scenario is crossed with each named composition; all listed strategies share that job's seed range.
 Names are normalized to filesystem-safe path components, and configurations whose normalized paths
 collide are rejected. Each job directory receives atomic `results.json` and `results.csv` exports.
+An optional `"output_formats": ["json", "csv", "html"]` configuration entry also produces a
+self-contained `report.html`; when omitted, it defaults to JSON and CSV. The HTML file is published
+only after its underlying JSON and raw per-run CSV finish successfully.
 The output root receives an atomic `manifest.json` with experiment start/end UTC timestamps, package
 version, the full configuration, exact scenario SHA-256 hashes, output paths, and per-job success or
 failure details. A failed job does not prevent later jobs from running, but makes the final status

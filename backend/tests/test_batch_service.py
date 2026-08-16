@@ -133,7 +133,7 @@ def test_report_metadata_tracks_exact_input_and_keeps_simulation_payload_determi
     assert metadata["scenario_name"] == "Service batch"
     assert metadata["scenario_sha256"] == sha256(path.read_bytes()).hexdigest()
     assert (metadata["initial_seed"], metadata["final_seed"], metadata["repetitions"]) == (7, 8, 2)
-    assert metadata["schema_version"] == 2
+    assert metadata["schema_version"] == 3
     assert metadata["pm_sim_package"] == "pm-sim-backend"
     assert metadata["pm_sim_version"]
     assert metadata["generated_at"].endswith("+00:00")

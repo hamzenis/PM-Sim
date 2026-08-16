@@ -8,6 +8,7 @@ from app.batch.export import (
     reports_to_dict,
     reports_to_json,
 )
+from app.batch.html_report import render_html_report, write_html_report
 from app.batch.runner import (
     BatchSummary,
     DistributionSummary,
@@ -71,5 +72,7 @@ __all__ = [
     "reports_to_json",
     "run_simulation",
     "run_simulation_batch",
+    "render_html_report",
     "summarize_distribution",
+    "write_html_report",
 ]

@@ -20,7 +20,7 @@ from app.batch.runner import (
 from app.batch.strategies import DecisionStrategy, TeamMemberCount, built_in_strategy
 from app.scenarios.models import ScenarioDefinition
 
-OutputFormat = Literal["json", "csv"]
+OutputFormat = Literal["json", "csv", "html"]
 MAX_SEED = 2**32 - 1
 BUILT_IN_STRATEGIES = frozenset(
     {"development-first", "balanced", "quality-first", "overtime-heavy"}
@@ -90,7 +90,7 @@ class BatchExecutionConfig:
             raise BatchConfigurationError("at least one output format is required")
         if len(self.output_formats) != len(set(self.output_formats)):
             raise BatchConfigurationError("output formats must be unique")
-        unsupported = set(self.output_formats) - {"json", "csv"}
+        unsupported = set(self.output_formats) - {"json", "csv", "html"}
         if unsupported:
             raise BatchConfigurationError(f"unsupported output format: {sorted(unsupported)[0]}")
         if self.output_directory is not None:
@@ -188,7 +188,7 @@ def execute_batch(config: BatchExecutionConfig) -> BatchExecutionResult:
             output_formats=config.output_formats,
         ),
         metadata=BatchReportMetadata(
-            schema_version=2,
+            schema_version=3,
             pm_sim_package="pm-sim-backend",
             pm_sim_version=version("pm-sim-backend"),
             generated_at=datetime.now(UTC),
@@ -286,11 +286,13 @@ def _write_reports(
 ) -> None:
     try:
         destination.mkdir(exist_ok=True)
-        if "json" in formats:
+        # HTML is a presentation of the structured and raw artifacts, so requesting it
+        # always retains both sources and publishes the HTML only after they succeed.
+        if "json" in formats or "html" in formats:
             (destination / "batch-report.json").write_text(
                 json.dumps(execution_result_to_dict(result), indent=2) + "\n", encoding="utf-8"
             )
-        if "csv" in formats:
+        if "csv" in formats or "html" in formats:
             (destination / "batch-report-metadata.json").write_text(
                 json.dumps(execution_result_to_dict(result)["metadata"], indent=2) + "\n",
                 encoding="utf-8",
@@ -299,5 +301,9 @@ def _write_reports(
                 (destination / f"batch-report-{report.strategy}.csv").write_text(
                     report_to_csv(report), encoding="utf-8"
                 )
+        if "html" in formats:
+            from app.batch.html_report import write_html_report
+
+            write_html_report(result, destination / "report.html")
     except OSError as error:
         raise BatchOutputError(f"could not write reports to '{destination}': {error}") from error
