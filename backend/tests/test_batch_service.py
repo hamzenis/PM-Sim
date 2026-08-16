@@ -1,5 +1,6 @@
 import json
 from dataclasses import replace
+from hashlib import sha256
 
 import pytest
 
@@ -46,6 +47,7 @@ def test_load_scenario_validates_json_and_only_infers_unambiguous_employee_type(
     single = load_scenario(write_scenario(tmp_path))
     assert single.definition.name == "Service batch"
     assert single.employee_type_code == "developer"
+    assert single.sha256_digest == sha256(single.source_path.read_bytes()).hexdigest()
 
     multiple_path = tmp_path / "multiple.json"
     multiple_path.write_text(json.dumps(scenario_payload(employee_codes=("developer", "tester"))))
@@ -90,8 +92,46 @@ def test_execute_batch_compares_strategies_over_identical_seed_range(tmp_path) -
         [12, 13, 14],
         [12, 13, 14],
     ]
-    assert execution_result_to_dict(first) == execution_result_to_dict(second)
+    assert first.reports == second.reports
     assert first.provenance.employee_type_code == "developer"
+
+
+def test_report_metadata_tracks_exact_input_and_keeps_simulation_payload_deterministic(
+    tmp_path,
+) -> None:
+    path = write_scenario(tmp_path)
+    config = BatchExecutionConfig(scenario_path=path, repetitions=2, initial_seed=7, team_size=2)
+    first = execute_batch(config)
+    second = execute_batch(config)
+
+    assert first.reports == second.reports
+    metadata = execution_result_to_dict(first)["metadata"]
+    assert metadata["scenario_name"] == "Service batch"
+    assert metadata["scenario_sha256"] == sha256(path.read_bytes()).hexdigest()
+    assert (metadata["initial_seed"], metadata["final_seed"], metadata["repetitions"]) == (7, 8, 2)
+    assert metadata["schema_version"] == 1
+    assert metadata["pm_sim_package"] == "pm-sim-backend"
+    assert metadata["pm_sim_version"]
+    assert metadata["generated_at"].endswith("+00:00")
+    assert metadata["strategies"] == [
+        {
+            "name": "balanced",
+            "employee_type": "developer",
+            "team_size": 2,
+            "allocation": {
+                "development": 40,
+                "unit_testing": 25,
+                "bug_fixing": 15,
+                "integration_testing": 20,
+            },
+            "overtime_hours_per_employee": 0,
+        }
+    ]
+
+    path.write_text(json.dumps(scenario_payload()) + "\n")
+    changed = execute_batch(config)
+    assert changed.reports == first.reports
+    assert changed.metadata.scenario_sha256 != first.metadata.scenario_sha256
 
 
 def test_execute_batch_requires_known_explicit_type_when_scenario_is_ambiguous(tmp_path) -> None:
@@ -120,3 +160,6 @@ def test_output_destination_is_validated_and_requested_reports_are_written(tmp_p
     )
     assert (output / "batch-report.json").is_file()
     assert (output / "batch-report-balanced.csv").is_file()
+    assert (output / "batch-report-metadata.json").is_file()
+    metadata = json.loads((output / "batch-report-metadata.json").read_text())
+    assert metadata == json.loads((output / "batch-report.json").read_text())["metadata"]

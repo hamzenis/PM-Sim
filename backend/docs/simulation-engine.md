@@ -147,15 +147,26 @@ content. Implement the `DecisionStrategy` protocol for scenario-specific policie
 unique built-in strategy names, employee type codes, requested JSON/CSV formats, and any configured
 output directory. Every requested strategy receives the same seed range. Its typed result contains
 one report per strategy plus the scenario, strategy, seed, team, employee-type, and format
-provenance needed to interpret the comparison.
+provenance needed to interpret the comparison. The structured report metadata records the scenario
+name and SHA-256 digest of its exact input bytes; initial/final seeds and repetitions; and each
+strategy's name, employee type, team size, complete activity allocation, and overtime. It also
+identifies the `pm-sim-backend` package version and explicit batch report schema version (currently
+`1`). Consumers should reject or explicitly migrate unsupported schema versions.
+
+`execution_result_to_dict` places that metadata in the JSON envelope beside the deterministic
+`reports` simulation payload. Its UTC `generated_at` timestamp is intentionally non-deterministic;
+exclude the envelope metadata when byte-for-byte or object-level comparisons of simulation results
+are required. Identical scenario bytes, strategy configuration, package version, and seeds produce
+identical `reports` payloads.
 
 `report_to_dict` produces a JSON-ready object containing strategy, aggregate summary, and runs.
 Summary rates are fractions `0..1`; averages are arithmetic means. Completion means the `completed`
 outcome, while budget exhaustion means final remaining budget `< 0`. The CSV contains one row per
 run: seed/outcome, accepted/rejected tasks, elapsed/scheduled days, cost/budget, total score, and
 known/undiscovered bugs. CSV omits aggregate summary and detailed state; JSON retains the summary
-but still projects only the listed run fields. Keep scenario revision and engine version beside an
-export because neither format embeds them.
+but still projects only the listed run fields. Whenever CSV is requested, the exporter writes
+`batch-report-metadata.json` as its documented companion provenance file (also when the main JSON
+report is requested). Preserve that file with every CSV report.
 
 For a practical comparison procedure, boundary cases, and publication gate, follow the
 [scenario balancing workflow](scenario-authoring.md#balancing-workflow) and
