@@ -204,6 +204,44 @@ line per strategy to standard error with the seed range, completion and budget-e
 and average score. Invalid scenario or execution configuration returns status `2`; execution or
 export failures return status `1`.
 
+### Configured experiments
+
+The repository wrapper also has a separate experiment mode for scenario/composition matrices. It
+uses the public `app.batch.service.execute_batch` API in-process and needs no configuration package.
+For example, place this `experiment.json` in the repository root:
+
+```json
+{
+  "scenarios": ["backend/scenario_examples/basic_project.json"],
+  "strategies": ["balanced", "quality-first"],
+  "team_compositions": [
+    {
+      "name": "three-junior-developers",
+      "members": [{"employee_type_code": "junior_backend", "count": 3}]
+    }
+  ],
+  "repetitions": 100,
+  "initial_seed": 500,
+  "output_root": "batch-experiments/example"
+}
+```
+
+Run the Linux command from the repository root:
+
+```bash
+uv run --project backend python scripts/run_batch.py --config experiment.json
+```
+
+Paths in the file are relative to the configuration file (absolute paths are also accepted). Each
+scenario is crossed with each named composition; all listed strategies share that job's seed range.
+Names are normalized to filesystem-safe path components, and configurations whose normalized paths
+collide are rejected. Each job directory receives atomic `results.json` and `results.csv` exports.
+The output root receives an atomic `manifest.json` with experiment start/end UTC timestamps, package
+version, the full configuration, exact scenario SHA-256 hashes, output paths, and per-job success or
+failure details. A failed job does not prevent later jobs from running, but makes the final status
+nonzero. No existing artifact is replaced unless `--force` is supplied. Without `--config`, the
+wrapper continues to forward every argument unchanged to the canonical batch CLI.
+
 For a practical comparison procedure, boundary cases, and publication gate, follow the
 [scenario balancing workflow](scenario-authoring.md#balancing-workflow) and
 [validation checklist](scenario-authoring.md#scenario-validation-checklist).

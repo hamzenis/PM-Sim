@@ -29,6 +29,37 @@ uv run --project backend python scripts/run_batch.py \
   --scenario backend/scenario_examples/basic_project.json --repetitions 100
 ```
 
+For a reproducible matrix, save a dependency-free JSON configuration such as
+`experiment.json` at the repository root:
+
+```json
+{
+  "scenarios": ["backend/scenario_examples/basic_project.json"],
+  "strategies": ["balanced", "quality-first"],
+  "team_compositions": [
+    {
+      "name": "three-junior-developers",
+      "members": [{"employee_type_code": "junior_backend", "count": 3}]
+    }
+  ],
+  "repetitions": 100,
+  "initial_seed": 500,
+  "output_root": "batch-experiments/example"
+}
+```
+
+On Linux, run it from the repository root with:
+
+```bash
+uv run --project backend python scripts/run_batch.py --config experiment.json
+```
+
+Scenario and output paths are resolved relative to the configuration file. Experiment mode writes
+atomic JSON and CSV results beneath one filesystem-safe directory per scenario/composition and a
+top-level `manifest.json`. It attempts every job and exits nonzero if any fails. Existing artifacts
+are protected; pass `--force` explicitly to replace them. Invocations without `--config` retain the
+original argument-forwarding behavior.
+
 The demo command creates these local-development accounts:
 
 - professor: `professor` / `professor-password`
