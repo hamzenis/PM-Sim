@@ -184,13 +184,19 @@ def test_batch_handler_runs_in_memory_without_migrating(monkeypatch, capsys) -> 
     )
     scenario = launcher.PROJECT_ROOT / "scenario_examples" / "basic_project.json"
 
-    assert launcher.main(["batch", str(scenario), "--repetitions", "1"]) == 0
+    assert (
+        launcher.main(
+            ["batch", str(scenario), "--repetitions", "1", "--employee-type", "junior_backend"]
+        )
+        == 0
+    )
     assert '"summary"' in capsys.readouterr().out
 
 
 def test_batch_parser_defaults_and_paths() -> None:
     args = launcher.build_parser().parse_args(["batch", "example.json"])
     assert args.scenario_path == Path("example.json")
-    assert args.strategy == "balanced"
+    assert args.strategies is None
     assert args.repetitions == 100
     assert args.initial_seed == 0
+    assert args.team_size == 3

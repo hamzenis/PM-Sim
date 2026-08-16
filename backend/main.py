@@ -13,8 +13,12 @@ from sqlalchemy import delete
 
 from alembic import command
 from app.auth.service import AuthenticationError, create_user
-from app.batch.runner import report_to_dict, run_simulation_batch
-from app.batch.strategies import built_in_strategy
+from app.batch.service import (
+    BatchExecutionConfig,
+    BatchExecutionError,
+    execute_batch,
+    execution_result_to_dict,
+)
 from app.classes.service import assign_scenario, create_class, import_students
 from app.config import Settings, settings
 from app.db.backup import backup_sqlite_database
@@ -123,23 +127,23 @@ def build_parser() -> argparse.ArgumentParser:
     batch.add_argument("scenario_path", type=Path, metavar="SCENARIO", help="scenario JSON file")
     batch.add_argument(
         "--strategy",
-        default="balanced",
+        dest="strategies",
+        action="append",
         choices=("development-first", "balanced", "quality-first", "overtime-heavy"),
-        help="built-in decision strategy",
+        help="built-in decision strategy (repeat to compare strategies)",
     )
     batch.add_argument(
         "--repetitions", type=int, default=100, help="number of simulations (default: 100)"
     )
     batch.add_argument("--initial-seed", type=int, default=0, help="first deterministic seed")
     batch.add_argument(
-        "--employee-type", help="employee type code (defaults to the scenario's first)"
+        "--employee-type", help="employee type code (inferred only when the scenario has one)"
     )
+    batch.add_argument("--team-size", type=int, default=3, help="initial team size (default: 3)")
     batch.set_defaults(handler=_handle_batch)
 
     # Compatibility: historically an empty argument list started the server.
-    parser.set_defaults(
-        handler=_handle_serve, host=None, port=None, reload=False, no_migrate=False
-    )
+    parser.set_defaults(handler=_handle_serve, host=None, port=None, reload=False, no_migrate=False)
     return parser
 
 
@@ -192,19 +196,20 @@ def _migrate_unless_disabled(args: argparse.Namespace) -> None:
 
 def _handle_batch(args: argparse.Namespace, _password_reader: Callable[[str], str]) -> int:
     try:
-        scenario = ScenarioDefinition.model_validate(json.loads(args.scenario_path.read_text()))
-        employee_type = args.employee_type or scenario.employee_types[0].code
-        strategy = built_in_strategy(args.strategy, employee_type_code=employee_type)
-        report = run_simulation_batch(
-            scenario,
-            strategy=strategy,
-            repetitions=args.repetitions,
-            initial_seed=args.initial_seed,
+        result = execute_batch(
+            BatchExecutionConfig(
+                scenario_path=args.scenario_path,
+                strategy_names=tuple(args.strategies or ("balanced",)),
+                repetitions=args.repetitions,
+                initial_seed=args.initial_seed,
+                team_size=args.team_size,
+                employee_type=args.employee_type,
+            )
         )
-    except (OSError, ValueError) as error:
+    except BatchExecutionError as error:
         print(f"Could not run batch: {error}", file=sys.stderr)
         return 2
-    print(json.dumps(report_to_dict(report), indent=2))
+    print(json.dumps(execution_result_to_dict(result), indent=2))
     return 0
 
 

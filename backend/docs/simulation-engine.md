@@ -118,7 +118,11 @@ if all limits are zero). Scores measure the current/final state even for submiss
 
 ## Batch analysis
 
-`app/batch/runner.py` runs the production scenario adapter and weekly engine entirely in memory.
+`app/batch/runner.py` contains the mechanics that run the production scenario adapter and weekly
+engine entirely in memory. `app/batch/service.py` owns file loading, execution validation,
+multi-strategy orchestration, output destinations, and provenance. Scenario JSON is validated with
+`ScenarioDefinition`; a batch may infer its employee type only when the scenario defines exactly
+one type, otherwise the caller must select one explicitly.
 `run_simulation_batch` requires at least one repetition and selects consecutive run seeds
 `initial_seed ... initial_seed + repetitions - 1`; each run advances until completion or deadline.
 Use identical seed ranges, engine version, and repetitions when comparing revisions or strategies.
@@ -138,6 +142,12 @@ only in week zero, never dismisses, meets, or trains, and never adapts to backlo
 They are comparison probes, not models of students and not proof a scenario is fair. They can
 stall (for example, an unsuitable employee type or pipeline allocation) and ignore authored
 content. Implement the `DecisionStrategy` protocol for scenario-specific policies.
+
+`execute_batch` validates positive repetitions and team size, a bounded non-negative seed range,
+unique built-in strategy names, employee type codes, requested JSON/CSV formats, and any configured
+output directory. Every requested strategy receives the same seed range. Its typed result contains
+one report per strategy plus the scenario, strategy, seed, team, employee-type, and format
+provenance needed to interpret the comparison.
 
 `report_to_dict` produces a JSON-ready object containing strategy, aggregate summary, and runs.
 Summary rates are fractions `0..1`; averages are arithmetic means. Completion means the `completed`

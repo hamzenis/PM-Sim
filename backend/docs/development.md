@@ -111,7 +111,7 @@ diagnosis; `batch` is purely in memory and has no such option.
 | `create-demo` | Creates a demo professor, student, class, published scenario, and assignment. | `--scenario PATH` defaults to `scenario_examples/basic_project.json`. **Development only:** fixed printed passwords are public and the command can fail/partially conflict if rerun. Never use on production data. |
 | `cleanup-sessions` | Deletes authentication sessions whose expiry is at or before current UTC and prints the count. | Safe to schedule; it does not revoke active sessions. Back up and monitor scheduled jobs. |
 | `backup` | Uses SQLite's online backup API to make a timestamped `pm_sim-*.db` file. | `--output DIR` defaults to `backups`. File-based SQLite only; it refuses memory and PostgreSQL URLs. The destination must not already exist. Verify and copy off-host as described in the SQLite guide. |
-| `batch` | Runs a scenario repeatedly through the in-memory simulation engine and prints a JSON report. | Positional `SCENARIO`; select `--strategy`, `--repetitions`, `--initial-seed`, and optionally `--employee-type`. It neither accesses nor migrates the database. |
+| `batch` | Runs a scenario repeatedly through the in-memory simulation engine and prints JSON reports with provenance. | Positional `SCENARIO`; repeat `--strategy` to compare built-ins over the same seeds; select `--repetitions`, `--initial-seed`, `--team-size`, and (for scenarios with multiple types) `--employee-type`. It neither accesses nor migrates the database. |
 
 Examples:
 
