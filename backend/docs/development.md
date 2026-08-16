@@ -59,10 +59,11 @@ JSON scenario examples.
 ```bash
 uv sync --frozen
 uv run python main.py create-professor --username your-name
-uv run python main.py --reload
+uv run python main.py serve --reload
 ```
 
-The launcher migrates before every command unless `--no-migrate` is supplied. The default SQLite
+The launcher migrates before database commands unless their command-specific `--no-migrate` is
+supplied. The in-memory `batch` command never migrates. The default SQLite
 file is `backend/pm_sim.db` because the URL is relative to the process working directory.
 
 > **Development only:** `uv run python main.py create-demo` creates the fixed credentials
@@ -99,9 +100,9 @@ changing the parent shell after startup does not reconfigure the running process
 
 ## Launcher command reference
 
-`uv run python main.py [command] [options]` defaults to `serve`. **Every command applies
-`alembic upgrade head` first**, including maintenance and backup commands. `--no-migrate` bypasses
-that step only for controlled diagnosis; it is not a normal production startup option.
+`uv run python main.py [command] [options]` defaults to `serve` for compatibility. Database commands
+apply `alembic upgrade head` first. Their local `--no-migrate` bypasses that step only for controlled
+diagnosis; `batch` is purely in memory and has no such option.
 
 | Command | Purpose and behavior | Relevant options / cautions |
 | --- | --- | --- |
@@ -110,16 +111,18 @@ that step only for controlled diagnosis; it is not a normal production startup o
 | `create-demo` | Creates a demo professor, student, class, published scenario, and assignment. | `--scenario PATH` defaults to `scenario_examples/basic_project.json`. **Development only:** fixed printed passwords are public and the command can fail/partially conflict if rerun. Never use on production data. |
 | `cleanup-sessions` | Deletes authentication sessions whose expiry is at or before current UTC and prints the count. | Safe to schedule; it does not revoke active sessions. Back up and monitor scheduled jobs. |
 | `backup` | Uses SQLite's online backup API to make a timestamped `pm_sim-*.db` file. | `--output DIR` defaults to `backups`. File-based SQLite only; it refuses memory and PostgreSQL URLs. The destination must not already exist. Verify and copy off-host as described in the SQLite guide. |
+| `batch` | Runs a scenario repeatedly through the in-memory simulation engine and prints a JSON report. | Positional `SCENARIO`; select `--strategy`, `--repetitions`, `--initial-seed`, and optionally `--employee-type`. It neither accesses nor migrates the database. |
 
 Examples:
 
 ```bash
 uv run python main.py                         # serve on configured host/port
-uv run python main.py --reload                # DEVELOPMENT ONLY
+uv run python main.py serve --reload          # DEVELOPMENT ONLY
 uv run python main.py create-professor --username instructor
 uv run python main.py cleanup-sessions
 uv run python main.py backup --output /srv/pm-sim-backups
-uv run python main.py --no-migrate            # DIAGNOSTICS ONLY; defaults to serve
+uv run python main.py serve --no-migrate      # DIAGNOSTICS ONLY
+uv run python main.py batch scenario_examples/basic_project.json --repetitions 100
 ```
 
 To migrate without starting or running a launcher command, use Alembic directly:

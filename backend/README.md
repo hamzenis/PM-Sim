@@ -9,10 +9,13 @@ Using `uv`:
 ```bash
 uv sync
 uv run python main.py create-demo
-uv run python main.py --reload
+uv run python main.py serve --reload
+uv run python main.py batch scenario_examples/basic_project.json --repetitions 100
 ```
 
-The launcher applies Alembic migrations before starting Uvicorn. The demo command creates a
+The launcher applies Alembic migrations before database commands; the in-memory `batch` command
+does not access or migrate the database. Running it without arguments remains an alias for
+`serve`. The demo command creates a
 professor, student, class, and published example scenario and prints development-only credentials.
 Runtime settings are listed in `.env.example`.
 

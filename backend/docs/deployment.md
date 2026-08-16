@@ -5,7 +5,7 @@ and credentials are explicitly excluded.
 
 ## Process topology and reverse proxy
 
-Run one supervised Uvicorn process with one worker, using `uv run python main.py` from a stable
+Run one supervised Uvicorn process with one worker, using `uv run python main.py serve` from a stable
 `backend/` release directory. With SQLite there must be no second worker, host, or overlapping
 application instance. A service manager should provide environment variables, restart on failure,
 set resource limits, and stop gracefully. Do not enable `RELOAD` or pass `--reload` in production.
@@ -27,7 +27,7 @@ Redirect HTTP to HTTPS at the proxy and set `COOKIE_SECURE=true`. The session co
 requests include credentials. Keep hostnames and clocks stable, protect TLS keys, and use current
 institutional TLS policy.
 
-Create real professor accounts interactively with `create-professor`; keep terminal access and logs
+Create real professor accounts interactively with `uv run python main.py create-professor`; keep terminal access and logs
 restricted. **Never run `create-demo` in production.** Its published credentials
 `professor` / `professor-password` and `student` / `student-password` are development-only and must
 be treated as compromised everywhere.
@@ -48,7 +48,8 @@ Do not allow every prospective process to race automatic migrations. A release p
    ownership remains the release job's responsibility.
 6. Gate traffic on readiness and a smoke test, then monitor errors and lock behavior.
 
-The `--no-migrate` option is diagnostics-only, not a routine way to start a mismatched release.
+The command-specific `--no-migrate` option is diagnostics-only, not a routine way to start a
+mismatched release; for example, use `python main.py serve --no-migrate`, not a global option.
 
 ## Health checks and logs
 
@@ -66,7 +67,8 @@ disk/WAL growth, and backup results.
 
 ## Scheduled operations
 
-Schedule `cleanup-sessions` at least daily according to session volume. Schedule `backup` to meet
+Schedule `python main.py cleanup-sessions` at least daily according to session volume. Schedule
+`python main.py backup --output /srv/pm-sim-backups` to meet
 the recovery-point objective, serialize it with release/restore operations, verify SQLite integrity
 and foreign keys, checksum/encrypt it, and copy off-host. Monitor the scheduler itself and regularly
 restore into an isolated environment. See the SQLite guide for example retention and validation.

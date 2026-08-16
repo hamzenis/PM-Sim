@@ -17,7 +17,8 @@ The repository contains two applications:
 cd backend
 uv sync
 uv run python main.py create-demo
-uv run python main.py --reload
+uv run python main.py serve --reload
+uv run python main.py batch scenario_examples/basic_project.json --repetitions 100
 ```
 
 The demo command creates these local-development accounts:

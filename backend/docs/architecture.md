@@ -435,10 +435,12 @@ Deterministic engine tests protect the published simulation behavior.
 
 ## Operational model
 
-`python main.py` applies migrations and starts one Uvicorn worker. A single process is the
+`python main.py serve` applies migrations and starts one Uvicorn worker (`python main.py` remains a
+compatibility alias). A single process is the
 supported SQLite mode. WAL, foreign keys, a busy timeout, and normal synchronization are enabled
 by the database engine factory. The CLI also creates professor accounts, removes expired
-sessions, and produces consistent SQLite backups.
+sessions, and produces consistent SQLite backups. `python main.py batch SCENARIO` instead runs the
+pure in-memory batch engine and never migrates or opens the application database.
 
 No container runtime is required or assumed.
 

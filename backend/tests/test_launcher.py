@@ -1,3 +1,7 @@
+from pathlib import Path
+
+import pytest
+
 import main as launcher
 from app.config import Settings
 
@@ -31,7 +35,10 @@ def test_no_migrate_and_cli_server_options_are_forwarded(monkeypatch) -> None:
         "start_server",
         lambda _configuration, **options: calls.append(options),
     )
-    assert launcher.main(["--no-migrate", "--host", "0.0.0.0", "--port", "9000", "--reload"]) == 0
+    assert (
+        launcher.main(["serve", "--no-migrate", "--host", "0.0.0.0", "--port", "9000", "--reload"])
+        == 0
+    )
     assert calls == [{"host": "0.0.0.0", "port": 9000, "reload": True}]
 
 
@@ -64,3 +71,66 @@ def test_demo_command_forwards_scenario_path(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(launcher, "create_demo_data", lambda path: calls.append(path) or 0)
     assert launcher.main(["create-demo", "--scenario", str(scenario)]) == 0
     assert calls == [scenario]
+
+
+@pytest.mark.parametrize(
+    ("command", "foreign_option"),
+    [
+        ("serve", "--username"),
+        ("create-professor", "--reload"),
+        ("create-demo", "--output"),
+        ("cleanup-sessions", "--scenario"),
+        ("backup", "--host"),
+        ("batch", "--no-migrate"),
+    ],
+)
+def test_parser_rejects_options_owned_by_other_commands(command, foreign_option) -> None:
+    arguments = [command]
+    if command == "batch":
+        arguments.append("scenario.json")
+    arguments.append(foreign_option)
+    with pytest.raises(SystemExit) as error:
+        launcher.build_parser().parse_args(arguments)
+    assert error.value.code == 2
+
+
+def test_each_subcommand_has_examples_and_specific_help(capsys) -> None:
+    parser = launcher.build_parser()
+    for command in (
+        "serve",
+        "create-professor",
+        "create-demo",
+        "cleanup-sessions",
+        "backup",
+        "batch",
+    ):
+        with pytest.raises(SystemExit) as error:
+            parser.parse_args([command, "--help"])
+        assert error.value.code == 0
+        help_text = capsys.readouterr().out
+        assert "Example:" in help_text
+        assert command in help_text
+
+
+def test_dispatch_uses_selected_parser_handler_without_migrating_batch(monkeypatch) -> None:
+    calls = []
+    parser = launcher.build_parser()
+    selected = parser.parse_args(["batch", "scenario.json", "--repetitions", "3"])
+    monkeypatch.setattr(parser, "parse_args", lambda _argv: selected)
+    monkeypatch.setattr(launcher, "build_parser", lambda: parser)
+    monkeypatch.setattr(
+        launcher,
+        "run_migrations",
+        lambda: (_ for _ in ()).throw(AssertionError("no database")),
+    )
+    selected.handler = lambda args, _reader: calls.append(args.repetitions) or 7
+    assert launcher.main([]) == 7
+    assert calls == [3]
+
+
+def test_batch_parser_defaults_and_paths() -> None:
+    args = launcher.build_parser().parse_args(["batch", "example.json"])
+    assert args.scenario_path == Path("example.json")
+    assert args.strategy == "balanced"
+    assert args.repetitions == 100
+    assert args.initial_seed == 0

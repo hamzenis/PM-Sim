@@ -88,9 +88,9 @@ The launcher uses SQLite's backup API, which provides a consistent copy even wit
 uv run python main.py backup --output /srv/pm-sim-backups
 ```
 
-Because the launcher migrates before commands, production automation should normally run after a
+Because the `backup` command migrates by default, production automation should normally run after a
 successful deployment; if making a mandatory pre-migration backup, use the currently deployed code
-and understand that `--no-migrate` is a controlled exception. Never substitute `cp pm_sim.db` while
+and the command-specific `backup --no-migrate` controlled exception. Never substitute `cp pm_sim.db` while
 the service is running.
 
 Verify each generated file before declaring the job successful:
