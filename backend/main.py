@@ -58,7 +58,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--reload", action="store_true", help="reload after code changes (development only)"
     )
     _add_migration_option(serve)
-    serve.set_defaults(handler=_handle_serve, migrate=True)
+    serve.set_defaults(handler=_handle_serve)
 
     professor = command_parser(
         "create-professor",
@@ -68,7 +68,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     professor.add_argument("--username", help="username (prompted for when omitted)")
     _add_migration_option(professor)
-    professor.set_defaults(handler=_handle_create_professor, migrate=True)
+    professor.set_defaults(handler=_handle_create_professor)
 
     demo = command_parser(
         "create-demo",
@@ -83,7 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="scenario JSON to load",
     )
     _add_migration_option(demo)
-    demo.set_defaults(handler=_handle_create_demo, migrate=True)
+    demo.set_defaults(handler=_handle_create_demo)
 
     cleanup = command_parser(
         "cleanup-sessions",
@@ -92,17 +92,27 @@ def build_parser() -> argparse.ArgumentParser:
         example="python main.py cleanup-sessions",
     )
     _add_migration_option(cleanup)
-    cleanup.set_defaults(handler=_handle_cleanup_sessions, migrate=True)
+    cleanup.set_defaults(handler=_handle_cleanup_sessions)
 
     backup = command_parser(
         "backup",
         help="create a consistent SQLite backup",
-        description="Create a timestamped SQLite backup using the online backup API.",
+        description=(
+            "Create a timestamped SQLite backup using the online backup API without "
+            "running migrations. This preserves the current schema for rollback."
+        ),
         example="python main.py backup --output /srv/pm-sim-backups",
     )
     backup.add_argument("--output", type=Path, default=Path("backups"), help="backup directory")
-    _add_migration_option(backup)
-    backup.set_defaults(handler=_handle_backup, migrate=True)
+    backup.set_defaults(handler=_handle_backup)
+
+    migrate = command_parser(
+        "migrate",
+        help="upgrade the database schema",
+        description="Apply Alembic migrations to upgrade the configured database to head.",
+        example="python main.py migrate",
+    )
+    migrate.set_defaults(handler=_handle_migrate)
 
     batch = command_parser(
         "batch",
@@ -124,11 +134,11 @@ def build_parser() -> argparse.ArgumentParser:
     batch.add_argument(
         "--employee-type", help="employee type code (defaults to the scenario's first)"
     )
-    batch.set_defaults(handler=_handle_batch, migrate=False)
+    batch.set_defaults(handler=_handle_batch)
 
     # Compatibility: historically an empty argument list started the server.
     parser.set_defaults(
-        handler=_handle_serve, migrate=True, host=None, port=None, reload=False, no_migrate=False
+        handler=_handle_serve, host=None, port=None, reload=False, no_migrate=False
     )
     return parser
 
@@ -142,6 +152,7 @@ def _add_migration_option(parser: argparse.ArgumentParser) -> None:
 
 
 def _handle_serve(args: argparse.Namespace, _password_reader: Callable[[str], str]) -> int:
+    _migrate_unless_disabled(args)
     start_server(settings, host=args.host, port=args.port, reload=args.reload or settings.reload)
     return 0
 
@@ -149,21 +160,34 @@ def _handle_serve(args: argparse.Namespace, _password_reader: Callable[[str], st
 def _handle_create_professor(
     args: argparse.Namespace, password_reader: Callable[[str], str]
 ) -> int:
+    _migrate_unless_disabled(args)
     return create_professor(args.username, password_reader=password_reader)
 
 
 def _handle_create_demo(args: argparse.Namespace, _password_reader: Callable[[str], str]) -> int:
+    _migrate_unless_disabled(args)
     return create_demo_data(args.scenario)
 
 
 def _handle_cleanup_sessions(
-    _args: argparse.Namespace, _password_reader: Callable[[str], str]
+    args: argparse.Namespace, _password_reader: Callable[[str], str]
 ) -> int:
+    _migrate_unless_disabled(args)
     return cleanup_sessions()
 
 
 def _handle_backup(args: argparse.Namespace, _password_reader: Callable[[str], str]) -> int:
     return backup_database(args.output)
+
+
+def _handle_migrate(_args: argparse.Namespace, _password_reader: Callable[[str], str]) -> int:
+    run_migrations()
+    return 0
+
+
+def _migrate_unless_disabled(args: argparse.Namespace) -> None:
+    if not args.no_migrate:
+        run_migrations()
 
 
 def _handle_batch(args: argparse.Namespace, _password_reader: Callable[[str], str]) -> int:
@@ -194,8 +218,6 @@ def main(
         level=settings.log_level.upper(),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
-    if args.migrate and not args.no_migrate:
-        run_migrations()
     return args.handler(args, password_reader)
 
 

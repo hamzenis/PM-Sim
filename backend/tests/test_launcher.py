@@ -54,7 +54,11 @@ def test_professor_password_confirmation_is_required(capsys) -> None:
 
 def test_backup_command_forwards_output_directory(monkeypatch, tmp_path) -> None:
     calls = []
-    monkeypatch.setattr(launcher, "run_migrations", lambda: None)
+    monkeypatch.setattr(
+        launcher,
+        "run_migrations",
+        lambda: (_ for _ in ()).throw(AssertionError("backup must preserve the current schema")),
+    )
     monkeypatch.setattr(
         launcher,
         "backup_database",
@@ -74,13 +78,56 @@ def test_demo_command_forwards_scenario_path(monkeypatch, tmp_path) -> None:
 
 
 @pytest.mark.parametrize(
+    ("arguments", "operation_name", "operation_attribute"),
+    [
+        (["serve"], "serve", "start_server"),
+        (["create-professor", "--username", "teacher"], "professor", "create_professor"),
+        (["create-demo", "--scenario", "scenario.json"], "demo", "create_demo_data"),
+        (["cleanup-sessions"], "cleanup", "cleanup_sessions"),
+    ],
+)
+def test_database_commands_migrate_before_their_operation(
+    monkeypatch, arguments, operation_name, operation_attribute
+) -> None:
+    calls = []
+    monkeypatch.setattr(launcher, "run_migrations", lambda: calls.append("migrate"))
+    monkeypatch.setattr(
+        launcher,
+        operation_attribute,
+        lambda *args, **kwargs: calls.append(operation_name) or 0,
+    )
+
+    assert launcher.main(arguments, password_reader=lambda _prompt: "password") == 0
+    assert calls == ["migrate", operation_name]
+
+
+def test_migrate_command_only_runs_migrations(monkeypatch) -> None:
+    calls = []
+    monkeypatch.setattr(launcher, "run_migrations", lambda: calls.append("migrate"))
+    assert launcher.main(["migrate"]) == 0
+    assert calls == ["migrate"]
+
+
+def test_help_does_not_run_migrations(monkeypatch) -> None:
+    monkeypatch.setattr(
+        launcher,
+        "run_migrations",
+        lambda: (_ for _ in ()).throw(AssertionError("help must not access the database")),
+    )
+    with pytest.raises(SystemExit) as error:
+        launcher.main(["--help"])
+    assert error.value.code == 0
+
+
+@pytest.mark.parametrize(
     ("command", "foreign_option"),
     [
         ("serve", "--username"),
         ("create-professor", "--reload"),
         ("create-demo", "--output"),
         ("cleanup-sessions", "--scenario"),
-        ("backup", "--host"),
+        ("backup", "--no-migrate"),
+        ("migrate", "--no-migrate"),
         ("batch", "--no-migrate"),
     ],
 )
@@ -102,6 +149,7 @@ def test_each_subcommand_has_examples_and_specific_help(capsys) -> None:
         "create-demo",
         "cleanup-sessions",
         "backup",
+        "migrate",
         "batch",
     ):
         with pytest.raises(SystemExit) as error:
@@ -126,6 +174,18 @@ def test_dispatch_uses_selected_parser_handler_without_migrating_batch(monkeypat
     selected.handler = lambda args, _reader: calls.append(args.repetitions) or 7
     assert launcher.main([]) == 7
     assert calls == [3]
+
+
+def test_batch_handler_runs_in_memory_without_migrating(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        launcher,
+        "run_migrations",
+        lambda: (_ for _ in ()).throw(AssertionError("batch must not access the database")),
+    )
+    scenario = launcher.PROJECT_ROOT / "scenario_examples" / "basic_project.json"
+
+    assert launcher.main(["batch", str(scenario), "--repetitions", "1"]) == 0
+    assert '"summary"' in capsys.readouterr().out
 
 
 def test_batch_parser_defaults_and_paths() -> None:

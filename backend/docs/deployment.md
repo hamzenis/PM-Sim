@@ -41,15 +41,21 @@ Follow [SQLite classroom operations](sqlite-operations.md) for modes, WAL, space
 Do not allow every prospective process to race automatic migrations. A release procedure should:
 
 1. Drain/stop the single application and verify the database has no other users.
-2. Back up and verify using the old release; record commit and Alembic revision.
+2. Back up and verify using the old release with
+   `uv run python main.py backup --output /srv/pm-sim-backups`; record commit and Alembic revision.
+   `backup` deliberately never migrates, so this is a rollback image of the current schema.
 3. Install the locked environment with `uv sync --frozen` and run all checks in CI.
-4. Run `uv run alembic upgrade head` once from the new release with production environment values.
-5. Start one process. Although the launcher will idempotently check/upgrade again, migration
-   ownership remains the release job's responsibility.
+4. Run `uv run python main.py migrate` once from the new release with production environment
+   values.
+5. Start one process with `uv run python main.py serve --no-migrate`. This makes migration
+   ownership explicit and prevents startup from mutating the verified schema. For simple local
+   operation, `serve` without that option still migrates before starting.
 6. Gate traffic on readiness and a smoke test, then monitor errors and lock behavior.
 
-The command-specific `--no-migrate` option is diagnostics-only, not a routine way to start a
-mismatched release; for example, use `python main.py serve --no-migrate`, not a global option.
+The command-specific `--no-migrate` option exists only on `serve` and database-mutating
+administration commands. Use it only after a successful explicit migration or for controlled
+diagnostics, never to run a mismatched release. `backup`, `batch`, and `migrate` do not accept it:
+backup and batch never migrate, while bypassing the sole purpose of `migrate` is meaningless.
 
 ## Health checks and logs
 
@@ -71,7 +77,9 @@ Schedule `python main.py cleanup-sessions` at least daily according to session v
 `python main.py backup --output /srv/pm-sim-backups` to meet
 the recovery-point objective, serialize it with release/restore operations, verify SQLite integrity
 and foreign keys, checksum/encrypt it, and copy off-host. Monitor the scheduler itself and regularly
-restore into an isolated environment. See the SQLite guide for example retention and validation.
+restore into an isolated environment. `backup` never upgrades the database. `cleanup-sessions`
+migrates by default and should use `--no-migrate` when an explicit release migration owns the
+schema. See the SQLite guide for example retention and validation.
 
 ## Rollback
 
