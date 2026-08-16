@@ -62,6 +62,7 @@ Choose the path that matches what you are trying to do:
 
 | Audience | Start here | Continue with |
 | --- | --- | --- |
+| Coding agents | [Repository agent guide](AGENTS.md) | [Backend agent guide](backend/AGENTS.md), [frontend agent guide](frontend/AGENTS.md), and the component documentation indexes |
 | New contributors | [Contributing](CONTRIBUTING.md) | [Backend quick start](backend/README.md) or [frontend quick start](frontend/README.md) |
 | Backend developers | [Backend documentation](backend/docs/README.md) | [Architecture](backend/docs/architecture.md), [development](backend/docs/development.md), and [testing](backend/docs/testing.md) |
 | Frontend developers | [Frontend documentation](frontend/docs/README.md) | [Architecture](frontend/docs/architecture.md), [API integration](frontend/docs/api-integration.md), and [testing](frontend/docs/testing.md) |
