@@ -18,7 +18,15 @@ cd backend
 uv sync
 uv run python main.py create-demo
 uv run python main.py serve --reload
-uv run python main.py batch scenario_examples/basic_project.json --repetitions 100
+uv run python main.py batch --scenario scenario_examples/basic_project.json --repetitions 100
+```
+
+The backend command above remains the canonical batch invocation. As a convenience, after
+installing the locked backend dependencies, run the same batch CLI from the repository root with:
+
+```bash
+uv run --project backend python scripts/run_batch.py \
+  --scenario backend/scenario_examples/basic_project.json --repetitions 100
 ```
 
 The demo command creates these local-development accounts:
