@@ -420,11 +420,7 @@ def test_student_run_contract_exposes_messages_and_flag_only_event_deliveries(
                 "bug_fixing": 0,
                 "integration_testing": 0,
             },
-            "hires": (
-                [{"employee_type_code": "data_engineer", "count": 1}]
-                if week == 1
-                else []
-            ),
+            "hires": ([{"employee_type_code": "data_engineer", "count": 1}] if week == 1 else []),
         }
         turn = client.post(
             turn_url,
