@@ -3,16 +3,19 @@
 from app.batch.export import (
     BatchExportError,
     export_reports,
+    export_text,
     reports_to_csv,
     reports_to_dict,
     reports_to_json,
 )
 from app.batch.runner import (
     BatchSummary,
+    DistributionSummary,
     SimulationBatchReport,
     SimulationBatchRun,
     run_simulation,
     run_simulation_batch,
+    summarize_distribution,
 )
 from app.batch.service import (
     BatchConfigurationError,
@@ -26,6 +29,7 @@ from app.batch.service import (
     LoadedScenario,
     ScenarioLoadError,
     execute_batch,
+    execute_batch_strategies,
     execution_result_to_dict,
     load_scenario,
 )
@@ -33,6 +37,7 @@ from app.batch.strategies import DecisionStrategy, FixedAllocationStrategy, buil
 
 __all__ = [
     "BatchSummary",
+    "DistributionSummary",
     "BatchConfigurationError",
     "BatchExecutionConfig",
     "BatchExecutionError",
@@ -50,12 +55,15 @@ __all__ = [
     "SimulationBatchRun",
     "built_in_strategy",
     "execute_batch",
+    "execute_batch_strategies",
     "execution_result_to_dict",
     "export_reports",
+    "export_text",
     "load_scenario",
     "reports_to_csv",
     "reports_to_dict",
     "reports_to_json",
     "run_simulation",
     "run_simulation_batch",
+    "summarize_distribution",
 ]

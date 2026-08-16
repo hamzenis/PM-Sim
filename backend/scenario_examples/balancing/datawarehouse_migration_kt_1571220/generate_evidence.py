@@ -1,25 +1,27 @@
 """Regenerate professor-review balancing evidence for scenario KT-1571220."""
 
 import csv
-import hashlib
+import io
 import json
-import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from statistics import mean
 
-BACKEND = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(BACKEND))
-
-from app.batch.runner import run_simulation_batch  # noqa: E402
-from app.scenarios.models import ScenarioDefinition  # noqa: E402
-from app.simulation.models import (  # noqa: E402
+from app.batch import (
+    BatchProvenance,
+    execute_batch_strategies,
+    export_text,
+    load_scenario,
+    summarize_distribution,
+)
+from app.simulation.models import (
     ActivityAllocation,
     HireRequest,
     SimulationState,
     WeeklyDecision,
 )
 
+BACKEND = Path(__file__).resolve().parents[3]
 SCENARIO_PATH = BACKEND / "scenario_examples/datawarehouse_migration_kt_1571220.json"
 OUTPUT_DIR = Path(__file__).resolve().parent
 INITIAL_SEED = 1_571_220
@@ -101,21 +103,25 @@ STRATEGIES = (
 )
 
 
-def percentile(values: list[float], fraction: float) -> float:
-    return sorted(values)[round((len(values) - 1) * fraction)]
-
-
-def main() -> None:
-    scenario_bytes = SCENARIO_PATH.read_bytes()
-    # This exact API is the required pre-publication schema validation gate.
-    intended = ScenarioDefinition.model_validate_json(scenario_bytes)
+def generate_evidence() -> tuple[dict[str, object], list[dict[str, object]]]:
+    loaded = load_scenario(SCENARIO_PATH)
+    intended = loaded.definition
+    provenance = BatchProvenance(
+        scenario_path=loaded.source_path,
+        scenario_name=intended.name,
+        strategy_names=tuple(strategy.name for strategy in STRATEGIES),
+        seeds=tuple(range(INITIAL_SEED, INITIAL_SEED + REPETITIONS)),
+        team_size=4,
+        employee_type_code="mixed",
+        output_formats=("json", "csv"),
+    )
     reports: dict[str, object] = {
-        "scenario": str(SCENARIO_PATH.relative_to(BACKEND)),
-        "scenario_sha256": hashlib.sha256(scenario_bytes).hexdigest(),
-        "engine_entry_point": "app.batch.runner.run_simulation_batch",
-        "initial_seed": INITIAL_SEED,
+        "scenario": str(provenance.scenario_path.relative_to(BACKEND)),
+        "scenario_sha256": loaded.sha256_digest,
+        "engine_entry_point": "app.batch.service.execute_batch_strategies",
+        "initial_seed": provenance.seeds[0],
         "repetitions_per_strategy": REPETITIONS,
-        "seed_range": [INITIAL_SEED, INITIAL_SEED + REPETITIONS - 1],
+        "seed_range": [provenance.seeds[0], provenance.seeds[-1]],
         "strategies": [asdict(strategy) for strategy in STRATEGIES],
         "modes": {},
     }
@@ -126,13 +132,13 @@ def main() -> None:
             update={"rules": intended.rules.model_copy(update={"randomness": randomness})}
         )
         mode_summaries: dict[str, object] = {}
-        for strategy in STRATEGIES:
-            report = run_simulation_batch(
-                definition,
-                strategy=strategy,
-                repetitions=REPETITIONS,
-                initial_seed=INITIAL_SEED,
-            )
+        mode_reports = execute_batch_strategies(
+            definition,
+            strategies=STRATEGIES,
+            repetitions=REPETITIONS,
+            initial_seed=INITIAL_SEED,
+        )
+        for strategy, report in zip(STRATEGIES, mode_reports, strict=True):
             runs = report.runs
             scores = [run.result.score.total for run in runs]
             accepted = [run.result.accepted_tasks for run in runs]
@@ -155,14 +161,7 @@ def main() -> None:
                 },
                 "total_cost": {"mean": mean(costs), "min": min(costs), "max": max(costs)},
                 "elapsed_working_days": {"mean": mean(days), "min": min(days), "max": max(days)},
-                "score_distribution": {
-                    "mean": mean(scores),
-                    "min": min(scores),
-                    "p10": percentile(scores, 0.10),
-                    "median": percentile(scores, 0.50),
-                    "p90": percentile(scores, 0.90),
-                    "max": max(scores),
-                },
+                "score_distribution": asdict(summarize_distribution(scores)),
                 "score_component_ranges": {
                     "quality": [
                         min(run.result.score.quality for run in runs),
@@ -199,12 +198,18 @@ def main() -> None:
                     }
                 )
         reports["modes"][randomness] = mode_summaries
+    return reports, csv_rows
 
-    (OUTPUT_DIR / "batch-summary.json").write_text(json.dumps(reports, indent=2) + "\n")
-    with (OUTPUT_DIR / "batch-runs.csv").open("w", newline="") as output:
-        writer = csv.DictWriter(output, fieldnames=list(csv_rows[0]))
-        writer.writeheader()
-        writer.writerows(csv_rows)
+
+def main() -> None:
+    reports, csv_rows = generate_evidence()
+    csv_output = io.StringIO(newline="")
+    writer = csv.DictWriter(csv_output, fieldnames=list(csv_rows[0]), lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(csv_rows)
+
+    export_text(json.dumps(reports, indent=2) + "\n", OUTPUT_DIR / "batch-summary.json", force=True)
+    export_text(csv_output.getvalue(), OUTPUT_DIR / "batch-runs.csv", force=True)
 
 
 if __name__ == "__main__":

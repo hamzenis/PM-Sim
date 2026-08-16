@@ -53,6 +53,18 @@ class BatchSummary:
 
 
 @dataclass(frozen=True, slots=True)
+class DistributionSummary:
+    """Optional descriptive statistics for callers that need distribution detail."""
+
+    mean: float
+    min: float
+    p10: float
+    median: float
+    p90: float
+    max: float
+
+
+@dataclass(frozen=True, slots=True)
 class SimulationBatchReport:
     strategy: str
     runs: tuple[SimulationBatchRun, ...]
@@ -135,6 +147,25 @@ def run_simulation_batch(
         strategy=strategy.name,
         runs=runs,
         summary=_summarize(runs),
+    )
+
+
+def summarize_distribution(values: Iterable[float]) -> DistributionSummary:
+    """Summarize non-empty values using the batch report's deterministic nearest ranks."""
+    ordered = sorted(values)
+    if not ordered:
+        raise ValueError("at least one value is required")
+
+    def percentile(fraction: float) -> float:
+        return ordered[round((len(ordered) - 1) * fraction)]
+
+    return DistributionSummary(
+        mean=mean(ordered),
+        min=ordered[0],
+        p10=percentile(0.10),
+        median=percentile(0.50),
+        p90=percentile(0.90),
+        max=ordered[-1],
     )
 
 

@@ -97,6 +97,17 @@ def export_reports(
         _atomic_write(Path(destination), content, create_parents=create_parents, force=force)
 
 
+def export_text(
+    content: str,
+    destination: ExportDestination,
+    *,
+    create_parents: bool = False,
+    force: bool = False,
+) -> None:
+    """Atomically export caller-defined text while retaining its external schema."""
+    _atomic_write(Path(destination), content, create_parents=create_parents, force=force)
+
+
 def _coerce_reports(
     reports: SimulationBatchReport | Iterable[SimulationBatchReport],
 ) -> tuple[SimulationBatchReport, ...]:

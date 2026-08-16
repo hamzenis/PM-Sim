@@ -1,9 +1,9 @@
 # KT-1571220 balancing evidence (2026-08-13)
 
 This directory is the pre-publication professor-review record for the revised data-warehouse
-migration scenario. It does **not** represent a published immutable revision. The generator first
-validates the source bytes with `ScenarioDefinition.model_validate_json(...)`, then runs the
-production scenario adapter and weekly engine. `batch-summary.json` records the scenario SHA-256,
+migration scenario. It does **not** represent a published immutable revision. The generator uses
+the shared validated scenario loader, batch service, provenance model, distribution summary
+extension, and atomic export layer. `batch-summary.json` records the scenario SHA-256,
 strategy definitions, aggregate metrics, score distributions, and component ranges;
 `batch-runs.csv` retains every run for outlier review.
 
@@ -62,9 +62,14 @@ seeds.
 
 ## Reproduce
 
-From the repository root:
+From `backend/` (module execution keeps the backend package configured without modifying
+`sys.path`):
 
 ```bash
-backend/.venv/bin/python \
-  backend/scenario_examples/balancing/datawarehouse_migration_kt_1571220/generate_evidence.py
+uv run python -m \
+  scenario_examples.balancing.datawarehouse_migration_kt_1571220.generate_evidence
 ```
+
+The JSON and CSV artifact schemas are unchanged by the batch-service migration. Regeneration only
+updates their data and records the shared service entry point; generated artifacts are reviewed
+separately and are not updated for code-only refactors.

@@ -17,7 +17,7 @@ from app.batch.runner import (
     report_to_dict,
     run_simulation_batch,
 )
-from app.batch.strategies import built_in_strategy
+from app.batch.strategies import DecisionStrategy, built_in_strategy
 from app.scenarios.models import ScenarioDefinition
 
 OutputFormat = Literal["json", "csv"]
@@ -169,14 +169,11 @@ def execute_batch(config: BatchExecutionConfig) -> BatchExecutionResult:
         )
         for name in config.strategy_names
     )
-    reports = tuple(
-        run_simulation_batch(
-            loaded.definition,
-            strategy=strategy,
-            repetitions=config.repetitions,
-            initial_seed=config.initial_seed,
-        )
-        for strategy in strategies
+    reports = execute_batch_strategies(
+        loaded.definition,
+        strategies=strategies,
+        repetitions=config.repetitions,
+        initial_seed=config.initial_seed,
     )
     result = BatchExecutionResult(
         reports=reports,
@@ -214,6 +211,33 @@ def execute_batch(config: BatchExecutionConfig) -> BatchExecutionResult:
     if config.output_directory is not None:
         _write_reports(result, config.output_directory, config.output_formats)
     return result
+
+
+def execute_batch_strategies(
+    scenario: ScenarioDefinition,
+    *,
+    strategies: tuple[DecisionStrategy, ...],
+    repetitions: int,
+    initial_seed: int = 0,
+) -> tuple[SimulationBatchReport, ...]:
+    """Execute caller-supplied strategies over one validated consecutive seed range."""
+    if not strategies:
+        raise BatchConfigurationError("at least one strategy is required")
+    if len({strategy.name for strategy in strategies}) != len(strategies):
+        raise BatchConfigurationError("strategy names must be unique")
+    if repetitions < 1:
+        raise BatchConfigurationError("repetitions must be positive")
+    if initial_seed < 0 or initial_seed + repetitions - 1 > MAX_SEED:
+        raise BatchConfigurationError(f"seed range must be between 0 and {MAX_SEED}")
+    return tuple(
+        run_simulation_batch(
+            scenario,
+            strategy=strategy,
+            repetitions=repetitions,
+            initial_seed=initial_seed,
+        )
+        for strategy in strategies
+    )
 
 
 def execution_result_to_dict(result: BatchExecutionResult) -> dict[str, object]:

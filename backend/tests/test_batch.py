@@ -1,9 +1,16 @@
 import csv
 import io
+from dataclasses import asdict
 
 import pytest
 
-from app.batch.runner import report_to_csv, report_to_dict, run_batch, run_simulation_batch
+from app.batch.runner import (
+    report_to_csv,
+    report_to_dict,
+    run_batch,
+    run_simulation_batch,
+    summarize_distribution,
+)
 from app.batch.strategies import built_in_strategy
 from app.scenarios.models import ScenarioDefinition
 
@@ -11,6 +18,17 @@ from app.scenarios.models import ScenarioDefinition
 def test_batch_uses_reproducible_consecutive_seeds() -> None:
     runs = run_batch(lambda seed: seed * 2, repetitions=3, initial_seed=10)
     assert [(run.seed, run.result) for run in runs] == [(10, 20), (11, 22), (12, 24)]
+
+
+def test_optional_distribution_summary_uses_deterministic_nearest_ranks() -> None:
+    assert asdict(summarize_distribution([9, 1, 5, 3, 7])) == {
+        "mean": 5,
+        "min": 1,
+        "p10": 1,
+        "median": 5,
+        "p90": 9,
+        "max": 9,
+    }
 
 
 def scenario() -> ScenarioDefinition:
