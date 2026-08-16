@@ -178,6 +178,25 @@ UTF-8 and an atomic temporary-file replacement in the destination directory. Exi
 rejected unless `force=True`, and missing parent directories are created only with
 `create_parents=True`.
 
+The launcher exposes the service and exporter without initializing or migrating the database:
+
+```bash
+uv run python main.py batch \
+  --scenario scenario_examples/basic_project.json \
+  --strategy balanced --strategy quality-first \
+  --employee-type junior_backend --team-size 3 \
+  --repetitions 250 --initial-seed 500 \
+  --format json --output batch-report.json --summary
+```
+
+`--scenario` is required. `--strategy` is repeatable and defaults to `balanced`; its choices are the
+four built-ins listed above. Employee type inference is limited to scenarios containing exactly one
+type. The output format is either `json` or `csv`, and `--output -` writes it to standard output.
+The command refuses to replace a file unless `--force` is present. `--summary` writes one concise
+line per strategy to standard error with the seed range, completion and budget-exhaustion rates,
+and average score. Invalid scenario or execution configuration returns status `2`; execution or
+export failures return status `1`.
+
 For a practical comparison procedure, boundary cases, and publication gate, follow the
 [scenario balancing workflow](scenario-authoring.md#balancing-workflow) and
 [validation checklist](scenario-authoring.md#scenario-validation-checklist).

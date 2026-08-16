@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "name": "Small batch fixture",
+  "authored_content": {"fragments": [], "questions": [], "events": [], "sequence": []},
+  "project": {"budget": 20000, "working_days": 10},
+  "tasks": {"total": 12},
+  "employee_types": [
+    {
+      "code": "developer",
+      "name": "Developer",
+      "cost_per_day": 100,
+      "throughput": {"easy": 4, "medium": 2, "hard": 1},
+      "error_rate": 0.1,
+      "management_skill": 0.5
+    }
+  ],
+  "rules": {"randomness": "semi"}
+}

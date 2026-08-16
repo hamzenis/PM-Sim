@@ -13,11 +13,12 @@ from sqlalchemy import delete
 
 from alembic import command
 from app.auth.service import AuthenticationError, create_user
+from app.batch.export import BatchExportError, export_reports
 from app.batch.service import (
     BatchExecutionConfig,
     BatchExecutionError,
+    BatchExecutionResult,
     execute_batch,
-    execution_result_to_dict,
 )
 from app.classes.service import assign_scenario, create_class, import_students
 from app.config import Settings, settings
@@ -122,9 +123,12 @@ def build_parser() -> argparse.ArgumentParser:
         "batch",
         help="run deterministic simulations in memory",
         description="Run an authored scenario repeatedly without accessing the database.",
-        example="python main.py batch scenario_examples/basic_project.json --repetitions 100",
+        example=(
+            "python main.py batch --scenario scenario_examples/basic_project.json "
+            "--strategy balanced --repetitions 100 --format csv --output report.csv"
+        ),
     )
-    batch.add_argument("scenario_path", type=Path, metavar="SCENARIO", help="scenario JSON file")
+    batch.add_argument("--scenario", required=True, type=Path, help="scenario JSON file")
     batch.add_argument(
         "--strategy",
         dest="strategies",
@@ -140,6 +144,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--employee-type", help="employee type code (inferred only when the scenario has one)"
     )
     batch.add_argument("--team-size", type=int, default=3, help="initial team size (default: 3)")
+    batch.add_argument(
+        "--format", choices=("json", "csv"), default="json", help="report format (default: json)"
+    )
+    batch.add_argument(
+        "--output", type=Path, default=Path("-"), help="report path, or - for stdout (default: -)"
+    )
+    batch.add_argument("--force", action="store_true", help="overwrite an existing output file")
+    batch.add_argument(
+        "--summary",
+        action="store_true",
+        help="print a concise strategy summary to stderr",
+    )
     batch.set_defaults(handler=_handle_batch)
 
     # Compatibility: historically an empty argument list started the server.
@@ -198,7 +214,7 @@ def _handle_batch(args: argparse.Namespace, _password_reader: Callable[[str], st
     try:
         result = execute_batch(
             BatchExecutionConfig(
-                scenario_path=args.scenario_path,
+                scenario_path=args.scenario,
                 strategy_names=tuple(args.strategies or ("balanced",)),
                 repetitions=args.repetitions,
                 initial_seed=args.initial_seed,
@@ -209,8 +225,43 @@ def _handle_batch(args: argparse.Namespace, _password_reader: Callable[[str], st
     except BatchExecutionError as error:
         print(f"Could not run batch: {error}", file=sys.stderr)
         return 2
-    print(json.dumps(execution_result_to_dict(result), indent=2))
+    except Exception as error:  # pragma: no cover - defensive CLI boundary
+        logging.getLogger(__name__).exception("Unexpected batch execution failure")
+        print(f"Batch execution failed: {error}", file=sys.stderr)
+        return 1
+
+    try:
+        export_reports(
+            result.reports,
+            json_destination=args.output if args.format == "json" else None,
+            csv_destination=args.output if args.format == "csv" else None,
+            force=args.force,
+        )
+    except BatchExportError as error:
+        print(f"Could not export batch report: {error}", file=sys.stderr)
+        return 1
+    except Exception as error:  # pragma: no cover - defensive CLI boundary
+        logging.getLogger(__name__).exception("Unexpected batch export failure")
+        print(f"Batch export failed: {error}", file=sys.stderr)
+        return 1
+
+    if args.summary:
+        _print_batch_summary(result)
     return 0
+
+
+def _print_batch_summary(result: BatchExecutionResult) -> None:
+    first_seed = result.metadata.initial_seed
+    final_seed = result.metadata.final_seed
+    for report in result.reports:
+        summary = report.summary
+        print(
+            f"{report.strategy}: seeds {first_seed}-{final_seed}; "
+            f"completion {summary.completion_rate:.1%}; "
+            f"budget exhausted {summary.budget_exhaustion_rate:.1%}; "
+            f"average score {summary.average_score:.1f}",
+            file=sys.stderr,
+        )
 
 
 def main(

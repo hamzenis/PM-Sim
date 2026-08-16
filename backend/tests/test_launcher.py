@@ -134,7 +134,7 @@ def test_help_does_not_run_migrations(monkeypatch) -> None:
 def test_parser_rejects_options_owned_by_other_commands(command, foreign_option) -> None:
     arguments = [command]
     if command == "batch":
-        arguments.append("scenario.json")
+        arguments.extend(("--scenario", "scenario.json"))
     arguments.append(foreign_option)
     with pytest.raises(SystemExit) as error:
         launcher.build_parser().parse_args(arguments)
@@ -163,7 +163,7 @@ def test_each_subcommand_has_examples_and_specific_help(capsys) -> None:
 def test_dispatch_uses_selected_parser_handler_without_migrating_batch(monkeypatch) -> None:
     calls = []
     parser = launcher.build_parser()
-    selected = parser.parse_args(["batch", "scenario.json", "--repetitions", "3"])
+    selected = parser.parse_args(["batch", "--scenario", "scenario.json", "--repetitions", "3"])
     monkeypatch.setattr(parser, "parse_args", lambda _argv: selected)
     monkeypatch.setattr(launcher, "build_parser", lambda: parser)
     monkeypatch.setattr(
@@ -182,21 +182,59 @@ def test_batch_handler_runs_in_memory_without_migrating(monkeypatch, capsys) -> 
         "run_migrations",
         lambda: (_ for _ in ()).throw(AssertionError("batch must not access the database")),
     )
-    scenario = launcher.PROJECT_ROOT / "scenario_examples" / "basic_project.json"
+    scenario = Path(__file__).parent / "fixtures" / "batch_scenario.json"
 
     assert (
-        launcher.main(
-            ["batch", str(scenario), "--repetitions", "1", "--employee-type", "junior_backend"]
-        )
+        launcher.main(["batch", "--scenario", str(scenario), "--repetitions", "1", "--summary"])
         == 0
     )
-    assert '"summary"' in capsys.readouterr().out
+    captured = capsys.readouterr()
+    assert '"summary"' in captured.out
+    assert "balanced: seeds 0-0; completion" in captured.err
 
 
 def test_batch_parser_defaults_and_paths() -> None:
-    args = launcher.build_parser().parse_args(["batch", "example.json"])
-    assert args.scenario_path == Path("example.json")
+    args = launcher.build_parser().parse_args(["batch", "--scenario", "example.json"])
+    assert args.scenario == Path("example.json")
     assert args.strategies is None
     assert args.repetitions == 100
     assert args.initial_seed == 0
     assert args.team_size == 3
+    assert args.format == "json"
+    assert args.output == Path("-")
+    assert args.force is False
+
+
+def test_batch_parser_requires_scenario() -> None:
+    with pytest.raises(SystemExit) as error:
+        launcher.build_parser().parse_args(["batch"])
+    assert error.value.code == 2
+
+
+def test_batch_exports_selected_format_and_honors_force(tmp_path) -> None:
+    scenario = Path(__file__).parent / "fixtures" / "batch_scenario.json"
+    output = tmp_path / "report.csv"
+    arguments = [
+        "batch",
+        "--scenario",
+        str(scenario),
+        "--repetitions",
+        "2",
+        "--strategy",
+        "balanced",
+        "--strategy",
+        "quality-first",
+        "--format",
+        "csv",
+        "--output",
+        str(output),
+    ]
+    assert launcher.main(arguments) == 0
+    assert "strategy" in output.read_text()
+    assert launcher.main(arguments) == 1
+    assert launcher.main([*arguments, "--force"]) == 0
+
+
+def test_batch_invalid_configuration_returns_two() -> None:
+    scenario = Path(__file__).parent / "fixtures" / "batch_scenario.json"
+    assert launcher.main(["batch", "--scenario", str(scenario), "--repetitions", "0"]) == 2
