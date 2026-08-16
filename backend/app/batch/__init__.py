@@ -1,11 +1,16 @@
 """In-memory simulation experiments."""
 
+from app.batch.export import (
+    BatchExportError,
+    export_reports,
+    reports_to_csv,
+    reports_to_dict,
+    reports_to_json,
+)
 from app.batch.runner import (
     BatchSummary,
     SimulationBatchReport,
     SimulationBatchRun,
-    report_to_csv,
-    report_to_dict,
     run_simulation,
     run_simulation_batch,
 )
@@ -32,6 +37,7 @@ __all__ = [
     "BatchExecutionConfig",
     "BatchExecutionError",
     "BatchExecutionResult",
+    "BatchExportError",
     "BatchOutputError",
     "BatchProvenance",
     "BatchReportMetadata",
@@ -45,9 +51,11 @@ __all__ = [
     "built_in_strategy",
     "execute_batch",
     "execution_result_to_dict",
+    "export_reports",
     "load_scenario",
-    "report_to_csv",
-    "report_to_dict",
+    "reports_to_csv",
+    "reports_to_dict",
+    "reports_to_json",
     "run_simulation",
     "run_simulation_batch",
 ]

@@ -168,6 +168,16 @@ but still projects only the listed run fields. Whenever CSV is requested, the ex
 `batch-report-metadata.json` as its documented companion provenance file (also when the main JSON
 report is requested). Preserve that file with every CSV report.
 
+For direct report export, use the stable `app.batch` functions `reports_to_dict`, `reports_to_json`,
+`reports_to_csv`, and `export_reports`. Each accepts either one `SimulationBatchReport` or an
+iterable of reports. JSON always uses a top-level report list and serializes enum members to their
+string values. CSV combines every strategy into one table with a fixed column order and a
+`strategy` value on every row. `export_reports` accepts separate JSON and CSV destinations; `-`
+writes one requested format to stdout, but both formats cannot target stdout together. Files use
+UTF-8 and an atomic temporary-file replacement in the destination directory. Existing files are
+rejected unless `force=True`, and missing parent directories are created only with
+`create_parents=True`.
+
 For a practical comparison procedure, boundary cases, and publication gate, follow the
 [scenario balancing workflow](scenario-authoring.md#balancing-workflow) and
 [validation checklist](scenario-authoring.md#scenario-validation-checklist).
