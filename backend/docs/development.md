@@ -111,7 +111,7 @@ diagnosis; `batch` is purely in memory and has no such option.
 | `create-demo` | Creates a demo professor, student, class, published scenario, and assignment. | `--scenario PATH` defaults to `scenario_examples/basic_project.json`. **Development only:** fixed printed passwords are public and the command can fail/partially conflict if rerun. Never use on production data. |
 | `cleanup-sessions` | Deletes authentication sessions whose expiry is at or before current UTC and prints the count. | Safe to schedule; it does not revoke active sessions. Back up and monitor scheduled jobs. |
 | `backup` | Uses SQLite's online backup API to make a timestamped `pm_sim-*.db` file. | `--output DIR` defaults to `backups`. File-based SQLite only; it refuses memory and PostgreSQL URLs. The destination must not already exist. Verify and copy off-host as described in the SQLite guide. |
-| `batch` | Runs a scenario repeatedly through the in-memory simulation engine and prints JSON reports with provenance. | Positional `SCENARIO`; repeat `--strategy` to compare built-ins over the same seeds; select `--repetitions`, `--initial-seed`, `--team-size`, and (for scenarios with multiple types) `--employee-type`. It neither accesses nor migrates the database. |
+| `batch` | Runs a scenario repeatedly through the in-memory simulation engine and prints JSON reports with provenance. | `--scenario PATH` is required; repeat `--strategy` to compare built-ins over the same seeds and `--employee CODE=COUNT` for a mixed team. Positive counts, unique known codes, and at least one employee are required. The compatible `--employee-type CODE --team-size N` shorthand cannot be combined with `--employee`. It neither accesses nor migrates the database. |
 
 Examples:
 
@@ -122,7 +122,8 @@ uv run python main.py create-professor --username instructor
 uv run python main.py cleanup-sessions
 uv run python main.py backup --output /srv/pm-sim-backups
 uv run python main.py serve --no-migrate      # DIAGNOSTICS ONLY
-uv run python main.py batch scenario_examples/basic_project.json --repetitions 100
+uv run python main.py batch --scenario scenario_examples/basic_project.json \
+  --employee junior_backend=2 --employee senior_backend=1 --repetitions 100
 ```
 
 To migrate without starting or running a launcher command, use Alembic directly:

@@ -18,21 +18,39 @@ class DecisionStrategy(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
+class TeamMemberCount:
+    employee_type_code: str
+    count: int
+
+    def __post_init__(self) -> None:
+        if not self.employee_type_code:
+            raise ValueError("employee type code must not be empty")
+        if self.count < 1:
+            raise ValueError("employee count must be positive")
+
+
+@dataclass(frozen=True, slots=True)
 class FixedAllocationStrategy:
     name: str
-    employee_type_code: str
+    team_composition: tuple[TeamMemberCount, ...]
     allocation: ActivityAllocation
-    initial_team_size: int = 3
     overtime_hours_per_employee: float = 0
 
     def __post_init__(self) -> None:
-        if self.initial_team_size < 1:
-            raise ValueError("initial team size must be positive")
+        if not self.team_composition:
+            raise ValueError("team composition must contain at least one employee")
+        codes = [member.employee_type_code for member in self.team_composition]
+        if len(codes) != len(set(codes)):
+            raise ValueError("team composition employee type codes must be unique")
 
     def decide(self, state: SimulationState) -> WeeklyDecision:
         hires = ()
         if state.week == 0 and not state.employees:
-            hires = (HireRequest(self.employee_type_code, self.initial_team_size),)
+            # Tuple order is part of the strategy input and is preserved for deterministic hiring.
+            hires = tuple(
+                HireRequest(member.employee_type_code, member.count)
+                for member in self.team_composition
+            )
         return WeeklyDecision(
             allocation=self.allocation,
             hires=hires,
@@ -43,8 +61,7 @@ class FixedAllocationStrategy:
 def built_in_strategy(
     name: str,
     *,
-    employee_type_code: str,
-    initial_team_size: int = 3,
+    team_composition: tuple[TeamMemberCount, ...],
 ) -> FixedAllocationStrategy:
     """Return one of the deliberately simple baseline comparison strategies."""
     allocations = {
@@ -58,8 +75,7 @@ def built_in_strategy(
     development, unit_testing, bug_fixing, integration_testing, overtime = allocations[name]
     return FixedAllocationStrategy(
         name=name,
-        employee_type_code=employee_type_code,
-        initial_team_size=initial_team_size,
+        team_composition=team_composition,
         allocation=ActivityAllocation(
             development=development,
             unit_testing=unit_testing,

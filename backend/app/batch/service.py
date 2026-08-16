@@ -17,7 +17,7 @@ from app.batch.runner import (
     report_to_dict,
     run_simulation_batch,
 )
-from app.batch.strategies import DecisionStrategy, built_in_strategy
+from app.batch.strategies import DecisionStrategy, TeamMemberCount, built_in_strategy
 from app.scenarios.models import ScenarioDefinition
 
 OutputFormat = Literal["json", "csv"]
@@ -54,22 +54,27 @@ class LoadedScenario:
 @dataclass(frozen=True, slots=True)
 class BatchExecutionConfig:
     scenario_path: Path
+    team_composition: tuple[TeamMemberCount, ...]
     strategy_names: tuple[str, ...] = ("balanced",)
     repetitions: int = 100
     initial_seed: int = 0
-    team_size: int = 3
-    employee_type: str | None = None
     output_formats: tuple[OutputFormat, ...] = ("json",)
     output_directory: Path | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "scenario_path", Path(self.scenario_path))
+        object.__setattr__(self, "team_composition", tuple(self.team_composition))
         if self.output_directory is not None:
             object.__setattr__(self, "output_directory", Path(self.output_directory))
         if self.repetitions < 1:
             raise BatchConfigurationError("repetitions must be positive")
-        if self.team_size < 1:
-            raise BatchConfigurationError("team size must be positive")
+        if not self.team_composition:
+            raise BatchConfigurationError("team composition must contain at least one employee")
+        codes = [member.employee_type_code for member in self.team_composition]
+        if any(member.count < 1 for member in self.team_composition):
+            raise BatchConfigurationError("employee counts must be positive")
+        if len(codes) != len(set(codes)):
+            raise BatchConfigurationError("employee type codes must be unique")
         if not self.strategy_names:
             raise BatchConfigurationError("at least one strategy is required")
         if len(self.strategy_names) != len(set(self.strategy_names)):
@@ -98,16 +103,14 @@ class BatchProvenance:
     scenario_name: str
     strategy_names: tuple[str, ...]
     seeds: tuple[int, ...]
-    team_size: int
-    employee_type_code: str
+    team_composition: tuple[TeamMemberCount, ...]
     output_formats: tuple[OutputFormat, ...]
 
 
 @dataclass(frozen=True, slots=True)
 class BatchStrategyMetadata:
     name: str
-    employee_type: str
-    team_size: int
+    team_composition: tuple[TeamMemberCount, ...]
     allocation: dict[str, float]
     overtime_hours_per_employee: float
 
@@ -153,19 +156,18 @@ def execute_batch(config: BatchExecutionConfig) -> BatchExecutionResult:
     """Execute every strategy against the same consecutive deterministic seeds."""
     loaded = load_scenario(config.scenario_path)
     known_employee_types = {item.code for item in loaded.definition.employee_types}
-    employee_type = config.employee_type or loaded.employee_type_code
-    if employee_type is None:
-        raise BatchConfigurationError(
-            "employee type is required when the scenario defines multiple employee types"
-        )
-    if employee_type not in known_employee_types:
-        raise BatchConfigurationError(f"unknown employee type: {employee_type}")
+    unknown_employee_types = [
+        member.employee_type_code
+        for member in config.team_composition
+        if member.employee_type_code not in known_employee_types
+    ]
+    if unknown_employee_types:
+        raise BatchConfigurationError(f"unknown employee type: {unknown_employee_types[0]}")
 
     strategies = tuple(
         built_in_strategy(
             name,
-            employee_type_code=employee_type,
-            initial_team_size=config.team_size,
+            team_composition=config.team_composition,
         )
         for name in config.strategy_names
     )
@@ -182,12 +184,11 @@ def execute_batch(config: BatchExecutionConfig) -> BatchExecutionResult:
             scenario_name=loaded.definition.name,
             strategy_names=config.strategy_names,
             seeds=tuple(range(config.initial_seed, config.initial_seed + config.repetitions)),
-            team_size=config.team_size,
-            employee_type_code=employee_type,
+            team_composition=config.team_composition,
             output_formats=config.output_formats,
         ),
         metadata=BatchReportMetadata(
-            schema_version=1,
+            schema_version=2,
             pm_sim_package="pm-sim-backend",
             pm_sim_version=version("pm-sim-backend"),
             generated_at=datetime.now(UTC),
@@ -199,8 +200,7 @@ def execute_batch(config: BatchExecutionConfig) -> BatchExecutionResult:
             strategies=tuple(
                 BatchStrategyMetadata(
                     name=strategy.name,
-                    employee_type=strategy.employee_type_code,
-                    team_size=strategy.initial_team_size,
+                    team_composition=strategy.team_composition,
                     allocation=asdict(strategy.allocation),
                     overtime_hours_per_employee=strategy.overtime_hours_per_employee,
                 )
@@ -249,15 +249,24 @@ def execution_result_to_dict(result: BatchExecutionResult) -> dict[str, object]:
                 if key not in {"generated_at", "strategies"}
             },
             "generated_at": result.metadata.generated_at.isoformat(),
-            "strategies": [asdict(strategy) for strategy in result.metadata.strategies],
+            "strategies": [
+                {
+                    **{
+                        key: value
+                        for key, value in asdict(strategy).items()
+                        if key != "team_composition"
+                    },
+                    "team_composition": [asdict(member) for member in strategy.team_composition],
+                }
+                for strategy in result.metadata.strategies
+            ],
         },
         "provenance": {
             "scenario_path": str(result.provenance.scenario_path),
             "scenario_name": result.provenance.scenario_name,
             "strategy_names": list(result.provenance.strategy_names),
             "seeds": list(result.provenance.seeds),
-            "team_size": result.provenance.team_size,
-            "employee_type_code": result.provenance.employee_type_code,
+            "team_composition": [asdict(member) for member in result.provenance.team_composition],
             "output_formats": list(result.provenance.output_formats),
         },
         "reports": [report_to_dict(report) for report in result.reports],

@@ -121,16 +121,17 @@ if all limits are zero). Scores measure the current/final state even for submiss
 `app/batch/runner.py` contains the mechanics that run the production scenario adapter and weekly
 engine entirely in memory. `app/batch/service.py` owns file loading, execution validation,
 multi-strategy orchestration, output destinations, and provenance. Scenario JSON is validated with
-`ScenarioDefinition`; a batch may infer its employee type only when the scenario defines exactly
-one type, otherwise the caller must select one explicitly.
+`ScenarioDefinition`; every service request supplies an ordered team composition containing one or
+more employee type/count pairs.
 `run_simulation_batch` requires at least one repetition and selects consecutive run seeds
 `initial_seed ... initial_seed + repetitions - 1`; each run advances until completion or deadline.
 Use identical seed ranges, engine version, and repetitions when comparing revisions or strategies.
 More repetitions reduce sensitivity to a lucky range; inspect individual runs rather than treating
 averages as guarantees.
 
-`app/batch/strategies.py` provides deliberately simple fixed baselines. Each hires one employee type
-only in week zero, never dismisses, meets, or trains, and never adapts to backlog/quality/budget:
+`app/batch/strategies.py` provides deliberately simple fixed baselines. Each hires one request per
+configured employee type, in the composition's tuple order, only in week zero. It never dismisses,
+meets, trains, or adapts to backlog/quality/budget:
 
 | Strategy | Development / unit test / bug fix / integration | Overtime |
 | --- | --- | --- |
@@ -143,15 +144,18 @@ They are comparison probes, not models of students and not proof a scenario is f
 stall (for example, an unsuitable employee type or pipeline allocation) and ignore authored
 content. Implement the `DecisionStrategy` protocol for scenario-specific policies.
 
-`execute_batch` validates positive repetitions and team size, a bounded non-negative seed range,
-unique built-in strategy names, employee type codes, requested JSON/CSV formats, and any configured
+`execute_batch` validates positive repetitions and employee counts, a non-empty composition with
+unique known employee type codes, a bounded non-negative seed range, unique built-in strategy
+names, requested JSON/CSV formats, and any configured
 output directory. Every requested strategy receives the same seed range. Its typed result contains
-one report per strategy plus the scenario, strategy, seed, team, employee-type, and format
+one report per strategy plus the scenario, strategy, seed, complete team composition, and format
 provenance needed to interpret the comparison. The structured report metadata records the scenario
 name and SHA-256 digest of its exact input bytes; initial/final seeds and repetitions; and each
-strategy's name, employee type, team size, complete activity allocation, and overtime. It also
+strategy's name, ordered employee type/count composition, complete activity allocation, and overtime. It also
 identifies the `pm-sim-backend` package version and explicit batch report schema version (currently
-`1`). Consumers should reject or explicitly migrate unsupported schema versions.
+`2`). Consumers should reject or explicitly migrate unsupported schema versions. Version 2 replaces
+the singular employee type and team-size metadata fields with `team_composition` entries containing
+`employee_type_code` and `count`.
 
 `execution_result_to_dict` places that metadata in the JSON envelope beside the deterministic
 `reports` simulation payload. Its UTC `generated_at` timestamp is intentionally non-deterministic;
@@ -184,14 +188,17 @@ The launcher exposes the service and exporter without initializing or migrating 
 uv run python main.py batch \
   --scenario scenario_examples/basic_project.json \
   --strategy balanced --strategy quality-first \
-  --employee-type junior_backend --team-size 3 \
+  --employee junior_backend=2 --employee senior_backend=1 \
   --repetitions 250 --initial-seed 500 \
   --format json --output batch-report.json --summary
 ```
 
 `--scenario` is required. `--strategy` is repeatable and defaults to `balanced`; its choices are the
-four built-ins listed above. Employee type inference is limited to scenarios containing exactly one
-type. The output format is either `json` or `csv`, and `--output -` writes it to standard output.
+four built-ins listed above. `--employee CODE=COUNT` is repeatable, preserves input order, and
+requires positive counts and unique scenario-defined codes. The backward-compatible
+`--employee-type CODE --team-size N` shorthand selects a homogeneous team; the two forms cannot be
+combined. If neither is supplied, a scenario with exactly one type uses three employees. The output
+format is either `json` or `csv`, and `--output -` writes it to standard output.
 The command refuses to replace a file unless `--force` is present. `--summary` writes one concise
 line per strategy to standard error with the seed range, completion and budget-exhaustion rates,
 and average score. Invalid scenario or execution configuration returns status `2`; execution or

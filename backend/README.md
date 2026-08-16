@@ -25,15 +25,16 @@ Compare built-in strategies over the same deterministic seed range and save a CS
 uv run python main.py batch \
   --scenario scenario_examples/basic_project.json \
   --strategy balanced --strategy quality-first \
-  --employee-type junior_backend --team-size 3 \
+  --employee junior_backend=2 --employee senior_backend=1 \
   --repetitions 100 --initial-seed 1000 \
   --format csv --output /tmp/pm-sim-batch.csv --summary
 ```
 
 `--output -` (the default) writes the selected `json` or `csv` format to standard output. Existing
-files are protected unless `--force` is supplied. Omit `--employee-type` only for scenarios with
-exactly one employee type. The optional summary is written to standard error, so report output can
-be redirected safely.
+files are protected unless `--force` is supplied. `--employee CODE=COUNT` is repeatable and counts
+must be positive; its order is preserved. The legacy `--employee-type CODE --team-size N` form
+remains available but cannot be mixed with `--employee`. Omit both forms only for a single-type
+scenario, which uses a team of three. The optional summary is written to standard error.
 
 The API currently covers authentication, professor-owned scenarios and classes, student
 simulation runs, weekly decisions, submissions, and professor result audits. Interactive API

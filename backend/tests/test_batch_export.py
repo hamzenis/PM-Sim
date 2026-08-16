@@ -7,7 +7,7 @@ import pytest
 
 from app.batch import BatchExportError, export_reports, reports_to_csv, reports_to_json
 from app.batch.runner import run_simulation_batch
-from app.batch.strategies import built_in_strategy
+from app.batch.strategies import TeamMemberCount, built_in_strategy
 from app.scenarios.models import ScenarioDefinition
 from app.simulation.results import SimulationOutcome
 
@@ -38,7 +38,7 @@ def _scenario() -> ScenarioDefinition:
 def _report(strategy: str):
     return run_simulation_batch(
         _scenario(),
-        strategy=built_in_strategy(strategy, employee_type_code="developer"),
+        strategy=built_in_strategy(strategy, team_composition=(TeamMemberCount("developer", 3),)),
         repetitions=2,
     )
 

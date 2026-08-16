@@ -8,7 +8,6 @@ from pathlib import Path
 from statistics import mean
 
 from app.batch import (
-    BatchProvenance,
     execute_batch_strategies,
     export_text,
     load_scenario,
@@ -106,22 +105,14 @@ STRATEGIES = (
 def generate_evidence() -> tuple[dict[str, object], list[dict[str, object]]]:
     loaded = load_scenario(SCENARIO_PATH)
     intended = loaded.definition
-    provenance = BatchProvenance(
-        scenario_path=loaded.source_path,
-        scenario_name=intended.name,
-        strategy_names=tuple(strategy.name for strategy in STRATEGIES),
-        seeds=tuple(range(INITIAL_SEED, INITIAL_SEED + REPETITIONS)),
-        team_size=4,
-        employee_type_code="mixed",
-        output_formats=("json", "csv"),
-    )
+    seeds = tuple(range(INITIAL_SEED, INITIAL_SEED + REPETITIONS))
     reports: dict[str, object] = {
-        "scenario": str(provenance.scenario_path.relative_to(BACKEND)),
+        "scenario": str(loaded.source_path.relative_to(BACKEND)),
         "scenario_sha256": loaded.sha256_digest,
         "engine_entry_point": "app.batch.service.execute_batch_strategies",
-        "initial_seed": provenance.seeds[0],
+        "initial_seed": seeds[0],
         "repetitions_per_strategy": REPETITIONS,
-        "seed_range": [provenance.seeds[0], provenance.seeds[-1]],
+        "seed_range": [seeds[0], seeds[-1]],
         "strategies": [asdict(strategy) for strategy in STRATEGIES],
         "modes": {},
     }

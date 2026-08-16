@@ -33,7 +33,12 @@ from app.batch.service import (
     execution_result_to_dict,
     load_scenario,
 )
-from app.batch.strategies import DecisionStrategy, FixedAllocationStrategy, built_in_strategy
+from app.batch.strategies import (
+    DecisionStrategy,
+    FixedAllocationStrategy,
+    TeamMemberCount,
+    built_in_strategy,
+)
 
 __all__ = [
     "BatchSummary",
@@ -49,6 +54,7 @@ __all__ = [
     "BatchStrategyMetadata",
     "DecisionStrategy",
     "FixedAllocationStrategy",
+    "TeamMemberCount",
     "LoadedScenario",
     "ScenarioLoadError",
     "SimulationBatchReport",

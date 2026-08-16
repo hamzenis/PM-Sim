@@ -199,7 +199,8 @@ def test_batch_parser_defaults_and_paths() -> None:
     assert args.strategies is None
     assert args.repetitions == 100
     assert args.initial_seed == 0
-    assert args.team_size == 3
+    assert args.team_size is None
+    assert args.employees is None
     assert args.format == "json"
     assert args.output == Path("-")
     assert args.force is False
@@ -238,3 +239,62 @@ def test_batch_exports_selected_format_and_honors_force(tmp_path) -> None:
 def test_batch_invalid_configuration_returns_two() -> None:
     scenario = Path(__file__).parent / "fixtures" / "batch_scenario.json"
     assert launcher.main(["batch", "--scenario", str(scenario), "--repetitions", "0"]) == 2
+
+
+def test_batch_repeatable_employee_option_and_shorthand_are_compatible(capsys) -> None:
+    scenario = Path(__file__).parent / "fixtures" / "batch_scenario.json"
+    assert (
+        launcher.main(
+            [
+                "batch",
+                "--scenario",
+                str(scenario),
+                "--repetitions",
+                "1",
+                "--employee",
+                "developer=2",
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    assert (
+        launcher.main(
+            [
+                "batch",
+                "--scenario",
+                str(scenario),
+                "--repetitions",
+                "1",
+                "--employee-type",
+                "developer",
+                "--team-size",
+                "2",
+            ]
+        )
+        == 0
+    )
+
+
+def test_batch_rejects_mixed_employee_forms_and_duplicate_types(capsys) -> None:
+    scenario = Path(__file__).parent / "fixtures" / "batch_scenario.json"
+    common = ["batch", "--scenario", str(scenario), "--repetitions", "1"]
+    assert (
+        launcher.main([*common, "--employee", "developer=1", "--employee-type", "developer"]) == 2
+    )
+    assert launcher.main([*common, "--employee", "developer=1", "--team-size", "3"]) == 2
+    assert launcher.main([*common, "--employee", "developer=1", "--employee", "developer=2"]) == 2
+    assert launcher.main([*common, "--employee", "manager=1"]) == 2
+    errors = capsys.readouterr().err
+    assert "cannot be combined" in errors
+    assert "must be unique" in errors
+    assert "unknown employee type" in errors
+
+
+@pytest.mark.parametrize("employee", ["developer=0", "developer=x", "developer", "=2"])
+def test_batch_parser_rejects_invalid_employee_counts(employee) -> None:
+    with pytest.raises(SystemExit) as error:
+        launcher.build_parser().parse_args(
+            ["batch", "--scenario", "scenario.json", "--employee", employee]
+        )
+    assert error.value.code == 2

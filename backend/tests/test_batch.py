@@ -11,8 +11,9 @@ from app.batch.runner import (
     run_simulation_batch,
     summarize_distribution,
 )
-from app.batch.strategies import built_in_strategy
+from app.batch.strategies import TeamMemberCount, built_in_strategy
 from app.scenarios.models import ScenarioDefinition
+from app.scenarios.to_simulation import initial_state_from_scenario
 
 
 def test_batch_uses_reproducible_consecutive_seeds() -> None:
@@ -55,7 +56,7 @@ def scenario() -> ScenarioDefinition:
 
 
 def test_full_batch_is_deterministic_and_reports_aggregate_metrics() -> None:
-    strategy = built_in_strategy("balanced", employee_type_code="developer")
+    strategy = built_in_strategy("balanced", team_composition=(TeamMemberCount("developer", 3),))
     first = run_simulation_batch(scenario(), strategy=strategy, repetitions=4, initial_seed=20)
     second = run_simulation_batch(scenario(), strategy=strategy, repetitions=4, initial_seed=20)
     assert report_to_dict(first) == report_to_dict(second)
@@ -66,7 +67,9 @@ def test_full_batch_is_deterministic_and_reports_aggregate_metrics() -> None:
 
 
 def test_batch_report_can_be_exported_as_csv() -> None:
-    strategy = built_in_strategy("quality-first", employee_type_code="developer")
+    strategy = built_in_strategy(
+        "quality-first", team_composition=(TeamMemberCount("developer", 3),)
+    )
     report = run_simulation_batch(scenario(), strategy=strategy, repetitions=2)
     rows = list(csv.DictReader(io.StringIO(report_to_csv(report))))
     assert len(rows) == 2
@@ -76,4 +79,16 @@ def test_batch_report_can_be_exported_as_csv() -> None:
 
 def test_unknown_strategy_is_rejected() -> None:
     with pytest.raises(ValueError, match="unknown strategy"):
-        built_in_strategy("reckless", employee_type_code="developer")
+        built_in_strategy("reckless", team_composition=(TeamMemberCount("developer", 3),))
+
+
+def test_fixed_strategy_hires_mixed_team_in_configured_order() -> None:
+    strategy = built_in_strategy(
+        "balanced",
+        team_composition=(TeamMemberCount("developer", 2), TeamMemberCount("tester", 1)),
+    )
+    decision = strategy.decide(initial_state_from_scenario(scenario()))
+    assert [(hire.employee_type_code, hire.count) for hire in decision.hires] == [
+        ("developer", 2),
+        ("tester", 1),
+    ]

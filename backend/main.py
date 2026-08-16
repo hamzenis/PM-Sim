@@ -15,11 +15,14 @@ from alembic import command
 from app.auth.service import AuthenticationError, create_user
 from app.batch.export import BatchExportError, export_reports
 from app.batch.service import (
+    BatchConfigurationError,
     BatchExecutionConfig,
     BatchExecutionError,
     BatchExecutionResult,
     execute_batch,
+    load_scenario,
 )
+from app.batch.strategies import TeamMemberCount
 from app.classes.service import assign_scenario, create_class, import_students
 from app.config import Settings, settings
 from app.db.backup import backup_sqlite_database
@@ -143,7 +146,15 @@ def build_parser() -> argparse.ArgumentParser:
     batch.add_argument(
         "--employee-type", help="employee type code (inferred only when the scenario has one)"
     )
-    batch.add_argument("--team-size", type=int, default=3, help="initial team size (default: 3)")
+    batch.add_argument("--team-size", type=int, help="initial team size (default: 3)")
+    batch.add_argument(
+        "--employee",
+        dest="employees",
+        action="append",
+        type=_parse_employee_count,
+        metavar="CODE=COUNT",
+        help="initial employee count by type (repeat for a mixed team)",
+    )
     batch.add_argument(
         "--format", choices=("json", "csv"), default="json", help="report format (default: json)"
     )
@@ -212,17 +223,31 @@ def _migrate_unless_disabled(args: argparse.Namespace) -> None:
 
 def _handle_batch(args: argparse.Namespace, _password_reader: Callable[[str], str]) -> int:
     try:
+        if args.employees and (args.employee_type is not None or args.team_size is not None):
+            raise BatchConfigurationError(
+                "--employee cannot be combined with --employee-type or --team-size"
+            )
+        team_composition = tuple(args.employees or ())
+        if not team_composition:
+            loaded = load_scenario(args.scenario)
+            employee_type = args.employee_type or loaded.employee_type_code
+            if employee_type is None:
+                raise BatchConfigurationError(
+                    "--employee-type is required when the scenario defines multiple employee types"
+                )
+            team_composition = (
+                TeamMemberCount(employee_type, args.team_size if args.team_size is not None else 3),
+            )
         result = execute_batch(
             BatchExecutionConfig(
                 scenario_path=args.scenario,
+                team_composition=team_composition,
                 strategy_names=tuple(args.strategies or ("balanced",)),
                 repetitions=args.repetitions,
                 initial_seed=args.initial_seed,
-                team_size=args.team_size,
-                employee_type=args.employee_type,
             )
         )
-    except BatchExecutionError as error:
+    except (BatchExecutionError, ValueError) as error:
         print(f"Could not run batch: {error}", file=sys.stderr)
         return 2
     except Exception as error:  # pragma: no cover - defensive CLI boundary
@@ -248,6 +273,20 @@ def _handle_batch(args: argparse.Namespace, _password_reader: Callable[[str], st
     if args.summary:
         _print_batch_summary(result)
     return 0
+
+
+def _parse_employee_count(value: str) -> TeamMemberCount:
+    code, separator, raw_count = value.partition("=")
+    if not separator or not code or not raw_count:
+        raise argparse.ArgumentTypeError("employee must use CODE=COUNT")
+    try:
+        count = int(raw_count)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("employee count must be an integer") from error
+    try:
+        return TeamMemberCount(code, count)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
 
 
 def _print_batch_summary(result: BatchExecutionResult) -> None:

@@ -9,6 +9,7 @@ from app.batch import (
     BatchExecutionConfig,
     BatchOutputError,
     ScenarioLoadError,
+    TeamMemberCount,
     execute_batch,
     execution_result_to_dict,
     load_scenario,
@@ -65,16 +66,34 @@ def test_malformed_scenario_diagnostic_names_source(tmp_path) -> None:
     ("changes", "message"),
     [
         ({"repetitions": 0}, "repetitions"),
-        ({"team_size": 0}, "team size"),
+        ({"team_composition": ()}, "at least one employee"),
+        (
+            {
+                "team_composition": (
+                    TeamMemberCount("developer", 1),
+                    TeamMemberCount("developer", 2),
+                )
+            },
+            "unique",
+        ),
         ({"initial_seed": -1}, "initial seed"),
         ({"initial_seed": 2**32 - 1, "repetitions": 2}, "seed range"),
         ({"strategy_names": ("balanced", "balanced")}, "unique"),
     ],
 )
 def test_config_rejects_invalid_execution_values(tmp_path, changes, message) -> None:
-    values = {"scenario_path": write_scenario(tmp_path), **changes}
+    values = {
+        "scenario_path": write_scenario(tmp_path),
+        "team_composition": (TeamMemberCount("developer", 3),),
+        **changes,
+    }
     with pytest.raises(BatchConfigurationError, match=message):
         BatchExecutionConfig(**values)
+
+
+def test_team_member_count_rejects_invalid_counts() -> None:
+    with pytest.raises(ValueError, match="positive"):
+        TeamMemberCount("developer", 0)
 
 
 def test_execute_batch_compares_strategies_over_identical_seed_range(tmp_path) -> None:
@@ -83,7 +102,7 @@ def test_execute_batch_compares_strategies_over_identical_seed_range(tmp_path) -
         strategy_names=("balanced", "quality-first"),
         repetitions=3,
         initial_seed=12,
-        team_size=2,
+        team_composition=(TeamMemberCount("developer", 2),),
     )
     first = execute_batch(config)
     second = execute_batch(replace(config))
@@ -93,14 +112,19 @@ def test_execute_batch_compares_strategies_over_identical_seed_range(tmp_path) -
         [12, 13, 14],
     ]
     assert first.reports == second.reports
-    assert first.provenance.employee_type_code == "developer"
+    assert first.provenance.team_composition == (TeamMemberCount("developer", 2),)
 
 
 def test_report_metadata_tracks_exact_input_and_keeps_simulation_payload_deterministic(
     tmp_path,
 ) -> None:
     path = write_scenario(tmp_path)
-    config = BatchExecutionConfig(scenario_path=path, repetitions=2, initial_seed=7, team_size=2)
+    config = BatchExecutionConfig(
+        scenario_path=path,
+        repetitions=2,
+        initial_seed=7,
+        team_composition=(TeamMemberCount("developer", 2),),
+    )
     first = execute_batch(config)
     second = execute_batch(config)
 
@@ -109,15 +133,14 @@ def test_report_metadata_tracks_exact_input_and_keeps_simulation_payload_determi
     assert metadata["scenario_name"] == "Service batch"
     assert metadata["scenario_sha256"] == sha256(path.read_bytes()).hexdigest()
     assert (metadata["initial_seed"], metadata["final_seed"], metadata["repetitions"]) == (7, 8, 2)
-    assert metadata["schema_version"] == 1
+    assert metadata["schema_version"] == 2
     assert metadata["pm_sim_package"] == "pm-sim-backend"
     assert metadata["pm_sim_version"]
     assert metadata["generated_at"].endswith("+00:00")
     assert metadata["strategies"] == [
         {
             "name": "balanced",
-            "employee_type": "developer",
-            "team_size": 2,
+            "team_composition": [{"employee_type_code": "developer", "count": 2}],
             "allocation": {
                 "development": 40,
                 "unit_testing": 25,
@@ -134,12 +157,42 @@ def test_report_metadata_tracks_exact_input_and_keeps_simulation_payload_determi
     assert changed.metadata.scenario_sha256 != first.metadata.scenario_sha256
 
 
-def test_execute_batch_requires_known_explicit_type_when_scenario_is_ambiguous(tmp_path) -> None:
+def test_execute_batch_rejects_unknown_employee_type(tmp_path) -> None:
     path = write_scenario(tmp_path, employee_codes=("developer", "tester"))
-    with pytest.raises(BatchConfigurationError, match="employee type is required"):
-        execute_batch(BatchExecutionConfig(scenario_path=path))
     with pytest.raises(BatchConfigurationError, match="unknown employee type"):
-        execute_batch(BatchExecutionConfig(scenario_path=path, employee_type="manager"))
+        execute_batch(
+            BatchExecutionConfig(
+                scenario_path=path,
+                team_composition=(TeamMemberCount("manager", 1),),
+            )
+        )
+
+
+def test_execute_batch_hires_mixed_team_deterministically(tmp_path) -> None:
+    path = write_scenario(tmp_path, employee_codes=("developer", "tester"))
+    config = BatchExecutionConfig(
+        scenario_path=path,
+        repetitions=2,
+        initial_seed=9,
+        team_composition=(TeamMemberCount("developer", 2), TeamMemberCount("tester", 1)),
+    )
+    first = execute_batch(config)
+    second = execute_batch(config)
+    assert first.reports == second.reports
+    assert [
+        employee.employee_type_code for employee in first.reports[0].runs[0].final_state.employees
+    ] == [
+        "developer",
+        "developer",
+        "tester",
+    ]
+    serialized = execution_result_to_dict(first)
+    expected = [
+        {"employee_type_code": "developer", "count": 2},
+        {"employee_type_code": "tester", "count": 1},
+    ]
+    assert serialized["provenance"]["team_composition"] == expected
+    assert serialized["metadata"]["strategies"][0]["team_composition"] == expected
 
 
 def test_output_destination_is_validated_and_requested_reports_are_written(tmp_path) -> None:
@@ -147,12 +200,17 @@ def test_output_destination_is_validated_and_requested_reports_are_written(tmp_p
     not_a_directory = tmp_path / "report.json"
     not_a_directory.write_text("occupied")
     with pytest.raises(BatchOutputError, match="not a directory"):
-        BatchExecutionConfig(scenario_path=scenario, output_directory=not_a_directory)
+        BatchExecutionConfig(
+            scenario_path=scenario,
+            team_composition=(TeamMemberCount("developer", 3),),
+            output_directory=not_a_directory,
+        )
 
     output = tmp_path / "reports"
     execute_batch(
         BatchExecutionConfig(
             scenario_path=scenario,
+            team_composition=(TeamMemberCount("developer", 3),),
             repetitions=1,
             output_formats=("json", "csv"),
             output_directory=output,
